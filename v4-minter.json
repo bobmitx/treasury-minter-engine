@@ -1,0 +1,66 @@
+{
+  "code": 200,
+  "data": {
+    "description": "Where to scan PulseChain",
+    "external": {
+      "author": {
+        "https://pulsechain.com/": {}
+      },
+      "icon": {
+        "https://scan.pulsechain.com/icon.png?1a4e14593bda4578": {
+          "sizes": "128x128",
+          "type": "image/png"
+        }
+      },
+      "preload": {
+        "https://scan.pulsechain.com/_next/static/chunks/webpack-7e941f2a7ac268ba.js": {
+          "as": "script",
+          "fetchpriority": "low"
+        },
+        "https://scan.pulsechain.com/_next/static/media/0484562807a97172-s.p.woff2": {
+          "as": "font",
+          "crossorigin": "",
+          "type": "font/woff2"
+        },
+        "https://scan.pulsechain.com/_next/static/media/8888a3826f4a3af4-s.p.woff2": {
+          "as": "font",
+          "crossorigin": "",
+          "type": "font/woff2"
+        },
+        "https://scan.pulsechain.com/logo.svg": {
+          "as": "image"
+        }
+      }
+    },
+    "html": "<html lang=\"en\" class=\"__className_5f704f\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><link rel=\"preload\" href=\"/_next/static/media/0484562807a97172-s.p.woff2\" as=\"font\" crossorigin=\"\" type=\"font/woff2\"><link rel=\"preload\" href=\"/_next/static/media/8888a3826f4a3af4-s.p.woff2\" as=\"font\" crossorigin=\"\" type=\"font/woff2\"><link rel=\"preload\" as=\"image\" href=\"/logo.svg\"><link rel=\"stylesheet\" href=\"/_next/static/css/8d18900d21ec7843.css\" data-precedence=\"next\"><link rel=\"preload\" as=\"script\" fetchpriority=\"low\" href=\"/_next/static/chunks/webpack-7e941f2a7ac268ba.js\"><script src=\"/_next/static/chunks/fd9d1056-a89b357d58a19cbb.js\" async=\"\"></script><script src=\"/_next/static/chunks/472-b5a3292012154384.js\" async=\"\"></script><script src=\"/_next/static/chunks/main-app-bfee71f6b6032420.js\" async=\"\"></script><script src=\"/_next/static/chunks/78-d7777fc55f904e43.js\" async=\"\"></script><script src=\"/_next/static/chunks/app/address/%5Bslug%5D/page-1ef497d01d66e834.js\" async=\"\"></script><meta name=\"theme-color\" content=\"#000\"><meta name=\"color-scheme\" content=\"dark\"><title>scan.pulsechain.com</title><meta name=\"description\" content=\"Where to scan PulseChain\"><link rel=\"author\" href=\"https://pulsechain.com\"><meta name=\"author\" content=\"PulseChain\"><meta name=\"keywords\" content=\"PulseChain,scan,explorer,frontend,IPFS links,Richard Heart\"><meta property=\"og:image:type\" content=\"image/jpeg\"><meta property=\"og:image:width\" content=\"1200\"><meta property=\"og:image:height\" content=\"630\"><meta property=\"og:image\" content=\"https://scan.pulsechain.com/opengraph-image.jpg?4c035a22b7c3acc6\"><meta name=\"twitter:card\" content=\"summary_large_image\"><meta name=\"twitter:image:type\" content=\"image/jpeg\"><meta name=\"twitter:image:width\" content=\"1200\"><meta name=\"twitter:image:height\" content=\"630\"><meta name=\"twitter:image\" content=\"https://scan.pulsechain.com/opengraph-image.jpg?4c035a22b7c3acc6\"><link rel=\"icon\" href=\"/icon.png?1a4e14593bda4578\" type=\"image/png\" sizes=\"128x128\"><meta name=\"next-size-adjust\"><script src=\"/_next/static/chunks/polyfills-c67a75d1b6f99dc8.js\" nomodule=\"\"></script></head><body><div class=\"flex flex-col items-start w-[550px] max-w-[90%] mx-auto\"><img src=\"/logo.svg\" class=\"h-8\" alt=\"HEX.COM official logo\"><div class=\"mt-5 bg-[var(--green)] rounded-md shadow py-3 px-4 flex gap-1.5 mb-2\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"h-5 w-5 shrink-0 mt-0.5 stroke-[2.5]\"><polyline points=\"20 6 9 17 4 12\"></polyline></svg>Decentralization, robustness, and privacy are core principles of real blockchains.</div><div class=\"text-[#fff5] text-[14px] mb-10\">scan.PulseChain.com is a list of links to explore the chain.</div></div><script src=\"/_next/static/chunks/webpack-7e941f2a7ac268ba.js\" async=\"\"></script><script>(self.__next_f=self.__next_f||[]).push([0]);self.__next_f.push([2,null])</script><script>self.__next_f.push([1,\"1:HL[\\\"/_next/static/media/0484562807a97172-s.p.woff2\\\",\\\"font\\\",{\\\"crossOrigin\\\":\\\"\\\",\\\"type\\\":\\\"font/woff2\\\"}]\\n2:HL[\\\"/_next/static/media/8888a3826f4a3af4-s.p.woff2\\\",\\\"font\\\",{\\\"crossOrigin\\\":\\\"\\\",\\\"type\\\":\\\"font/woff2\\\"}]\\n3:HL[\\\"/_next/static/css/8d18900d21ec7843.css\\\",\\\"style\\\"]\\n0:\\\"$L4\\\"\\n\"])</script><script>self.__next_f.push([1,\"5:I[3728,[],\\\"\\\"]\\n7:I[9928,[],\\\"\\\"]\\n8:I[6954,[],\\\"\\\"]\\n9:I[7264,[],\\\"\\\"]\\nc:I[2147,[\\\"78\\\",\\\"static/chunks/78-d7777fc55f904e43.js\\\",\\\"680\\\",\\\"static/chunks/app/address/%5Bslug%5D/page-1ef497d01d66e834.js\\\"],\\\"\\\"]\\n\"])</script><script>self.__next_f.push([1,\"4:[[[\\\"$\\\",\\\"link\\\",\\\"0\\\",{\\\"rel\\\":\\\"stylesheet\\\",\\\"href\\\":\\\"/_next/static/css/8d18900d21ec7843.css\\\",\\\"precedence\\\":\\\"next\\\",\\\"crossOrigin\\\":\\\"$undefined\\\"}]],[\\\"$\\\",\\\"$L5\\\",null,{\\\"buildId\\\":\\\"BoCPkMA9J2mEX6vSF4O0j\\\",\\\"assetPrefix\\\":\\\"\\\",\\\"initialCanonicalUrl\\\":\\\"/address/0x394c3D5990cEfC7Be36B82FDB07a7251ACe61cc7\\\",\\\"initialTree\\\":[\\\"\\\",{\\\"children\\\":[\\\"address\\\",{\\\"children\\\":[[\\\"slug\\\",\\\"0x394c3D5990cEfC7Be36B82FDB07a7251ACe61cc7\\\",\\\"d\\\"],{\\\"children\\\":[\\\"__PAGE__\\\",{}]}]}]},\\\"$undefined\\\",\\\"$undefined\\\",true],\\\"initialHead\\\":[false,\\\"$L6\\\"],\\\"globalErrorComponent\\\":\\\"$7\\\",\\\"children\\\":[null,[\\\"$\\\",\\\"html\\\",null,{\\\"lang\\\":\\\"en\\\",\\\"className\\\":\\\"__className_5f704f\\\",\\\"children\\\":[\\\"$\\\",\\\"body\\\",null,{\\\"children\\\":[\\\"$\\\",\\\"$L8\\\",null,{\\\"parallelRouterKey\\\":\\\"children\\\",\\\"segmentPath\\\":[\\\"children\\\"],\\\"loading\\\":\\\"$undefined\\\",\\\"loadingStyles\\\":\\\"$undefined\\\",\\\"loadingScripts\\\":\\\"$undefined\\\",\\\"hasLoading\\\":false,\\\"error\\\":\\\"$undefined\\\",\\\"errorStyles\\\":\\\"$undefined\\\",\\\"errorScripts\\\":\\\"$undefined\\\",\\\"template\\\":[\\\"$\\\",\\\"$L9\\\",null,{}],\\\"templateStyles\\\":\\\"$undefined\\\",\\\"templateScripts\\\":\\\"$undefined\\\",\\\"notFound\\\":\\\"$La\\\",\\\"notFoundStyles\\\":[],\\\"childProp\\\":{\\\"current\\\":[\\\"$\\\",\\\"$L8\\\",null,{\\\"parallelRouterKey\\\":\\\"children\\\",\\\"segmentPath\\\":[\\\"children\\\",\\\"address\\\",\\\"children\\\"],\\\"loading\\\":\\\"$undefined\\\",\\\"loadingStyles\\\":\\\"$undefined\\\",\\\"loadingScripts\\\":\\\"$undefined\\\",\\\"hasLoading\\\":false,\\\"error\\\":\\\"$undefined\\\",\\\"errorStyles\\\":\\\"$undefined\\\",\\\"errorScripts\\\":\\\"$undefined\\\",\\\"template\\\":[\\\"$\\\",\\\"$L9\\\",null,{}],\\\"templateStyles\\\":\\\"$undefined\\\",\\\"templateScripts\\\":\\\"$undefined\\\",\\\"notFound\\\":\\\"$undefined\\\",\\\"notFoundStyles\\\":\\\"$undefined\\\",\\\"childProp\\\":{\\\"current\\\":[\\\"$\\\",\\\"$L8\\\",null,{\\\"parallelRouterKey\\\":\\\"children\\\",\\\"segmentPath\\\":[\\\"children\\\",\\\"address\\\",\\\"children\\\",[\\\"slug\\\",\\\"0x394c3D5990cEfC7Be36B82FDB07a7251ACe61cc7\\\",\\\"d\\\"],\\\"children\\\"],\\\"loading\\\":\\\"$undefined\\\",\\\"loadingStyles\\\":\\\"$undefined\\\",\\\"loadingScripts\\\":\\\"$undefined\\\",\\\"hasLoading\\\":false,\\\"error\\\":\\\"$undefined\\\",\\\"errorStyles\\\":\\\"$undefined\\\",\\\"errorScripts\\\":\\\"$undefined\\\",\\\"template\\\":[\\\"$\\\",\\\"$L9\\\",null,{}],\\\"templateStyles\\\":\\\"$undefined\\\",\\\"templateScripts\\\":\\\"$undefined\\\",\\\"notFound\\\":\\\"$undefined\\\",\\\"notFoundStyles\\\":\\\"$undefined\\\",\\\"childProp\\\":{\\\"current\\\":[\\\"$Lb\\\",[\\\"$\\\",\\\"div\\\",null,{\\\"className\\\":\\\"flex flex-col items-start w-[550px] max-w-[90%] mx-auto\\\",\\\"children\\\":[[[\\\"$\\\",\\\"img\\\",null,{\\\"src\\\":\\\"/logo.svg\\\",\\\"className\\\":\\\"h-8\\\",\\\"alt\\\":\\\"HEX.COM official logo\\\"}],[\\\"$\\\",\\\"div\\\",null,{\\\"className\\\":\\\"mt-5 bg-[var(--green)] rounded-md shadow py-3 px-4 flex gap-1.5 mb-2\\\",\\\"children\\\":[[\\\"$\\\",\\\"svg\\\",null,{\\\"xmlns\\\":\\\"http://www.w3.org/2000/svg\\\",\\\"width\\\":24,\\\"height\\\":24,\\\"viewBox\\\":\\\"0 0 24 24\\\",\\\"fill\\\":\\\"none\\\",\\\"stroke\\\":\\\"currentColor\\\",\\\"strokeWidth\\\":2,\\\"strokeLinecap\\\":\\\"round\\\",\\\"strokeLinejoin\\\":\\\"round\\\",\\\"className\\\":\\\"h-5 w-5 shrink-0 mt-0.5 stroke-[2.5]\\\",\\\"children\\\":[[\\\"$\\\",\\\"polyline\\\",\\\"10jjfj\\\",{\\\"points\\\":\\\"20 6 9 17 4 12\\\"}],\\\"$undefined\\\"]}],\\\"Decentralization, robustness, and privacy are core principles of real blockchains.\\\"]}],[\\\"$\\\",\\\"div\\\",null,{\\\"className\\\":\\\"text-[#fff5] text-[14px] mb-10\\\",\\\"children\\\":\\\"scan.PulseChain.com is a list of links to explore the chain.\\\"}]],[\\\"$\\\",\\\"$Lc\\\",null,{\\\"slug\\\":\\\"/#/address/0x394c3D5990cEfC7Be36B82FDB07a7251ACe61cc7\\\"}]]}],null],\\\"segment\\\":\\\"__PAGE__\\\"},\\\"styles\\\":null}],\\\"segment\\\":[\\\"slug\\\",\\\"0x394c3D5990cEfC7Be36B82FDB07a7251ACe61cc7\\\",\\\"d\\\"]},\\\"styles\\\":null}],\\\"segment\\\":\\\"address\\\"},\\\"styles\\\":null}]}]}],null]}]]\\n\"])</script><script>self.__next_f.push([1,\"a:\\\"$Ld\\\"\\n\"])</script><script>self.__next_f.push([1,\"6:[[\\\"$\\\",\\\"meta\\\",\\\"0\\\",{\\\"name\\\":\\\"viewport\\\",\\\"content\\\":\\\"width=device-width, initial-scale=1\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"1\\\",{\\\"name\\\":\\\"theme-color\\\",\\\"content\\\":\\\"#000\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"2\\\",{\\\"name\\\":\\\"color-scheme\\\",\\\"content\\\":\\\"dark\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"3\\\",{\\\"charSet\\\":\\\"utf-8\\\"}],[\\\"$\\\",\\\"title\\\",\\\"4\\\",{\\\"children\\\":\\\"scan.pulsechain.com\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"5\\\",{\\\"name\\\":\\\"description\\\",\\\"content\\\":\\\"Where to scan PulseChain\\\"}],[\\\"$\\\",\\\"link\\\",\\\"6\\\",{\\\"rel\\\":\\\"author\\\",\\\"href\\\":\\\"https://pulsechain.com\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"7\\\",{\\\"name\\\":\\\"author\\\",\\\"content\\\":\\\"PulseChain\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"8\\\",{\\\"name\\\":\\\"keywords\\\",\\\"content\\\":\\\"PulseChain,scan,explorer,frontend,IPFS links,Richard Heart\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"9\\\",{\\\"property\\\":\\\"og:image:type\\\",\\\"content\\\":\\\"image/jpeg\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"10\\\",{\\\"property\\\":\\\"og:image:width\\\",\\\"content\\\":\\\"1200\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"11\\\",{\\\"property\\\":\\\"og:image:height\\\",\\\"content\\\":\\\"630\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"12\\\",{\\\"property\\\":\\\"og:image\\\",\\\"content\\\":\\\"https://scan.pulsechain.com/opengraph-image.jpg?4c035a22b7c3acc6\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"13\\\",{\\\"name\\\":\\\"twitter:card\\\",\\\"content\\\":\\\"summary_large_image\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"14\\\",{\\\"name\\\":\\\"twitter:image:type\\\",\\\"content\\\":\\\"image/jpeg\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"15\\\",{\\\"name\\\":\\\"twitter:image:width\\\",\\\"content\\\":\\\"1200\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"16\\\",{\\\"name\\\":\\\"twitter:image:height\\\",\\\"content\\\":\\\"630\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"17\\\",{\\\"name\\\":\\\"twitter:image\\\",\\\"content\\\":\\\"https://scan.pulsechain.com/opengraph-image.jpg?4c035a22b7c3acc6\\\"}],[\\\"$\\\",\\\"link\\\",\\\"18\\\",{\\\"rel\\\":\\\"icon\\\",\\\"href\\\":\\\"/icon.png?1a4e14593bda4578\\\",\\\"type\\\":\\\"image/png\\\",\\\"sizes\\\":\\\"128x128\\\"}],[\\\"$\\\",\\\"meta\\\",\\\"19\\\",{\\\"name\\\":\\\"next-size-adjust\\\"}]]\\n\"])</script><script>self.__next_f.push([1,\"b:null\\nd:E{\\\"digest\\\":\\\"NEXT_REDIRECT;replace;/;false\\\"}\\n\"])</script><script>self.__next_f.push([1,\"\"])</script></body></html>",
+    "metadata": {
+      "author": "PulseChain",
+      "color-scheme": "dark",
+      "description": "Where to scan PulseChain",
+      "keywords": "PulseChain,scan,explorer,frontend,IPFS links,Richard Heart",
+      "lang": "en",
+      "og:image": "https://scan.pulsechain.com/opengraph-image.jpg?4c035a22b7c3acc6",
+      "og:image:height": "630",
+      "og:image:type": "image/jpeg",
+      "og:image:width": "1200",
+      "theme-color": "#000",
+      "twitter:card": "summary_large_image",
+      "twitter:image": "https://scan.pulsechain.com/opengraph-image.jpg?4c035a22b7c3acc6",
+      "twitter:image:height": "630",
+      "twitter:image:type": "image/jpeg",
+      "twitter:image:width": "1200",
+      "viewport": "width=device-width, initial-scale=1"
+    },
+    "title": "scan.pulsechain.com",
+    "url": "https://scan.pulsechain.com/address/0x394c3D5990cEfC7Be36B82FDB07a7251ACe61cc7",
+    "usage": {
+      "tokens": 2831
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 2831
+    }
+  },
+  "status": 20000
+}
