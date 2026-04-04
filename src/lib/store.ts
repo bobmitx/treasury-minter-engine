@@ -11,7 +11,8 @@ export type TabType =
   | "calculator"
   | "bot-mode"
   | "comparison"
-  | "watchlist";
+  | "watchlist"
+  | "guide";
 
 export type TxStatus = "pending" | "confirmed" | "failed";
 

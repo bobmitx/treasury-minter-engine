@@ -18,6 +18,7 @@ import { PriceAlertSoundToggle } from "@/components/price-alert-sound";
 import { QuickMintFAB } from "@/components/quick-mint-fab";
 import { TokenComparison } from "@/components/token-comparison";
 import { TokenWatchlist } from "@/components/token-watchlist";
+import { AppGuide } from "@/components/app-guide";
 import { useProfitAlertChecker } from "@/hooks/use-profit-alert-checker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,7 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  BookOpen,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getChainId, switchToPulseChain, isPulseChain } from "@/lib/ethereum";
@@ -84,6 +86,7 @@ const TABS: Array<{
   { id: "bot-mode", label: "Bot Mode", icon: Bot, badge: "New" },
   { id: "comparison", label: "Compare", icon: GitCompare },
   { id: "watchlist", label: "Watchlist", icon: Eye },
+  { id: "guide", label: "Guide", icon: BookOpen },
 ];
 
 function SettingsDialog() {
@@ -968,6 +971,7 @@ export default function Home() {
                 {activeTab === "bot-mode" && <BotPanel />}
                 {activeTab === "comparison" && <TokenComparison />}
                 {activeTab === "watchlist" && <TokenWatchlist />}
+                {activeTab === "guide" && <AppGuide />}
               </motion.div>
             </AnimatePresence>
           </div>

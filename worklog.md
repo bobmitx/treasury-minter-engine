@@ -1934,3 +1934,41 @@ Application running stable with 10 tabs (Dashboard, V3 Minter, V4 Minter, MultiH
 3. **Historical Price Data**: Charts use simulated data. Real historical data requires time-series storage or on-chain event parsing.
 4. **Price Source Improvement**: Consider integrating pulsex.mypinata.cloud, piteas for more accurate PLS/token pricing.
 5. **Mobile Optimization**: Some complex components (Bot Panel, Calculator) may need further responsive work.
+
+---
+## Task ID: APP-GUIDE - Comprehensive In-App Guide Component
+
+### Work Task
+Create a new `AppGuide` component that serves as an in-app documentation page for the Treasury Minter Engine, explaining all platform features across 7 collapsible sections. Integrate it as a new "Guide" tab in the main page navigation.
+
+### Work Summary
+
+**1. `src/components/app-guide.tsx` — NEW FILE (920+ lines)**
+- **Exported as `AppGuide`** — a comprehensive, dark-themed explainer component using shadcn/ui Accordion pattern
+- **7 Collapsible Sections**, each with unique icon and themed styling:
+  - **Section 1 — "What is the Treasury Minter Engine?"** (Info icon): Overview of the dApp, two-card comparison of V3 (Index Minter, emerald theme) vs V4 (Personal Minter, amber theme), and bot engine description
+  - **Section 2 — "How V3 Minter Works"** (Zap icon, Emerald theme, V3 badge): 5 subsections covering Create Token (with contract address), Why T-BILL is the Parent (with T-BILL address and explanation of cost basis/multiplier mechanics), Minting (mint burns parent tokens), Multiplier (with decay formula), Profit Ratio (formula with $0.00006972 cost)
+  - **Section 3 — "How V4 Minter Works"** (Gem icon, Amber theme, V4 badge): Personal Minter contract address, Create Token, GAI Tokens (3-card grid: Staking/Rewards/Yield), Minting & Claiming Rewards, V4 System Sub-Contracts (2x2 grid: BBC/NINE/NOTS/SKILLS with color-coded borders)
+  - **Section 4 — "How the Calculator Works"** (Calculator icon): 5 formula blocks (Mint Cost, Revenue, Profit, ROI, Break-Even), Multiplier Projections formula, MultiHop Estimator description, 2-column layout for Break-Even and Multiplier sections
+  - **Section 5 — "How to Run the Bot"** (Bot icon, Amber accent): 4 numbered step items, Bot Configuration Parameters grid (4 params with ranges and descriptions), simulation disclaimer, auto-claim and real-time logs notes
+  - **Section 6 — "When is it Profitable to Mint?"** (TrendingUp icon): Golden Rule highlight box, 4 info cards (Fixed Mint Cost, Token Price = DEX, Higher Multiplier, Minimal Gas), 3-column action cards (Calculator/Alerts/Bot)
+  - **Section 7 — "Price Pipeline Explained"** (Link2 icon): PulseX V1 Factory address, 4-step pipeline visualization (Find Pair → Read Reserves → Calculate Ratio → Convert to USD), PLS/USD 3-tier fallback list, refresh rate info
+
+- **Helper Sub-Components**: `CodeBlock`, `FormulaBlock`, `HighlightBox` (emerald/amber/gray variants), `StepItem` (emerald/amber ring)
+- **Default Expanded**: Sections 1 and 6 open by default via `defaultValue={["section-1", "section-6"]}`
+- **Design Classes Used**: `animate-fade-in-up`, `card-hover`, `gradient-border`, `btn-hover-scale`, `input-focus-ring`, `glow-emerald`
+- **Lucide Icons**: 25 icons imported from lucide-react
+
+**2. `src/lib/store.ts` — Modified**
+- Added `"guide"` to the `TabType` union type
+
+**3. `src/app/page.tsx` — Modified**
+- Added `BookOpen` import from lucide-react
+- Added `AppGuide` import from `@/components/app-guide`
+- Added `{ id: "guide", label: "Guide", icon: BookOpen }` to TABS array after "watchlist"
+- Added `{activeTab === "guide" && <AppGuide />}` in the AnimatePresence section
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with zero errors
+- **Dev Server**: Compiles successfully, GET / returns 200
+- **No files modified in `src/components/ui/`**
