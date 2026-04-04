@@ -59,6 +59,8 @@ import {
   ArrowDownRight,
   GitCompare,
   Eye,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getChainId, switchToPulseChain, isPulseChain } from "@/lib/ethereum";
@@ -615,6 +617,40 @@ function EnhancedFooter() {
 export default function Home() {
   const { activeTab, setActiveTab, setChainId, botMode, botRunning, onboardingOpen, hasSeenOnboarding, setOnboardingOpen, setSettingsOpen } = useAppStore();
 
+  // Tab scroll arrow state
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 0);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    window.addEventListener("resize", updateScrollState);
+    return () => {
+      el.removeEventListener("scroll", updateScrollState);
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [updateScrollState]);
+
+  const scrollLeft = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollBy({ left: -200, behavior: "smooth" });
+  }, []);
+
+  const scrollRight = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollBy({ left: 200, behavior: "smooth" });
+  }, []);
+
   // Run profit alert background checker
   useProfitAlertChecker();
 
@@ -817,7 +853,32 @@ export default function Home() {
         {/* Tab Navigation - Glassmorphism with ARIA tablist */}
         <nav className="sticky top-14 z-40 glass-header border-b border-gray-800/70" aria-label="Main navigation">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div role="tablist" className="flex gap-0.5 overflow-x-auto scrollbar-none py-1">
+            <div className="relative">
+              {/* Left scroll arrow */}
+              {canScrollLeft && (
+                <button
+                  onClick={scrollLeft}
+                  className="absolute left-0 top-0 bottom-0 z-10 flex items-center justify-center w-7 bg-gradient-to-r from-gray-950/90 to-transparent backdrop-blur-sm hover:from-gray-800/90 transition-colors"
+                  aria-label="Scroll tabs left"
+                >
+                  <ChevronLeft className="h-4 w-4 text-gray-400" />
+                </button>
+              )}
+              {/* Right scroll arrow */}
+              {canScrollRight && (
+                <button
+                  onClick={scrollRight}
+                  className="absolute right-0 top-0 bottom-0 z-10 flex items-center justify-center w-7 bg-gradient-to-l from-gray-950/90 to-transparent backdrop-blur-sm hover:from-gray-800/90 transition-colors"
+                  aria-label="Scroll tabs right"
+                >
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                </button>
+              )}
+              <div
+                ref={scrollRef}
+                role="tablist"
+                className="flex gap-0.5 overflow-x-auto scrollbar-none py-1 scroll-smooth"
+              >
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -876,6 +937,7 @@ export default function Home() {
                   </Tooltip>
                 );
               })}
+              </div>
             </div>
           </div>
         </nav>

@@ -500,6 +500,60 @@ The application has 14+ custom components, 8 tabs, onboarding modal, profit aler
 6. **Token Detail "Mint More"**: Currently uses DOM manipulation. Should use Zustand state for cleaner tab-to-tab token passing.
 
 ---
+## Task ID: TX-IMPROVEMENTS - Market Overview Widget & Quick Actions Panel
+### Work Task
+Create two new components for the Treasury Minter Engine: (1) a compact Market Overview widget showing real-time PulseChain market data, top movers, fear & greed indicator, and quick stats; (2) an enhanced Quick Actions Panel with a 2x3 action grid, recent actions log, and pinnable favorite actions.
+
+### Work Summary
+
+**1. `src/components/market-overview.tsx` — Market Overview Widget (NEW FILE)**
+- **MarketStatsRow**: 4 mini stat items in a responsive grid (2-col mobile, 4-col desktop):
+  - PLS Price (from `useAppStore.plsPriceUSD`) with animated up/down trend indicator that flips every 5s
+  - 24h Volume (simulated ~$159K), Market Cap (simulated ~$56M), Active Wallets (simulated ~1.2K)
+  - Each stat has icon in colored container, label, value, and trend arrow
+- **TopMoversList**: Sorted list of 5 simulated token movers:
+  - Each row shows: rank number, token avatar (V3 emerald / V4 amber), name, symbol, version badge, price change % (green/red), volume
+  - Sorted by absolute price change descending
+  - Scrollable container with `max-h-64 overflow-y-auto`
+- **FearGreedGauge**: Visual horizontal bar meter:
+  - Full gradient bar from rose (Extreme Fear) through amber (Neutral) to emerald (Extreme Greed)
+  - Animated position dot that moves with value changes (simulated, updates every 8s with ±2 noise)
+  - Color-coded label badge (Extreme Fear/Fear/Neutral/Greed/Extreme Greed)
+  - Endpoint labels on both sides
+- **QuickStats**: 3-column grid showing PLS 24h Change (+2.34%), Top Gainer (PLS-TREAS +14.7%), Top Loser (SKILLS -9.8%)
+- **Layout**: Top full-width stats card, then 5-column grid (3-col Top Movers, 2-col Sentiment & Quick Stats)
+- **Styling**: `card-hover`, `glass-card-depth`, `animate-fade-in-up`, dark theme, emerald/amber/rose/violet accents
+
+**2. `src/components/quick-actions-panel.tsx` — Enhanced Quick Actions Panel (NEW FILE)**
+- **ActionGrid**: 2x3 responsive grid (2-col mobile, 3-col desktop) of 6 action buttons:
+  - Create V3 Token → `setActiveTab("v3-minter")` (Zap icon)
+  - Create V4 Token → `setActiveTab("v4-minter")` (Gem icon)
+  - MultiHop Mint → `setActiveTab("multihop")` (GitBranch icon)
+  - View Portfolio → `setActiveTab("portfolio")` (Wallet icon)
+  - Start Bot → `setActiveTab("bot-mode")` (Bot icon)
+  - Calculator → `setActiveTab("calculator")` (Calculator icon)
+  - Each button: icon in emerald container, label, emerald hover accent, `card-hover` + `btn-hover-scale` effects
+- **Recent Actions Log**: Shows last 5 transactions from store:
+  - Each entry: type-specific icon (Coins/Zap/Gift/GitBranch/RotateCcw), description with token symbol highlighted, relative timestamp, status dot (green/amber pulsing/red)
+  - Empty state with History icon and helpful message
+  - Scrollable with `max-h-48 overflow-y-auto`
+- **Favorite Actions (Pinned)**: Users can pin up to 2 actions via hover-revealed pin button:
+  - Pin state persisted in localStorage (`treasury-minter-favorites` key)
+  - Pinned actions shown as compact emerald-tinted buttons above the action grid
+  - Amber Star icon header with count badge (e.g., "1/2")
+  - Visual indicator: Pin icon appears on pinned action's top-left corner
+  - Pin/Unpin button revealed on hover (PinOff for pinned, Pin for unpinned)
+- **Styling**: `card-hover`, `glass-card-depth`, `animate-fade-in-up`, `btn-hover-scale`, dark theme, emerald accent
+
+### Verification Results
+- **ESLint**: `npm run lint` passes cleanly with **zero errors**
+- **Dev Server**: Compiles successfully with `✓ Compiled in 730ms`, all routes return 200
+- **No existing files modified**: Only created 2 new files — `src/components/market-overview.tsx` and `src/components/quick-actions-panel.tsx`
+- **Design consistency**: Both components follow the established dark theme (bg-gray-900, border-gray-800/70), use shadcn/ui Card/Badge/Button, lucide-react icons, and match existing component patterns (card-hover, glass-card-depth, animate-fade-in-up, btn-hover-scale)
+- **Store integration**: Both components import from `@/lib/store` (useAppStore) and use existing TabType union type
+- **Named exports**: `MarketOverview` and `QuickActionsPanel` ready for import in page.tsx
+
+---
 ## Task ID: CRITICAL-FEATURES - Persistence, Live Price, Refresh Indicator, Alert Checker, Shortcuts
 ### Work Task
 Add 5 critical missing features to the Treasury Minter Engine: (1) localStorage persistence via Zustand middleware, (2) live PLS price via external API, (3) token price refresh indicator, (4) notification system for profit alerts, (5) keyboard shortcuts for power users.
@@ -1476,3 +1530,74 @@ The application has been upgraded from Grade B+ to **Grade A**. The pricing pipe
 4. **Historical Price Data**: Profitability chart uses simulated data. Could use GeckoTerminal OHLCV or PulseX subgraph for real historical data.
 5. **WebSocket Price Updates**: Currently polling. WebSocket via `wss://ws.pulsechain.com` would provide truly real-time data.
 6. **Mobile Responsiveness**: New tabs (Compare, Watchlist) should be verified on mobile viewports.
+
+---
+## Task ID: TAB-SCROLL-FIX - Tab Scroll Arrows & Demo Label for Activity Ticker
+### Work Task
+Add left/right scroll arrows to the tab navigation bar for mobile/narrow viewport discoverability, and add a "DEMO" badge to the activity ticker.
+
+### Work Summary
+
+**1. `src/app/page.tsx` - Tab Scroll Arrows**
+- Added `ChevronLeft` and `ChevronRight` imports from lucide-react
+- Added `useRef` for the tab scroll container (`scrollRef`)
+- Added `canScrollLeft` and `canScrollRight` boolean state
+- Added `updateScrollState` callback that checks `scrollLeft > 0` and `scrollLeft + clientWidth < scrollWidth`
+- Added `useEffect` that attaches scroll event listener (passive) and window resize listener, both calling `updateScrollState`
+- Added `scrollLeft` and `scrollRight` callbacks using `el.scrollBy({ left: ±200, behavior: "smooth" })`
+- Wrapped the tablist `<div>` in a `<div className="relative">` container
+- Added left arrow button: `absolute left-0 top-0 bottom-0 z-10`, gradient fade from `gray-950/90` to transparent, `backdrop-blur-sm`, shown only when `canScrollLeft` is true
+- Added right arrow button: `absolute right-0 top-0 bottom-0 z-10`, gradient fade from `gray-950/90` to transparent, `backdrop-blur-sm`, shown only when `canScrollRight` is true
+- Both arrows use `ChevronLeft`/`ChevronRight` icons (`h-4 w-4 text-gray-400`)
+- Added `scroll-smooth` class to the tablist div for smooth programmatic scrolling
+- Proper ARIA labels on arrow buttons for accessibility
+
+**2. `src/components/activity-ticker.tsx` - Demo Badge**
+- Added a `<span>` badge before the marquee content with text "Demo"
+- Badge styling: `text-[8px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400/60 border border-amber-500/10 font-mono uppercase tracking-wider flex-shrink-0`
+- Wrapped both badge and marquee in a `<div className="flex items-center">` for proper horizontal layout
+- Badge stays fixed while marquee scrolls beside it
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with zero errors
+- **Dev Server**: Compiles successfully (`✓ Compiled in 600ms`), GET / returns 200
+- **Files modified**: `src/app/page.tsx`, `src/components/activity-ticker.tsx`
+- **No other files modified or created**
+
+---
+## Task ID: GAS-OPTIMIZER - Gas Optimization Dashboard Widget
+### Work Task
+Create a comprehensive Gas Optimization Dashboard widget (`src/components/gas-optimizer.tsx`) that helps users minimize gas costs when minting on PulseChain. The component includes 5 major sections: Gas Price Forecast, Gas History Mini Chart, Gas Savings Calculator, Batch Minting Calculator, and Gas Tips Cards.
+
+### Work Summary
+
+**1. `src/components/gas-optimizer.tsx` - Gas Optimization Dashboard (NEW FILE)**
+
+- **Gas Price Forecast**: Real-time gas price display fetched from `/api/gas` endpoint. Shows current gas price in Gwei with trend detection (up/down/stable) based on last 6 historical readings. Color-coded gas level system: emerald for LOW (≤30 Gwei), amber for MODERATE (≤60 Gwei), rose for HIGH (>60 Gwei). "Optimal Mint Window" recommendation banner with contextual icon (Zap for "Mint now", Clock for "Acceptable", Timer for "Wait"). Estimated mint cost in PLS and USD displayed with `number-animate` class. Graceful error handling with amber warning banner when gas data is unavailable.
+
+- **Gas History Mini Chart**: Recharts `AreaChart` showing 24-hour simulated gas price history. 24 data points (one per hour) generated with mean-reversion toward current price and random noise for realistic appearance. Emerald line (`#22c55e`) with gradient fill below (30% to 0% opacity). Dashed gray `ReferenceLine` showing average gas price. Custom dark theme tooltip (`GasChartTooltip`) showing time and Gwei value. Chart auto-updates every 30 seconds with new data point. Loading state with animated pulse indicator.
+
+- **Gas Savings Calculator**: Interactive calculator with number input for "Number of Mints Planned" and quick preset buttons (1, 5, 10, 25). Shows 3-column comparison grid: Current Rate (amber), Low Rate (emerald, ~30 Gwei), High Rate (rose, ~60 Gwei). Each column displays gas cost in both PLS and USD (using `plsPriceUSD` from store). "Potential Savings" summary row showing PLS saved, USD saved, and percentage saved by waiting for low gas. All calculations use `MINT_TX_GAS = 150,000` gas units per mint transaction.
+
+- **Batch Minting Calculator**: Interactive calculator with number input for "Number of Tokens to Mint" and quick preset buttons (5, 10, 25, 50). Two-column comparison: "Individual Transactions" (single TX per token, 150K gas each) vs "Batch Optimized" (single batch TX with 120K gas per token + 15% overhead). Shows gas per TX, total gas cost, and USD value for each method. "Estimated savings with batching" summary row showing percentage saved and PLS/USD amounts with emerald styling.
+
+- **Gas Tips Cards**: 3-card responsive grid (1-col mobile, 3-col desktop) with actionable gas optimization tips: (1) "Mint During Off-Peak Hours" with Moon icon in violet theme - recommends UTC 2-8 AM; (2) "Monitor Gas for 15 Minutes" with Clock icon in amber theme - watch trends before minting; (3) "Estimate Costs Before Minting" with Calculator icon in cyan theme - use the savings calculator. Each card has colored icon container, title, and descriptive text.
+
+**Technical Implementation:**
+- Uses `"use client"` directive for client-side rendering
+- Imports `useAppStore` for `gasData` and `plsPriceUSD`
+- Imports `formatUSD` and `formatLargeNumber` from `@/lib/ethereum`
+- Uses recharts: `LineChart`, `Line`, `Area`, `AreaChart`, `Tooltip`, `ResponsiveContainer`, `XAxis`, `YAxis`, `ReferenceLine`
+- Uses shadcn/ui: `Card`, `CardContent`, `CardHeader`, `CardTitle`, `Badge`, `Button`, `Input`, `Label`, `Separator`, `Tooltip`/`TooltipProvider`/`TooltipTrigger`/`TooltipContent`
+- Uses lucide-react icons: `Fuel`, `TrendingUp`, `TrendingDown`, `Minus`, `Clock`, `Moon`, `Calculator`, `Zap`, `DollarSign`, `ArrowDownRight`, `ArrowUpRight`, `Info`, `Timer`, `Layers`, `BarChart3`
+- Helper functions: `getGasLevel()`, `getGasLevelColors()`, `detectTrend()`, `generateSimulatedGasHistory()` - all defined at module level to avoid ESLint static-components issues
+- All sub-components (`GasChartTooltip`) defined at module level
+- Uses existing CSS classes: `gradient-border`, `card-hover`, `number-animate`, `animate-fade-in-up`, `btn-hover-scale`, `input-focus-ring`
+- Exported as named export `GasOptimizer`
+- Fully responsive with `grid-cols-1 sm:grid-cols-2 sm:grid-cols-3` layouts
+- Dark theme consistent with existing design system (bg-gray-900, border-gray-800, emerald/amber/rose accents)
+
+### Verification Results
+- **ESLint**: `src/components/gas-optimizer.tsx` passes with **zero errors** (pre-existing error in `quick-actions-panel.tsx` unrelated to this task)
+- **Dev Server**: Compiles successfully (`✓ Compiled`), GET / returns 200
+- **No existing files modified**: Only created 1 new file — `src/components/gas-optimizer.tsx`

@@ -92,7 +92,11 @@ export function ActivityTicker() {
 
   return (
     <div className="ticker-container bg-gray-900/80 border-b border-gray-800/50 overflow-hidden py-1.5">
-      <div className="animate-marquee flex items-center whitespace-nowrap">
+      <div className="flex items-center">
+        <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400/60 border border-amber-500/10 font-mono uppercase tracking-wider flex-shrink-0">
+          Demo
+        </span>
+        <div className="animate-marquee flex items-center whitespace-nowrap">
         {duplicatedItems.map((item, idx) => (
           <span
             key={`${item.key}-${idx}`}
@@ -102,6 +106,7 @@ export function ActivityTicker() {
             {item.text}
           </span>
         ))}
+        </div>
       </div>
     </div>
   );

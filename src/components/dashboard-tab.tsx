@@ -16,6 +16,8 @@ import { ExportDialog } from "@/components/export-dialog";
 import { TokenWatchlist } from "@/components/token-watchlist";
 import { TokenComparison } from "@/components/token-comparison";
 import { MintAnalytics } from "@/components/mint-analytics";
+import { GasOptimizer } from "@/components/gas-optimizer";
+import { MarketOverview } from "@/components/market-overview";
 import {
   DollarSign,
   Coins,
@@ -986,6 +988,12 @@ export function DashboardTab() {
 
       {/* Mint Analytics */}
       <MintAnalytics />
+
+      {/* Gas Optimizer */}
+      <GasOptimizer />
+
+      {/* Market Overview */}
+      <MarketOverview />
     </div>
   );
 }
