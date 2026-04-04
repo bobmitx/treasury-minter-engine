@@ -914,7 +914,7 @@ export default function Home() {
                         className={cn(
                           "relative flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap btn-hover-scale",
                           isActive
-                            ? "text-emerald-400 bg-emerald-500/10"
+                            ? "text-white"
                             : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
                         )}
                         aria-label={tab.label}
@@ -922,15 +922,15 @@ export default function Home() {
                         <tab.icon className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">{tab.label}</span>
                         {tab.badge && (
-                          <span className="sm:hidden text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none ml-0.5" aria-hidden="true">{tab.badge}</span>
+                          <span className="sm:hidden text-[8px] px-1 py-0 rounded bg-amber-500/10 text-amber-400 font-bold leading-none ml-0.5" aria-hidden="true">{tab.badge}</span>
                         )}
                         {tab.badge && (
-                          <span className="hidden sm:inline text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none ml-0.5" aria-hidden="true">{tab.badge}</span>
+                          <span className="hidden sm:inline text-[8px] px-1 py-0 rounded bg-amber-500/10 text-amber-400 font-bold leading-none ml-0.5" aria-hidden="true">{tab.badge}</span>
                         )}
                         {isActive && (
                           <motion.div
                             layoutId="tab-indicator"
-                            className="absolute inset-0 rounded-md border border-emerald-500/20 -z-10 animate-tab-spring"
+                            className="absolute inset-0 rounded-md -z-10 animate-tab-spring amber-tab-indicator"
                             transition={{ type: "spring", bounce: 0.5, duration: 0.6, stiffness: 300, damping: 20 }}
                           />
                         )}

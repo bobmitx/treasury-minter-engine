@@ -259,7 +259,7 @@ export function MultihopTab() {
                         onClick={() => selectToken(t.address, "source")}
                         className={`text-xs px-2 py-0.5 rounded border transition-all duration-200 btn-hover-scale ${
                           sourceToken === t.address
-                            ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                            ? "bg-gray-800 border-gray-700 text-gray-400 selected-amber-glow"
                             : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
                         }`}
                       >
@@ -309,7 +309,7 @@ export function MultihopTab() {
                         onClick={() => selectToken(t.address, "target")}
                         className={`text-xs px-2 py-0.5 rounded border transition-all duration-200 btn-hover-scale ${
                           targetToken === t.address
-                            ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                            ? "bg-gray-800 border-gray-700 text-gray-400 selected-amber-glow"
                             : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
                         }`}
                       >
@@ -331,7 +331,7 @@ export function MultihopTab() {
                       onClick={() => setTargetAmount(amt.toString())}
                       className={`text-[10px] px-1.5 py-0.5 rounded border transition-colors ${
                         targetAmount === amt.toString()
-                          ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                          ? "bg-gray-800 border-gray-700 text-gray-500 selected-amber-glow"
                           : "bg-gray-800 border-gray-700 text-gray-500 hover:text-gray-300"
                       }`}
                     >

@@ -639,7 +639,7 @@ export function GasOptimizer() {
                     className={cn(
                       "btn-hover-scale text-xs h-9 px-3",
                       plannedMints === String(n)
-                        ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-300"
+                        ? "bg-gray-800 border-gray-700 text-gray-400 selected-amber-glow"
                         : "bg-gray-800 border-gray-700 text-gray-400 hover:text-gray-200"
                     )}
                     onClick={() => setPlannedMints(String(n))}

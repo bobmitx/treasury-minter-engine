@@ -126,13 +126,13 @@ function TokenChip({
             "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border",
             "btn-hover-scale",
             isSelected
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-sm shadow-emerald-500/10"
+              ? "bg-gray-800/80 border-gray-700 text-gray-400 selected-amber-glow cursor-pointer"
               : isDisabled
                 ? "bg-gray-800/50 border-gray-800 text-gray-600 cursor-not-allowed opacity-50"
                 : "bg-gray-800/80 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 cursor-pointer"
           )}
         >
-          {isSelected && <Check className="h-3 w-3 text-emerald-400" />}
+          {isSelected && <Check className="h-3 w-3 text-amber-400" />}
           <span className="font-semibold">{token.symbol}</span>
           <Badge
             variant="outline"

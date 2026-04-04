@@ -476,7 +476,7 @@ function TargetTokenSection() {
                       className={cn(
                         "flex items-center gap-3 p-2.5 rounded-lg border transition-all cursor-pointer group",
                         isSelected
-                          ? "bg-emerald-500/5 border-emerald-500/20"
+                          ? "bg-gray-800/30 border-gray-700/50 selected-amber-glow"
                           : "bg-gray-800/30 border-transparent hover:bg-gray-800/60 hover:border-gray-700/50"
                       )}
                       onClick={() => toggleToken(token.address)}
@@ -484,7 +484,7 @@ function TargetTokenSection() {
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleToken(token.address)}
-                        className="data-[state=checked]:bg-emerald-600 data-[state=checked]:border-emerald-600 border-gray-600"
+                        className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500 border-gray-600"
                       />
                       <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center text-[10px] font-bold text-emerald-400 flex-shrink-0">
                         {token.symbol.slice(0, 2)}

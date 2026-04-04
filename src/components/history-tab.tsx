@@ -364,7 +364,7 @@ export function HistoryTab() {
               onClick={() => setFilter(f.key)}
               className={`btn-hover-scale hover-lift ${
                 filter === f.key
-                  ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                  ? "border border-gray-700 bg-gray-800 text-white selected-amber-glow"
                   : "border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-white"
               }`}
             >

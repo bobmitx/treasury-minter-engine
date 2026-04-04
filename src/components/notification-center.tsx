@@ -377,7 +377,7 @@ export function NotificationCenter() {
               <span
                 className={cn(
                   "text-[10px]",
-                  activeFilter === f.key ? "text-emerald-400" : "text-gray-600"
+                  activeFilter === f.key ? "text-amber-400" : "text-gray-600"
                 )}
               >
                 {filterCounts[f.key]}

@@ -2024,3 +2024,45 @@ The "orange gradient" was caused by:
 - If any component fails to render in the future, the exposed background will be a dark emerald gradient rather than bright orange
 - gradient-border and border-rotate are protected against mask-composite browser compatibility issues with z-index: -1
 - No code changes outside CSS — all component behavior remains unchanged
+
+---
+## Task ID: AMBER-SELECTION - Replace Emerald/Teal Selection with Amber Gradient Border
+
+### Work Task
+Change all selected window/tab styling from emerald/teal tone fills to amber gradient border highlights only. The window backgrounds and text colors should remain unchanged — only the borders should show an amber gradient glow effect when selected. This fixes the "orange gradient window" bug where some dialogs showed bright gradient fills with no content.
+
+### Work Summary
+
+**CSS Changes — `src/app/globals.css`**
+- Added `.amber-tab-indicator::before` — Amber gradient border for the active tab indicator using mask-based gradient border technique. Uses 5-stop amber gradient (85→55→40→55→85) with animated position shifting via the existing `gradient-border` keyframe animation.
+- Added `.selected-amber-glow` — Amber glow border utility for selected chips/buttons/tokens. Uses `border-color: oklch(0.76 0.18 55 / 50%)` + dual-layer `box-shadow` (8px + 20px spread in amber) for a subtle but visible amber border glow effect. No background or text color changes.
+
+**Page Tab Navigation — `src/app/page.tsx`**
+- Tab button active state: Changed from `"text-emerald-400 bg-emerald-500/10"` to `"text-white"` — no background fill, no text color change
+- Tab badge: Changed from `bg-emerald-500/20 text-emerald-400` to `bg-amber-500/10 text-amber-400`
+- Tab indicator (motion.div): Changed from `"border border-emerald-500/20"` to `"amber-tab-indicator"` — now uses the amber gradient border CSS class instead of solid emerald border
+
+**Component Selection Patterns Changed (10 files)**
+
+All selection patterns changed from `bg-emerald-500/20 border-emerald-500/30 text-emerald-400` to `bg-gray-800 border-gray-700 text-gray-400 selected-amber-glow`:
+
+1. **`src/components/v3-minter-tab.tsx`** — Token selection chips
+2. **`src/components/v4-minter-tab.tsx`** — Token selection chips
+3. **`src/components/multihop-tab.tsx`** — Source token, target token, and amount selection (3 instances)
+4. **`src/components/calculator-tab.tsx`** — Quick preset buttons
+5. **`src/components/history-tab.tsx`** — Filter buttons
+6. **`src/components/bot-panel.tsx`** — Target token list rows + checkbox color
+7. **`src/components/token-comparison.tsx`** — TokenChip selected state + check icon color
+8. **`src/components/gas-optimizer.tsx`** — Planned mints selector
+9. **`src/components/notification-center.tsx`** — Active filter count color
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with zero errors
+- **Dev Server**: Compiles successfully, `✓ Compiled in ~150ms`, no errors
+- **No background fills**: All selected states now preserve the original background color
+- **Only border changes**: The `selected-amber-glow` class only modifies `border-color` and `box-shadow`
+- **Tab indicator**: Uses proper amber gradient border via CSS pseudo-element
+- **Cron Job**: Created (ID: 62837) for continued 15-minute dev review cycles
+
+### Design Decision
+The selected state no longer changes the interior of any window/chip/button. Instead, it adds a subtle amber glow border that clearly indicates selection without altering the content area. This prevents the "bright orange gradient window" issue while maintaining clear visual feedback for active/selected elements.

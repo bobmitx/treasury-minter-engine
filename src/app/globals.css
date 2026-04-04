@@ -2501,3 +2501,38 @@ input[type="number"]:hover::-webkit-outer-spin-button {
     animation: none !important;
   }
 }
+
+/* === AMBER SELECTION STYLING === */
+
+/* Amber gradient border for active tab indicator */
+.amber-tab-indicator::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    oklch(0.82 0.16 85 / 90%),
+    oklch(0.76 0.18 55 / 70%),
+    oklch(0.68 0.2 40 / 90%),
+    oklch(0.76 0.18 55 / 70%),
+    oklch(0.82 0.16 85 / 90%)
+  );
+  background-size: 300% 300%;
+  animation: gradient-border 4s ease infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Amber glow selection for chips, buttons, tokens - no background change, only border + glow */
+.selected-amber-glow {
+  border-color: oklch(0.76 0.18 55 / 50%) !important;
+  box-shadow:
+    0 0 8px oklch(0.65 0.2 40 / 15%),
+    0 0 20px oklch(0.65 0.2 40 / 8%);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}

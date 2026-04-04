@@ -212,7 +212,7 @@ export function CalculatorTab() {
               onClick={() => handlePresetClick(preset.amount)}
               className={cn(
                 "border-gray-700 hover:border-gray-600 bg-gray-900/50 text-gray-300 hover:text-white btn-hover-scale card-press",
-                mintAmount === preset.amount.toString() && "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
+                mintAmount === preset.amount.toString() && "selected-amber-glow"
               )}
             >
               <preset.icon className={cn("h-3 w-3 mr-1.5", preset.color)} />

@@ -549,7 +549,7 @@ export function V3MinterTab() {
                       onClick={() => setMintToken(t.address)}
                       className={`text-xs px-2 py-0.5 rounded border transition-all duration-200 btn-hover-scale ${
                         mintToken === t.address
-                          ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                          ? "bg-gray-800 border-gray-700 text-gray-400 selected-amber-glow"
                           : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
                       }`}
                     >
