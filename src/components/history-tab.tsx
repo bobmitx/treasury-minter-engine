@@ -299,7 +299,7 @@ export function HistoryTab() {
     <div className="space-y-6 animate-fade-in-up">
       {/* Stats Summary Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="bg-gray-900 border-gray-800 card-hover gradient-border">
+        <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth gradient-border">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-1.5 mb-1">
               <Activity className="h-3 w-3 text-gray-400" />
@@ -310,7 +310,7 @@ export function HistoryTab() {
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900 border-gray-800 card-hover gradient-border">
+        <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth gradient-border">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-1.5 mb-1">
               <CheckCircle2 className="h-3 w-3 text-emerald-400" />
@@ -329,7 +329,7 @@ export function HistoryTab() {
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900 border-gray-800 card-hover gradient-border">
+        <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth gradient-border">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-1.5 mb-1">
               <Flame className="h-3 w-3 text-amber-400" />
@@ -340,7 +340,7 @@ export function HistoryTab() {
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900 border-gray-800 card-hover gradient-border">
+        <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth gradient-border">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-1.5 mb-1">
               <Gauge className="h-3 w-3 text-cyan-400" />
@@ -362,7 +362,7 @@ export function HistoryTab() {
               variant={filter === f.key ? "default" : "outline"}
               size="sm"
               onClick={() => setFilter(f.key)}
-              className={`btn-hover-scale ${
+              className={`btn-hover-scale hover-lift ${
                 filter === f.key
                   ? "bg-emerald-600 hover:bg-emerald-700 text-white"
                   : "border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-white"
@@ -383,7 +383,7 @@ export function HistoryTab() {
             value={dateRange}
             onValueChange={(val) => setDateRange(val as DateRange)}
           >
-            <SelectTrigger className="w-full sm:w-36 bg-gray-800 border-gray-700 text-gray-300 text-sm h-8 input-focus-ring">
+            <SelectTrigger className="w-full sm:w-36 bg-gray-800 border-gray-700 text-gray-300 text-sm h-8 input-glow">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-gray-900 border-gray-700">
@@ -407,14 +407,14 @@ export function HistoryTab() {
               placeholder="Search by TX hash, token..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-gray-800 border-gray-700 text-white pl-8 text-sm h-8 input-focus-ring"
+              className="bg-gray-800 border-gray-700 text-white pl-8 text-sm h-8 input-glow"
             />
           </div>
         </div>
       </div>
 
       {/* Transaction Table */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800 glass-card-depth">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-white text-base flex items-center gap-2">
@@ -422,7 +422,7 @@ export function HistoryTab() {
               Transaction History
               <Badge
                 variant="outline"
-                className="ml-1 border-gray-700 text-gray-400 text-xs"
+                className="ml-1 border-gray-700 text-gray-400 text-xs badge-pop"
               >
                 {filteredTx.length}
               </Badge>
@@ -498,7 +498,7 @@ export function HistoryTab() {
                     return (
                       <Fragment key={tx.id}>
                         <TableRow
-                          className="border-gray-800 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer"
+                          className="border-gray-800 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer hover-lift"
                           onClick={() => toggleExpand(tx.id)}
                         >
                           {/* Expand chevron */}

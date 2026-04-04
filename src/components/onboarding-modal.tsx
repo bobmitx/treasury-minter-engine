@@ -68,7 +68,7 @@ function StepWelcome() {
 
       {/* Title */}
       <div className="text-center space-y-2">
-        <h3 className="text-xl font-bold text-white">
+        <h3 className="text-xl font-bold text-gradient-animated">
           Treasury Minter Engine
         </h3>
         <p className="text-sm text-gray-400 max-w-xs mx-auto leading-relaxed">
@@ -107,7 +107,7 @@ function StepWelcome() {
         ].map((feature) => (
           <div
             key={feature.title}
-            className="flex items-start gap-3 p-3 rounded-xl bg-gray-800/40 border border-gray-800 hover:border-gray-700 transition-colors"
+            className="flex items-start gap-3 p-3 rounded-xl bg-gray-800/40 border border-gray-800 hover:border-gray-700 transition-colors border-rotate"
           >
             <div
               className={cn(
@@ -154,7 +154,7 @@ function StepHowItWorks() {
       </div>
 
       {/* V3 Section */}
-      <div className="rounded-xl border border-emerald-500/20 overflow-hidden">
+      <div className="rounded-xl border border-emerald-500/20 overflow-hidden glass-card-depth">
         <div className="bg-gradient-to-r from-emerald-500/10 to-transparent p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center">
             <Zap className="h-5 w-5 text-emerald-400" />
@@ -209,7 +209,7 @@ function StepHowItWorks() {
       </div>
 
       {/* V4 Section */}
-      <div className="rounded-xl border border-amber-500/20 overflow-hidden">
+      <div className="rounded-xl border border-amber-500/20 overflow-hidden glass-card-depth">
         <div className="bg-gradient-to-r from-amber-500/10 to-transparent p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center">
             <Gem className="h-5 w-5 text-amber-400" />
@@ -356,7 +356,7 @@ function StepGetStarted({ onClose }: { onClose: () => void }) {
       <Button
         onClick={onClose}
         className={cn(
-          "w-full h-12 text-sm font-semibold btn-hover-scale gap-2",
+          "w-full h-12 text-sm font-semibold btn-hover-scale gap-2 gradient-border-active",
           connected
             ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
             : "bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white shadow-lg shadow-emerald-500/20"
@@ -428,7 +428,7 @@ export function OnboardingModal() {
         if (!open) handleClose();
       }}
     >
-      <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-lg p-0 gap-0 overflow-hidden">
+      <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-lg p-0 gap-0 overflow-hidden rounded-xl">
         {/* Header with step indicator */}
         <div className="bg-gradient-to-b from-gray-800/50 to-transparent p-6 pb-4">
           <DialogHeader className="text-center space-y-3">

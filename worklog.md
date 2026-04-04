@@ -687,3 +687,154 @@ The application is fully stable with 14+ components, 8 tabs, localStorage persis
 5. **Mobile Optimization**: Bot Panel and Calculator charts need further responsive work.
 6. **Token Detail "Mint More"**: DOM manipulation → Zustand state passing.
 
+
+---
+## Task ID: 4 - Data Export Hub & PLS Market Stats Widget
+### Work Task
+Add two new features: (1) comprehensive Data Export Hub dialog with CSV/JSON export options, (2) PLS Market Stats widget showing CoinGecko market data.
+
+### Work Summary
+
+**Feature 1: Data Export Hub**
+- Created `src/components/export-dialog.tsx` — a `'use client'` component with shadcn Dialog
+- 4 export options in a 2×2 grid of styled cards with gradient borders:
+  1. **Portfolio Data (CSV)**: exports name, symbol, address, balance, price, multiplier, profitRatio, value, version
+  2. **Transaction History (CSV)**: exports type, status, tokenSymbol, tokenAddress, amount, txHash, gasCost, version, timestamp
+  3. **Settings & Config (JSON)**: exports botConfig, profitAlerts, autoRefreshInterval, botMode
+  4. **Full Backup (JSON)**: exports everything (tokens + transactions + settings + alerts)
+- CSV generation with proper escaping via `escapeCSV()` helper, Blob + `URL.createObjectURL` download
+- JSON generation with `JSON.stringify(state, null, 2)`, same download mechanism
+- Filenames include timestamp: `treasury-portfolio-2024-04-05.csv`, etc.
+- Success/error toasts via `sonner` after each export
+- Validates empty data before export (shows error toast if no data)
+- Dark theme styling: emerald accent export buttons, gradient-border on cards, colored format badges
+
+**Feature 2: PLS Market Stats Widget**
+- Created `src/app/api/pls-stats/route.ts` — GET endpoint fetching from CoinGecko `/coins/pulse`
+- In-memory cache with 120-second TTL to respect rate limits
+- 10-second fetch timeout via `AbortController`
+- Extracts: marketCap, volume24h, priceChange24h, circulatingSupply, price, lastUpdated
+- Graceful fallback values if CoinGecko API fails (404 or timeout)
+- Created `MarketStatsWidget` component inside dashboard-tab.tsx:
+  - 2×2 mini-grid showing Market Cap, 24h Volume, 24h Change, Circulating Supply
+  - Color-coded 24h change: emerald for positive, rose for negative with TrendingUp/TrendingDown icons
+  - Compact number formatting via `formatCompactNumber()` and `formatCompactSupply()` helpers (T/B/M/K suffixes)
+  - Shimmer loading skeleton via shadcn Skeleton
+  - Auto-refreshes every 120 seconds
+  - Placed in the bottom stats row (expanded grid to 4 columns on lg)
+
+**Dashboard Updates (`src/components/dashboard-tab.tsx`)**:
+- Added "Export Data" button (emerald-accented, Download icon) in QuickActionsBar
+- QuickActionsBar now accepts `onExportOpen` callback prop
+- Added `exportOpen` state + renders `<ExportDialog>` in DashboardTab
+- Bottom row expanded from 3→4 columns on lg to accommodate MarketStatsWidget
+- Imported `ExportDialog`, `Download`, `TrendingDown`, `BarChart3`, `CircleDot` icons
+
+**Lint**: `bun run lint` passes with zero errors. Dev server compiles cleanly.
+
+---
+## Task ID: ROUND-5 - Data Export Hub, Market Stats, Premium Styling
+
+### Current Project Status Assessment
+The application is highly stable after 5 rounds of development. 17 custom components, 8 tabs, 6 API routes, localStorage persistence, live PLS price, keyboard shortcuts, profit alerts, network health monitoring, sparkline charts, activity ticker. All routes return 200, ESLint clean, no runtime errors. This round adds 2 new features and 16 premium CSS utilities.
+
+### New Features
+
+**1. Data Export Hub**
+- **`src/components/export-dialog.tsx`** (NEW): Comprehensive data export dialog with 4 export options:
+  - Portfolio Data (CSV): All tracked tokens with 9 fields
+  - Transaction History (CSV): All transactions with 10 fields
+  - Settings & Config (JSON): Bot config, alerts, settings
+  - Full Backup (JSON): Complete app state for restore
+- Each option has unique color accent, icon, description, format badge
+- Proper CSV escaping, Blob download, ISO date filenames
+- Empty data validation with error toasts
+- **Dashboard Integration**: Added "Export Data" button in QuickActionsBar
+
+**2. PLS Market Stats Widget**
+- **`src/app/api/pls-stats/route.ts`** (NEW, REWRITTEN): GET endpoint for PLS market data
+  - Source: DexScreener API (replaced CoinGecko which didn't have PLS token)
+  - Returns: marketCap ($56.7M), volume24h ($162K), priceChange24h (+2.27%), circulatingSupply, price
+  - In-memory cache with 120-second TTL, 10-second timeout
+  - Smart fallback values based on real observed data
+- **`src/components/dashboard-tab.tsx`**: Added `MarketStatsWidget`:
+  - 2×2 mini-grid: Market Cap, 24h Volume, 24h Change (color-coded), Circulating Supply
+  - `formatCompactNumber()` helper: >1T→$X.XXT, >1B→$X.XXB, >1M→$X.XXM, >1K→$X.XXK
+  - Fetches every 120s, shimmer loading skeleton, "Live" badge
+  - Bottom stats row expanded from 3→4 columns (lg) to fit new widget
+
+### Styling Improvements (16 New CSS Classes)
+
+**3. `src/app/globals.css` — 16 Premium CSS Utilities** (all with `prefers-reduced-motion` support):
+- `.glass-card-depth` — Multi-layered glass with inner light border, inset shadow, hover emerald glow
+- `.text-gradient-animated` — 5-stop animated gradient text cycling over 6s
+- `.grain-overlay` — Fixed SVG noise texture at 3.5% opacity for premium film-grain
+- `.fab` — Floating action button with emerald glow and ripple on hover
+- `.skeleton-content` — Content-aware shimmer with emerald tint
+- `.border-rotate` — 4-stop rotating gradient border cycling over 8s
+- `.input-glow` — Emerald border glow on hover (5%) and focus (15% + 12px spread)
+- `.badge-pop` — Bouncy scale animation (1→1.2→0.95→1) for counters/badges
+- `.container-premium` — Responsive container with progressive padding
+- `.hover-lift` — Interactive lift: translateY(-2px) + shadow on hover
+- `.bg-dots` — Animated dot grid pattern drifting over 20s
+- `.scroll-indicator` — Fixed top scroll progress bar with gradient
+- `.tooltip-arrow` — Tooltip with CSS arrow pseudo-element
+- `.tab-content-smooth` — Smooth max-height + opacity tab transitions
+- `.image-placeholder` — Diagonal shimmer sweep for card images
+- `.glow-dot` — Status dot with blurred background glow
+
+**4. `src/app/page.tsx`**
+- Added `.grain-overlay` div for premium noise texture
+- Added `ScrollProgressBar` component: fixed 2px gradient bar at page top (z-9999)
+- Uses scroll listener to calculate `scrollTop / (scrollHeight - clientHeight) * 100`
+
+**5. `src/components/dashboard-tab.tsx`**
+- `.glass-card-depth` on all cards (Gas, Profitability Chart, Network Health, Quick Actions, Activity, stat cards)
+- `.hover-lift` on stat cards and quick action buttons
+- `.badge-pop` on V3/V4 token count badges
+- `.border-rotate` on Profitability Trend chart card
+- Enhanced empty states with 3 concentric animated rings
+
+**6. `src/components/portfolio-tab.tsx`**
+- `.glass-card-depth` on all cards (stats, PieChart, P&L summary, table)
+- `.hover-lift` on table rows
+- `.input-glow` on search input
+- `.border-rotate` on Distribution chart card
+- Gradient P&L backgrounds: emerald tint for best performer, rose tint for worst
+
+**7. `src/components/history-tab.tsx`**
+- `.glass-card-depth` on all cards (stats summary, transaction history)
+- `.hover-lift` on filter buttons and table rows
+- `.input-glow` on search and date range select
+- `.badge-pop` on filtered count badge
+
+**8. `src/components/onboarding-modal.tsx`**
+- `.text-gradient-animated` on "Treasury Minter Engine" heading
+- `.border-rotate` on all 4 feature highlight cards
+- `.glass-card-depth` on V3/V4 comparison sections
+- `.rounded-xl` on DialogContent for polished corners
+
+**9. `src/components/bot-panel.tsx`**
+- `.glass-card-depth` on all sections (config, target tokens, controls, log, summary)
+- `.input-glow` on Max Gas Price and Mint Amount inputs
+- `.glow-dot` on bot status indicator
+- `.gradient-border-active` on Start Bot button
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with **zero errors**
+- **Dev Server**: Compiles successfully, all routes return 200
+- **PLS Stats API**: Returns live data from DexScreener (marketCap: $56.7M, vol: $162K, change: +2.27%)
+- **Browser QA**: Dashboard verified with market stats widget visible, scroll indicator present, grain overlay present, all 8 tabs functional
+- **No hydration errors or runtime issues**
+- **Files created**: `src/components/export-dialog.tsx`, `src/app/api/pls-stats/route.ts`
+- **Files modified**: `src/app/globals.css`, `src/app/page.tsx`, `src/components/dashboard-tab.tsx`, `src/components/portfolio-tab.tsx`, `src/components/history-tab.tsx`, `src/components/onboarding-modal.tsx`, `src/components/bot-panel.tsx`
+
+### Unresolved Issues & Next Phase Recommendations
+1. **LP Pair Discovery**: eDAI/WPLS pair not on canonical Uniswap V2 Factory. Need PulseX-specific factory/router.
+2. **Real Blockchain Bot**: Bot simulation needs actual on-chain minting via wallet provider.
+3. **WebSocket Updates**: Polling every 15s → WebSocket for real-time price/multiplier.
+4. **Token Comparison Tool**: Side-by-side comparison of two tracked tokens.
+5. **Mobile Optimization**: Bot Panel config and Calculator charts need responsive tuning.
+6. **Mint More via State**: Currently uses DOM manipulation → Zustand state passing.
+
+---

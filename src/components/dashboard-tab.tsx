@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExportDialog } from "@/components/export-dialog";
 import {
   DollarSign,
   Coins,
@@ -29,6 +30,10 @@ import {
   Wifi,
   WifiOff,
   ExternalLink,
+  Download,
+  TrendingDown,
+  BarChart3,
+  CircleDot,
 } from "lucide-react";
 import {
   AreaChart,
@@ -38,6 +43,149 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+
+function formatCompactNumber(value: number): string {
+  if (value <= 0) return "$0";
+  if (value >= 1_000_000_000_000) return `$${(value / 1_000_000_000_000).toFixed(2)}T`;
+  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(2)}B`;
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(2)}K`;
+  return `$${value.toFixed(2)}`;
+}
+
+function formatCompactSupply(value: number): string {
+  if (value <= 0) return "0";
+  if (value >= 1_000_000_000_000) return `${(value / 1_000_000_000_000).toFixed(2)}T`;
+  if (value >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(2)}B`;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(2)}K`;
+  return value.toFixed(2);
+}
+
+function MarketStatsWidget() {
+  const [stats, setStats] = useState<{
+    marketCap: number;
+    volume24h: number;
+    priceChange24h: number;
+    circulatingSupply: number;
+    price: number;
+    lastUpdated: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/pls-stats");
+        const data = await res.json();
+        if (data && data.marketCap !== undefined) {
+          setStats(data);
+        }
+      } catch {
+        // keep stale data
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+    const interval = setInterval(fetchStats, 120_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isPositive = (stats?.priceChange24h ?? 0) >= 0;
+
+  return (
+    <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white text-sm flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-emerald-400" />
+            PLS Market Stats
+          </CardTitle>
+          <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 text-[10px]">
+            Live
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading && !stats ? (
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-6 w-24" />
+            </div>
+            <div className="space-y-1.5">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+          </div>
+        ) : stats ? (
+          <div className="grid grid-cols-2 gap-3">
+            {/* Market Cap */}
+            <div className="p-2.5 rounded-lg bg-gray-800/50">
+              <div className="flex items-center gap-1.5 mb-1">
+                <CircleDot className="h-3 w-3 text-gray-500" />
+                <p className="text-[10px] text-gray-500">Market Cap</p>
+              </div>
+              <p className="text-sm font-bold font-mono text-white">
+                {formatCompactNumber(stats.marketCap)}
+              </p>
+            </div>
+
+            {/* 24h Volume */}
+            <div className="p-2.5 rounded-lg bg-gray-800/50">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Activity className="h-3 w-3 text-gray-500" />
+                <p className="text-[10px] text-gray-500">24h Volume</p>
+              </div>
+              <p className="text-sm font-bold font-mono text-white">
+                {formatCompactNumber(stats.volume24h)}
+              </p>
+            </div>
+
+            {/* 24h Change */}
+            <div className="p-2.5 rounded-lg bg-gray-800/50">
+              <div className="flex items-center gap-1.5 mb-1">
+                {isPositive ? (
+                  <TrendingUp className="h-3 w-3 text-emerald-400" />
+                ) : (
+                  <TrendingDown className="h-3 w-3 text-rose-400" />
+                )}
+                <p className="text-[10px] text-gray-500">24h Change</p>
+              </div>
+              <p className={`text-sm font-bold font-mono ${isPositive ? "text-emerald-400" : "text-rose-400"}`}>
+                {isPositive ? "+" : ""}{stats.priceChange24h.toFixed(2)}%
+              </p>
+            </div>
+
+            {/* Circulating Supply */}
+            <div className="p-2.5 rounded-lg bg-gray-800/50">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Coins className="h-3 w-3 text-gray-500" />
+                <p className="text-[10px] text-gray-500">Circulating</p>
+              </div>
+              <p className="text-sm font-bold font-mono text-white">
+                {formatCompactSupply(stats.circulatingSupply)} PLS
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-4">
+            <p className="text-xs text-gray-500">Unable to load market stats</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function GasTrackerCard() {
   const { gasData, setGasData } = useAppStore();
@@ -77,7 +225,7 @@ function GasTrackerCard() {
   const level = gasInfo ? getGasLevel(gasInfo.standard) : { label: "...", color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" };
 
   return (
-    <Card className="bg-gray-900 border-gray-800/70 card-hover">
+    <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-sm flex items-center gap-2">
@@ -174,7 +322,7 @@ function ProfitabilityChart({ tokens }: { tokens: Array<{ symbol: string; profit
   const colors = ["#34d399", "#f59e0b", "#f43f5e", "#06b6d4", "#a78bfa"];
 
   return (
-    <Card className="bg-gray-900 border-gray-800/70 card-hover">
+    <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth border-rotate">
       <CardHeader className="pb-2">
         <CardTitle className="text-white text-sm flex items-center gap-2">
           <TrendingUp className="h-4 w-4 text-emerald-400" />
@@ -300,7 +448,7 @@ function NetworkHealthWidget() {
     : "#";
 
   return (
-    <Card className="bg-gray-900 border-gray-800/70 card-hover">
+    <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-white text-sm flex items-center gap-2">
@@ -379,7 +527,7 @@ function NetworkHealthWidget() {
   );
 }
 
-function QuickActionsBar() {
+function QuickActionsBar({ onExportOpen }: { onExportOpen: () => void }) {
   const { setActiveTab, connected } = useAppStore();
 
   const actions = [
@@ -390,7 +538,7 @@ function QuickActionsBar() {
   ];
 
   return (
-    <Card className="bg-gray-900 border-gray-800/70">
+    <Card className="bg-gray-900 border-gray-800/70 glass-card-depth">
       <CardContent className="p-4">
         <p className="text-xs text-gray-400 mb-3 font-medium">Quick Actions</p>
         <div className="flex flex-wrap gap-2">
@@ -400,12 +548,21 @@ function QuickActionsBar() {
               variant="outline"
               size="sm"
               onClick={() => setActiveTab(action.tab)}
-              className="bg-gray-800/50 border-gray-700 text-gray-300 hover:text-white hover:border-emerald-500/30 hover:bg-emerald-500/5 btn-hover-scale gap-1.5"
+              className="bg-gray-800/50 border-gray-700 text-gray-300 hover:text-white hover:border-emerald-500/30 hover:bg-emerald-500/5 btn-hover-scale hover-lift gap-1.5"
             >
               <action.icon className="h-3.5 w-3.5" />
               {action.label}
             </Button>
           ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExportOpen}
+            className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:border-emerald-500/40 hover:bg-emerald-500/15 btn-hover-scale hover-lift gap-1.5"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export Data
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -427,6 +584,7 @@ export function DashboardTab() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [timeAgo, setTimeAgo] = useState("");
+  const [exportOpen, setExportOpen] = useState(false);
 
   const fetchMarketData = useCallback(async () => {
     setIsRefreshing(true);
@@ -503,37 +661,37 @@ export function DashboardTab() {
     <div className="space-y-6 animate-fade-in-up">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatsCard
+        <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="PLS Price"
           value={formatUSD(plsPriceUSD)}
           icon={DollarSign}
           subtitle="Live price"
-        />
-        <StatsCard
+        /></div>
+        <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="Mint Cost"
           value={formatUSD(mintCostUSD)}
           icon={Coins}
           subtitle="Per token"
-        />
-        <StatsCard
+        /></div>
+        <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="V3 Tokens"
           value={tokens.filter((t) => t.version === "V3").length.toString()}
           icon={Zap}
           subtitle="Active"
-        />
-        <StatsCard
+        /><span className="badge-pop inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-400 -mt-6 ml-2 relative z-10">{tokens.filter((t) => t.version === "V3").length}</span></div>
+        <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="V4 Tokens"
           value={tokens.filter((t) => t.version === "V4").length.toString()}
           icon={Activity}
           subtitle="Active"
-        />
-        <StatsCard
+        /><span className="badge-pop inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/15 text-[10px] font-bold text-amber-400 -mt-6 ml-2 relative z-10">{tokens.filter((t) => t.version === "V4").length}</span></div>
+        <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="Profitable"
           value={profitableTokens.length.toString()}
           icon={TrendingUp}
           subtitle={`of ${tokens.length} tokens`}
           trend={profitableTokens.length > 0 ? "up" : "neutral"}
-        />
+        /></div>
       </div>
 
       {/* Price Refresh Indicator */}
@@ -555,7 +713,7 @@ export function DashboardTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Top Performing Tokens */}
-        <Card className="lg:col-span-2 bg-gray-900 border-gray-800/70 card-hover">
+        <Card className="lg:col-span-2 bg-gray-900 border-gray-800/70 card-hover glass-card-depth">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-400" />
@@ -565,8 +723,15 @@ export function DashboardTab() {
           <CardContent>
             {!connected && tokens.length === 0 ? (
               <div className="text-center py-10">
-                <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-3">
-                  <Activity className="h-6 w-6 text-emerald-400" />
+                <div className="relative mx-auto w-20 h-20 mb-3">
+                  <div className="absolute inset-0 rounded-full border border-emerald-500/10 animate-slow-rotate" />
+                  <div className="absolute inset-2 rounded-full border border-emerald-500/15 animate-slow-rotate" style={{ animationDirection: "reverse", animationDuration: "15s" }} />
+                  <div className="absolute inset-4 rounded-full border border-emerald-500/20 animate-slow-rotate" style={{ animationDuration: "25s" }} />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                      <Activity className="h-6 w-6 text-emerald-400" />
+                    </div>
+                  </div>
                 </div>
                 <p className="text-sm font-medium text-gray-300">No tokens tracked yet</p>
                 <p className="text-xs text-gray-500 mt-1 max-w-xs mx-auto">
@@ -575,8 +740,15 @@ export function DashboardTab() {
               </div>
             ) : tokens.length === 0 ? (
               <div className="text-center py-10">
-                <div className="w-14 h-14 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center mx-auto mb-3">
-                  <TrendingUp className="h-6 w-6 text-gray-500" />
+                <div className="relative mx-auto w-20 h-20 mb-3">
+                  <div className="absolute inset-0 rounded-full border border-gray-700/50 animate-slow-rotate" />
+                  <div className="absolute inset-3 rounded-full border border-gray-700/40 animate-slow-rotate" style={{ animationDirection: "reverse", animationDuration: "15s" }} />
+                  <div className="absolute inset-6 rounded-full border border-gray-700/30 animate-slow-rotate" style={{ animationDuration: "25s" }} />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-14 h-14 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center">
+                      <TrendingUp className="h-6 w-6 text-gray-500" />
+                    </div>
+                  </div>
                 </div>
                 <p className="text-sm font-medium text-gray-400">No tokens tracked yet</p>
                 <p className="text-xs text-gray-500 mt-1">
@@ -635,7 +807,7 @@ export function DashboardTab() {
           <GasTrackerCard />
           <NetworkHealthWidget />
 
-          <Card className="bg-gray-900 border-gray-800/70 card-hover">
+          <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
                 <Clock className="h-4 w-4 text-emerald-400" />
@@ -713,14 +885,17 @@ export function DashboardTab() {
       </div>
 
       {/* Quick Actions */}
-      <QuickActionsBar />
+      <QuickActionsBar onExportOpen={() => setExportOpen(true)} />
+
+      {/* Export Dialog */}
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} />
 
       {/* Profitability Chart */}
       {tokens.length > 0 && <ProfitabilityChart tokens={tokens} />}
 
       {/* Quick Stats Bottom Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-gray-900 border-gray-800/70 card-hover">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth hover-lift">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/10">
@@ -740,7 +915,7 @@ export function DashboardTab() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-800/70 card-hover">
+        <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth hover-lift">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/10">
@@ -763,7 +938,7 @@ export function DashboardTab() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-900 border-gray-800/70 card-hover">
+        <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth hover-lift">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="bg-emerald-500/10 p-2.5 rounded-xl border border-emerald-500/10">
@@ -788,6 +963,9 @@ export function DashboardTab() {
             </div>
           </CardContent>
         </Card>
+
+        {/* PLS Market Stats Widget */}
+        <MarketStatsWidget />
       </div>
     </div>
   );

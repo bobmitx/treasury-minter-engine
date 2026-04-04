@@ -333,11 +333,34 @@ function ParallaxMeshBackground() {
   }, []);
 
   return (
-    <div ref={bgRef} className="mesh-gradient-bg">
-      {/* Extra amber blob for richer gradient */}
-      <div className="mesh-blob-amber" />
-    </div>
+    <>
+      <div ref={bgRef} className="mesh-gradient-bg">
+        {/* Extra amber blob for richer gradient */}
+        <div className="mesh-blob-amber" />
+      </div>
+      {/* Subtle grain/noise overlay for premium depth texture */}
+      <div className="grain-overlay" />
+    </>
   );
+}
+
+/* Scroll progress indicator - thin bar at top of page */
+function ScrollProgressBar() {
+  const [scrollPercent, setScrollPercent] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight > 0) {
+        setScrollPercent((scrollTop / docHeight) * 100);
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return <div className="scroll-indicator" style={{ width: `${scrollPercent}%` }} />;
 }
 
 /* Thin loading bar at top of page during route transitions */
@@ -556,10 +579,13 @@ export default function Home() {
   return (
     <TooltipProvider delayDuration={300}>
       <div className="min-h-screen bg-gray-950 flex flex-col">
+        {/* Scroll progress indicator */}
+        <ScrollProgressBar />
+
         {/* Route loading bar */}
         <RouteLoadingBar />
 
-        {/* Animated mesh gradient background with parallax and extra amber blob */}
+        {/* Animated mesh gradient background with parallax, extra amber blob, and grain overlay */}
         <ParallaxMeshBackground />
 
         {/* Header - Glassmorphism */}
@@ -666,7 +692,7 @@ export default function Home() {
 
         {/* Main Content */}
         <main className="flex-1 relative">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="container-premium max-w-7xl mx-auto py-6">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

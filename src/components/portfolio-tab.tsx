@@ -296,7 +296,7 @@ export function PortfolioTab() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Stats Grid (3 cols on left, spans 3/5) */}
         <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Card className="bg-gray-900 border-gray-800 card-hover gradient-border">
+          <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth gradient-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <DollarSign className="h-3 w-3 text-gray-400" />
@@ -307,7 +307,7 @@ export function PortfolioTab() {
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800 card-hover gradient-border">
+          <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth gradient-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <BarChart3 className="h-3 w-3 text-gray-400" />
@@ -318,7 +318,7 @@ export function PortfolioTab() {
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800 card-hover gradient-border">
+          <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth gradient-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-3 w-3 text-emerald-400" />
@@ -332,7 +332,7 @@ export function PortfolioTab() {
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-900 border-gray-800 card-hover gradient-border">
+          <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth gradient-border">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingDown className="h-3 w-3 text-rose-400" />
@@ -349,7 +349,7 @@ export function PortfolioTab() {
         </div>
 
         {/* Pie Chart (spans 2/5 on right) */}
-        <Card className="bg-gray-900 border-gray-800 lg:col-span-2 card-hover gradient-border">
+        <Card className="bg-gray-900 border-gray-800 lg:col-span-2 card-hover glass-card-depth border-rotate">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardTitle className="text-sm text-gray-400 flex items-center gap-2">
               <LineChart className="h-3.5 w-3.5" />
@@ -421,8 +421,8 @@ export function PortfolioTab() {
       {tokens.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Best Performer */}
-          <Card className="bg-gray-900 border-gray-800 card-hover">
-            <CardContent className="p-4 flex items-center gap-3">
+          <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth">
+            <CardContent className="p-4 flex items-center gap-3 bg-gradient-to-br from-emerald-500/5 to-transparent">
               <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
                 <Crown className="h-4 w-4 text-emerald-400" />
               </div>
@@ -441,8 +441,8 @@ export function PortfolioTab() {
           </Card>
 
           {/* Worst Performer */}
-          <Card className="bg-gray-900 border-gray-800 card-hover">
-            <CardContent className="p-4 flex items-center gap-3">
+          <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth">
+            <CardContent className="p-4 flex items-center gap-3 bg-gradient-to-br from-rose-500/5 to-transparent">
               <div className="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center flex-shrink-0">
                 <AlertTriangle className="h-4 w-4 text-rose-400" />
               </div>
@@ -461,7 +461,7 @@ export function PortfolioTab() {
           </Card>
 
           {/* Avg. Profit Ratio */}
-          <Card className="bg-gray-900 border-gray-800 card-hover">
+          <Card className="bg-gray-900 border-gray-800 card-hover glass-card-depth">
             <CardContent className="p-4 flex items-center gap-3">
               <div
                 className={`w-10 h-10 rounded-full border flex items-center justify-center flex-shrink-0 ${
@@ -501,7 +501,7 @@ export function PortfolioTab() {
       )}
 
       {/* Token Table */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800 glass-card-depth">
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <CardTitle className="text-white text-base flex items-center gap-2">
@@ -531,7 +531,7 @@ export function PortfolioTab() {
                   placeholder="Search tokens..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white pl-8 text-sm h-8 input-focus-ring"
+                  className="bg-gray-800 border-gray-700 text-white pl-8 text-sm h-8 input-glow"
                 />
               </div>
             </div>
@@ -668,7 +668,7 @@ export function PortfolioTab() {
                     return (
                       <TableRow
                         key={token.address}
-                        className="border-gray-800 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer"
+                        className="border-gray-800 hover:bg-gray-800/80 transition-all duration-200 cursor-pointer hover-lift"
                         onClick={() =>
                           window.open(
                             getExplorerAddressUrl(token.address),

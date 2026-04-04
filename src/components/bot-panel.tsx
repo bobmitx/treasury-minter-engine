@@ -51,7 +51,7 @@ function BotStatusBadge({ running }: { running: boolean }) {
       >
         <div
           className={cn(
-            "w-2 h-2 rounded-full",
+            "w-2 h-2 rounded-full glow-dot",
             running ? "bg-emerald-500 status-dot-success status-dot-pulse" : "bg-gray-500"
           )}
         />
@@ -202,7 +202,7 @@ function ConfigSection() {
 
   return (
     <Card className={cn(
-      "bg-gray-900 border-gray-800/70 gradient-border",
+      "bg-gray-900 border-gray-800/70 glass-card-depth gradient-border",
       botRunning && "neon-border-amber"
     )}>
       <CardHeader className="pb-3">
@@ -267,7 +267,7 @@ function ConfigSection() {
                       maxGasPrice: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="bg-gray-800 border-gray-700 text-white pr-10 input-focus-ring"
+                  className="bg-gray-800 border-gray-700 text-white pr-10 input-glow"
                   min={1}
                   max={500}
                   step={1}
@@ -293,7 +293,7 @@ function ConfigSection() {
                       mintAmount: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="bg-gray-800 border-gray-700 text-white pr-10 input-focus-ring"
+                  className="bg-gray-800 border-gray-700 text-white pr-10 input-glow"
                   min={0}
                   step={100}
                 />
@@ -390,7 +390,7 @@ function TargetTokenSection() {
   };
 
   return (
-    <Card className="bg-gray-900 border-gray-800/70 gradient-border">
+    <Card className="bg-gray-900 border-gray-800/70 glass-card-depth gradient-border">
       <CardHeader className="pb-3">
         <button
           onClick={() => setExpanded(!expanded)}
@@ -858,7 +858,7 @@ export function BotPanel() {
       </div>
 
       {/* Controls Bar */}
-      <Card className="bg-gray-900 border-gray-800/70">
+      <Card className="bg-gray-900 border-gray-800/70 glass-card-depth">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <div className="flex items-center gap-2 flex-wrap">
@@ -866,7 +866,7 @@ export function BotPanel() {
                 <Button
                   onClick={handleStart}
                   className={cn(
-                    "bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-2 shadow-lg shadow-emerald-500/20",
+                    "bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-2 shadow-lg shadow-emerald-500/20 gradient-border-active",
                     !botRunning && "breathe-glow focus-ring-animated"
                   )}
                 >
@@ -970,7 +970,7 @@ export function BotPanel() {
         </div>
 
         {/* Right Column: Activity Log */}
-        <Card className="bg-gray-900 border-gray-800/70 gradient-border lg:row-span-2">
+        <Card className="bg-gray-900 border-gray-800/70 glass-card-depth gradient-border lg:row-span-2">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-white text-sm flex items-center gap-2">
@@ -1017,7 +1017,7 @@ export function BotPanel() {
       </div>
 
       {/* Profit Summary */}
-      <Card className="bg-gray-900 border-gray-800/70 gradient-border">
+      <Card className="bg-gray-900 border-gray-800/70 glass-card-depth gradient-border">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex items-center gap-3 flex-1">
