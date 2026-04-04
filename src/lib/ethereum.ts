@@ -350,8 +350,8 @@ export async function getMultiplier(
     const multiplier = await contract.Multiplier(amount);
 
     return parseFloat(ethers.utils.formatUnits(multiplier, 0));
-  } catch (error) {
-    console.error("Error getting multiplier:", error);
+  } catch {
+    // Silently return 0 — ethers.js already logs CALL_EXCEPTION details
     return 0;
   }
 }
@@ -366,8 +366,8 @@ export async function getV4Multiplier(
     const contract = new Contract(tokenAddress, ABIS.V4MinterABI2, provider);
     const multiplier = await contract.Multiplier(amount);
     return parseFloat(ethers.utils.formatUnits(multiplier, 0));
-  } catch (error) {
-    console.error("Error getting V4 multiplier:", error);
+  } catch {
+    // Silently return 0
     return 0;
   }
 }

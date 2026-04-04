@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProfitIndicator } from "@/components/profit-indicator";
+import { TokenPriceChart } from "@/components/token-price-chart";
 import {
   Copy,
   ExternalLink,
@@ -135,6 +136,13 @@ export function TokenDetailDialog({ tokenAddress, children }: TokenDetailDialogP
               <p className="text-sm font-semibold text-white font-mono number-tick">{formatUSD(value)}</p>
             </div>
           </div>
+
+          {/* Price chart */}
+          <TokenPriceChart
+            tokenAddress={token.address}
+            tokenSymbol={token.symbol}
+            currentPrice={token.priceUSD}
+          />
 
           {/* Profit ratio */}
           <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">

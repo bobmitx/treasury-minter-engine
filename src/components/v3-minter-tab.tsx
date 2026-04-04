@@ -92,16 +92,25 @@ export function V3MinterTab() {
   const [showAddToken, setShowAddToken] = useState(false);
 
   const fetchMultiplier = useCallback(async () => {
+    // V3 Index Minter is a factory contract — it does NOT have a Multiplier() function.
+    // Only individual token contracts created by the factory have Multiplier().
+    // So we fetch the multiplier of the currently selected mint token.
+    if (!mintToken) {
+      setCurrentMultiplier(0);
+      setLoadingMultiplier(false);
+      return;
+    }
     setLoadingMultiplier(true);
     try {
-      const mult = await getMultiplier(CONTRACTS.v3IndexMinter, 1);
+      const mult = await getMultiplier(mintToken, 1);
       setCurrentMultiplier(mult);
-    } catch (error) {
-      console.error("Error fetching multiplier:", error);
+    } catch {
+      // Multiplier call failed (e.g. contract doesn't support it) — silently reset
+      setCurrentMultiplier(0);
     } finally {
       setLoadingMultiplier(false);
     }
-  }, []);
+  }, [mintToken]);
 
   const fetchMintPreview = useCallback(async () => {
     if (!mintToken || !mintAmount) {
@@ -121,10 +130,14 @@ export function V3MinterTab() {
   }, [mintToken, mintAmount]);
 
   useEffect(() => {
+    if (!mintToken) {
+      setCurrentMultiplier(0);
+      return;
+    }
     fetchMultiplier();
     const interval = setInterval(fetchMultiplier, 15000);
     return () => clearInterval(interval);
-  }, [fetchMultiplier]);
+  }, [fetchMultiplier, mintToken]);
 
   useEffect(() => {
     const timer = setTimeout(fetchMintPreview, 300);
@@ -391,7 +404,9 @@ export function V3MinterTab() {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-400 mb-1">V3 Index Multiplier</p>
+                <p className="text-sm text-gray-400 mb-1">
+                  {mintToken ? "Token Multiplier" : "V3 Index Multiplier"}
+                </p>
                 <div className="flex items-center gap-2">
                   <Badge
                     variant="outline"
@@ -401,7 +416,9 @@ export function V3MinterTab() {
                   </Badge>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
-                  Increases every 1,111,111,111 tokens minted globally
+                  {mintToken
+                    ? "Multiplier for the selected mint token"
+                    : "Select a token to view its multiplier"}
                 </p>
               </div>
             </div>

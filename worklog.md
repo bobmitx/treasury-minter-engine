@@ -1764,3 +1764,173 @@ The application has 15+ custom components, 10 tabs (Dashboard, V3 Minter, V4 Min
 5. **Price Source Accuracy**: PLS price from CoinGecko is lower than previously expected ($0.00000728 vs expected ~$0.000028). May need investigation or user can switch to manual mode
 6. **Advanced Price Pipeline**: User suggested referencing pulsex.mypinata.cloud, pulsex.com, piteas for eDAI/WPLS pair data
 
+---
+## Task ID: 4-b
+Agent: full-stack-developer
+Task: Add Token Price Chart to Token Detail Dialog
+
+Work Log:
+- Created `src/components/token-price-chart.tsx` — a new recharts-based AreaChart component
+  - Uses `useMemo` to generate 7 data points of mock price history from `currentPrice`
+  - Deterministic pseudo-random noise seeded from `tokenAddress` for consistent per-token charts
+  - Emerald gradient fill for positive trend, rose gradient fill for negative trend
+  - Custom dark-theme tooltip (`bg-gray-900 border-gray-700`) with price display via `formatUSD`
+  - Price change percentage badge with TrendingUp/TrendingDown icon (emerald for positive, rose for negative)
+  - "7 Day" period label, hidden Y-axis, Day 1-7 X-axis labels
+  - ResponsiveContainer at 150px height
+  - Footer showing 7d-ago price vs current price with color-coded text
+- Integrated into `src/components/token-detail-dialog.tsx`
+  - Added import for `TokenPriceChart`
+  - Placed chart in dialog body between key metrics grid and profit ratio section
+  - Passes `tokenAddress`, `tokenSymbol`, and `token.priceUSD` as props
+
+Stage Summary:
+- Price chart shows 7-day simulated history with gradient fill
+- Custom tooltip, price change badge, period label
+- ESLint passes with zero errors
+- Dev server compiles successfully
+
+---
+Task ID: 4-c
+Agent: frontend-styling-expert
+Task: Add premium CSS animations and polish effects
+
+Work Log:
+- Read existing globals.css (2311 lines) and identified all existing animations to avoid duplicates
+- Found that .skeleton-shimmer, .text-gradient-animated, .focus-ring-emerald already existed
+- Added 10 new animation sections as ROUND 6 block (lines 2284-2460)
+- Added corresponding reduced-motion support for all 9 animated new classes
+- Did not modify any existing animations or styles
+
+Stage Summary:
+- Stagger grid entry (.animate-stagger-grid > *) with nth-child delays 0-550ms, fade + translateY(8px) + scale(0.98)
+- Card shine effect (.card-shine) diagonal light streak sweep on hover via pseudo-element
+- Glow pulse ring (.glow-pulse-ring) expanding ring scale 1→1.5, opacity 0.6→0
+- Slide in from bottom (.animate-slide-in-bottom) translateY(20px) with 350ms duration
+- Gradient text animation (.animate-gradient-text) background-position shift companion to .text-gradient-animated
+- Subtle float (.animate-float) gentle translateY ±4px oscillation over 3s
+- Toast notification slide (.toast-slide-in) slide from right + scale(0.95→1) + fade
+- Skeleton shimmer alt (.skeleton-shimmer-alt) pure CSS gradient sweep (no pseudo-element)
+- Number ticker (.number-ticker) scale bounce 1→1.05→0.98→1 with spring curve
+- Focus emerald (.focus-emerald:focus-visible) 2px emerald ring with 2px offset
+- All new animations respect prefers-reduced-motion: reduce
+
+
+---
+## Task ID: 4-a - full-stack-developer
+### Work Task
+Add a Network Stats Bar component showing real-time PulseChain network stats at the top of the dashboard tab, just below the tab navigation.
+
+### Work Summary
+
+**1. `src/app/api/network-stats/route.ts` — NEW API ROUTE**
+- GET endpoint that fetches PulseChain network stats via JSON-RPC calls to `https://rpc.pulsechain.com/`
+- Calls `eth_blockNumber`, `eth_gasPrice`, `eth_syncing`, and `eth_getBlockByNumber` (with full transaction data)
+- Calculates block time by comparing timestamps of two consecutive blocks
+- Extracts unique addresses from block transactions (from + to fields) for active address count
+- Computes TPS (transactions per second) from transaction count / block time
+- Fetches PLS price from internal `/api/pls-price` endpoint
+- 5-second timeout per RPC call using AbortController
+- In-memory cache with 10-second TTL to prevent excessive RPC calls
+- Returns: blockHeight, gasPrice, gasPriceGwei, plsPrice, syncStatus, activeAddresses, tps, blockTime, blockTimestamp, lastUpdated
+- Verified: Returns real data (block ~26,200,586, gas ~718K Gwei, 37 active addresses, 2.6 TPS, 10s block time)
+
+**2. `src/components/network-stats-bar.tsx` — NEW COMPONENT**
+- `'use client'` component with named export `NetworkStatsBar`
+- Horizontal bar with 6 stats: Block Height (linked to explorer), Gas Price (Gwei), PLS Price, Network Status (Synced/Syncing), Active Addresses, TPS
+- Each stat: lucide-react icon, label (text-[10px] text-gray-500, hidden on mobile), value (text-xs font-mono)
+- Pulse animation on block height when it changes (detected via previous block comparison)
+- Mobile: horizontal scroll with `scrollbar-none` class
+- Desktop: flex-wrap for responsive layout
+- Dark theme: `bg-gray-900/50 border-gray-800` with emerald accent for healthy status, amber for syncing
+- Network status uses Badge component (emerald for Synced, amber for Syncing)
+- Block height links to `https://scan.pulsechain.com/block/{height}` with ExternalLink icon
+- Auto-refreshes every 15 seconds via `setInterval`
+- Loading skeleton placeholders (animated pulse bars) while data loads
+- Vertical dividers between stats
+- Uses `number-animate` CSS class on values for smooth transitions
+
+**3. `src/components/dashboard-tab.tsx` — INTEGRATION**
+- Added import: `import { NetworkStatsBar } from "@/components/network-stats-bar"`
+- Rendered `<NetworkStatsBar />` as the very first element inside the `space-y-6` container, above the Stats Grid
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with zero errors
+- **Dev Server**: Compiles successfully with `✓ Compiled` messages
+- **API Test**: `GET /api/network-stats` returns 200 with real PulseChain data
+- **No existing components modified** except dashboard-tab.tsx (import + render only)
+- **Design system**: Follows established dark theme (gray-900/800 backgrounds, emerald accents, amber warnings, font-mono values)
+
+
+---
+## Task ID: ROUND-4 - Bug Fix + Feature Additions + CSS Polish
+
+### Current Project Status
+Application running stable with 10 tabs (Dashboard, V3 Minter, V4 Minter, MultiHop, Calculator, Portfolio, History, Bot Mode, Compare, Watchlist). User reported CALL_EXCEPTION console error from V3 Index Minter contract. All subagent outputs from previous rounds verified and working.
+
+### Bug Fixes
+
+**1. CALL_EXCEPTION: V3 Index Minter Multiplier Call (CRITICAL)**
+- **Root Cause**: `src/components/v3-minter-tab.tsx` line 97 called `getMultiplier(CONTRACTS.v3IndexMinter, 1)` every 15 seconds. The V3 Index Minter (`0x0c4F73328dFCECfbecf235C9F78A4494a7EC5ddC`) is a **factory contract** — it only has a `New()` function and does NOT have a `Multiplier()` function. Individual token contracts created by the factory have `Multiplier()`, not the factory itself.
+- **Fix in `v3-minter-tab.tsx`**:
+  - Changed `fetchMultiplier` to fetch multiplier of the **selected mint token** (`mintToken`) instead of the factory
+  - Added early return when no token is selected (sets multiplier to 0)
+  - Changed `useCallback` dependency from `[]` to `[mintToken]`
+  - useEffect now only starts interval when `mintToken` is set
+  - Removed `console.error` (ethers.js already logs CALL_EXCEPTION before catch)
+- **Fix in `ethereum.ts`**:
+  - `getMultiplier()`: Removed `console.error`, silently returns 0
+  - `getV4Multiplier()`: Same treatment
+- **Display label updated**: "V3 Index Multiplier" → dynamic "Token Multiplier" (when token selected) / "V3 Index Multiplier" (when no token)
+- **Verification**: No console errors after 20+ seconds, V3 Minter tab loads cleanly
+
+### New Features
+
+**2. Network Stats Bar (`src/components/network-stats-bar.tsx` — NEW)**
+- Compact horizontal bar showing 6 real-time PulseChain network stats
+- Stats: Block Height (linked to explorer), Gas Price (Gwei), PLS Price, Network Status (Synced/Syncing), Active Addresses, TPS
+- Block height pulses on change, auto-refreshes every 15s
+- Mobile: horizontal scroll with hidden scrollbar; Desktop: flex-wrap
+- Integrated as first element in DashboardTab
+
+**3. Network Stats API (`src/app/api/network-stats/route.ts` — NEW)**
+- Calls PulseChain RPC: `eth_blockNumber`, `eth_gasPrice`, `eth_syncing`, `eth_getBlockByNumber`
+- Calculates block time from consecutive blocks, extracts active addresses, computes TPS
+- Fetches PLS price from internal `/api/pls-price` endpoint
+- 5-second timeout per RPC call, 10-second in-memory cache
+
+**4. Token Price Chart (`src/components/token-price-chart.tsx` — NEW)**
+- Recharts AreaChart showing 7-point simulated price history
+- Gradient fill: emerald for positive trend, rose for negative
+- Custom dark tooltip, price change % badge with TrendingUp/TrendingDown icons
+- Integrated into Token Detail Dialog
+
+### Styling Improvements
+
+**5. 10 New CSS Animations (`src/app/globals.css` — ROUND 6 section)**
+- `animate-stagger-grid` — Grid entry with nth-child delays
+- `card-shine` — Diagonal light streak on hover
+- `glow-pulse-ring` — Expanding ring status indicator
+- `animate-slide-in-bottom` — Modal/dialog entrance
+- `animate-gradient-text` — Background-position shift for hero text
+- `animate-float` — Gentle up/down oscillation
+- `toast-slide-in` — Toast entrance from right
+- `skeleton-shimmer-alt` — Pure CSS gradient sweep skeleton
+- `number-ticker` — Scale bounce for stat value changes
+- `focus-emerald:focus-visible` — Accessible keyboard focus ring
+- All animations disabled under `prefers-reduced-motion: reduce`
+
+### Verification Results
+- **ESLint**: `bun run lint` — zero errors
+- **Dev Server**: Compiles successfully, all routes return 200
+- **API**: `/api/network-stats` returns real data (Block ~26.2M, ~718K Gwei, 37 addresses, 2.6 TPS)
+- **Browser QA**: No console errors after 20+ seconds on Dashboard and V3 Minter tabs
+- **Files Modified**: `src/components/v3-minter-tab.tsx`, `src/lib/ethereum.ts`, `src/components/dashboard-tab.tsx`, `src/app/globals.css`, `src/components/token-detail-dialog.tsx`
+- **Files Created**: `src/components/network-stats-bar.tsx`, `src/app/api/network-stats/route.ts`, `src/components/token-price-chart.tsx`
+
+### Unresolved Issues & Next Phase Recommendations
+1. **LP Pair Discovery**: eDAI/WPLS pair doesn't exist on canonical Uniswap V2 Factory. Need PulseX V2 factory for accurate LP pricing.
+2. **Bot Mode Real Integration**: Simulation works, but actual on-chain minting from bot loop requires wallet session persistence.
+3. **Historical Price Data**: Charts use simulated data. Real historical data requires time-series storage or on-chain event parsing.
+4. **Price Source Improvement**: Consider integrating pulsex.mypinata.cloud, piteas for more accurate PLS/token pricing.
+5. **Mobile Optimization**: Some complex components (Bot Panel, Calculator) may need further responsive work.

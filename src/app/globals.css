@@ -2281,7 +2281,185 @@ input[type="number"]:hover::-webkit-outer-spin-button {
   animation: count-up-pop 0.3s ease-out;
 }
 
-/* 11. Reduced Motion */
+/* === ROUND 6 - PREMIUM CSS ANIMATIONS (Task 4-c) === */
+
+/* 1. Stagger Grid Entry — token cards entering the view with fade + translateY + scale */
+@keyframes stagger-grid-enter {
+  0% { opacity: 0; transform: translateY(8px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-stagger-grid > * {
+  animation: stagger-grid-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-stagger-grid > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger-grid > *:nth-child(2) { animation-delay: 50ms; }
+.animate-stagger-grid > *:nth-child(3) { animation-delay: 100ms; }
+.animate-stagger-grid > *:nth-child(4) { animation-delay: 150ms; }
+.animate-stagger-grid > *:nth-child(5) { animation-delay: 200ms; }
+.animate-stagger-grid > *:nth-child(6) { animation-delay: 250ms; }
+.animate-stagger-grid > *:nth-child(7) { animation-delay: 300ms; }
+.animate-stagger-grid > *:nth-child(8) { animation-delay: 350ms; }
+.animate-stagger-grid > *:nth-child(9) { animation-delay: 400ms; }
+.animate-stagger-grid > *:nth-child(10) { animation-delay: 450ms; }
+.animate-stagger-grid > *:nth-child(11) { animation-delay: 500ms; }
+.animate-stagger-grid > *:nth-child(12) { animation-delay: 550ms; }
+
+/* 2. Card Shine Effect — premium diagonal light streak sweep on hover */
+@keyframes card-shine-sweep {
+  0% { left: -75%; }
+  100% { left: 125%; }
+}
+
+.card-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.card-shine::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    120deg,
+    transparent 0%,
+    oklch(1 0 0 / 4%) 40%,
+    oklch(1 0 0 / 10%) 50%,
+    oklch(1 0 0 / 4%) 60%,
+    transparent 100%
+  );
+  transform: skewX(-15deg);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.card-shine:hover::after {
+  animation: card-shine-sweep 0.6s ease-out;
+}
+
+/* 3. Glow Pulse Ring — expanding ring that fades out for status indicators */
+@keyframes glow-pulse-ring-keyframe {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
+
+.glow-pulse-ring {
+  position: relative;
+}
+
+.glow-pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 2px solid oklch(0.7 0.17 162 / 40%);
+  animation: glow-pulse-ring-keyframe 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+/* 4. Slide In From Bottom — for modals/dialogs */
+@keyframes slide-in-bottom {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 5. Gradient Text Animation — companion class for hero/headline text */
+/* Works alongside .text-gradient-animated for additional control */
+@keyframes gradient-text-cycle {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-gradient-text {
+  background: linear-gradient(
+    90deg,
+    oklch(0.7 0.17 162),
+    oklch(0.75 0.15 140),
+    oklch(0.65 0.2 40),
+    oklch(0.7 0.17 162)
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-text-cycle 4s ease-in-out infinite;
+}
+
+/* 6. Subtle Float — gentle up/down oscillation for decorative elements */
+@keyframes subtle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.animate-float {
+  animation: subtle-float 3s ease-in-out infinite;
+}
+
+/* 7. Toast Notification Slide — slide from right + fade in for toasts */
+@keyframes toast-slide-enter {
+  0% { transform: translateX(100%) scale(0.95); opacity: 0; }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+.toast-slide-in {
+  animation: toast-slide-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 8. Skeleton Shimmer (improved) — animated gradient sweep for loading skeletons */
+/* Note: .skeleton-shimmer already exists; this provides an alternative with
+   gray-800 to gray-700 tones for broader compatibility */
+@keyframes skeleton-shimmer-alt {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer-alt {
+  background: linear-gradient(
+    90deg,
+    oklch(0.20 0 0) 0%,
+    oklch(0.24 0 0) 20%,
+    oklch(0.28 0 0) 50%,
+    oklch(0.24 0 0) 80%,
+    oklch(0.20 0 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer-alt 1.8s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* 9. Number Ticker — slight scale bounce when stat value changes */
+@keyframes number-ticker-bounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.05); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+.number-ticker {
+  animation: number-ticker-bounce 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 10. Focus Ring Emerald — accessible keyboard focus with emerald ring */
+/* Note: .focus-ring-emerald already exists; this adds the requested .focus-emerald variant */
+.focus-emerald:focus-visible {
+  outline: 2px solid oklch(0.7 0.17 162);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.focus-emerald:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 12. Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   .spinner-conic,
   .status-pulse-soft,
@@ -2306,6 +2484,18 @@ input[type="number"]:hover::-webkit-outer-spin-button {
   .breathe-glow-soft,
   .animated-underline-nav::after,
   .number-pop {
+    animation: none !important;
+  }
+  /* Round 6 - Premium CSS Animations reduced motion */
+  .animate-stagger-grid > *,
+  .card-shine::after,
+  .glow-pulse-ring::after,
+  .animate-slide-in-bottom,
+  .animate-gradient-text,
+  .animate-float,
+  .toast-slide-in,
+  .skeleton-shimmer-alt,
+  .number-ticker {
     animation: none !important;
   }
 }

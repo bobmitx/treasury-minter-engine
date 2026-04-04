@@ -19,6 +19,7 @@ import { MintAnalytics } from "@/components/mint-analytics";
 import { GasOptimizer } from "@/components/gas-optimizer";
 import { GasTipsPanel } from "@/components/gas-tips-panel";
 import { MarketOverview } from "@/components/market-overview";
+import { NetworkStatsBar } from "@/components/network-stats-bar";
 import {
   DollarSign,
   Coins,
@@ -672,6 +673,9 @@ export function DashboardTab() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
+      {/* Network Stats Bar */}
+      <NetworkStatsBar />
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
