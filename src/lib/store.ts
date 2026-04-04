@@ -6,7 +6,8 @@ export type TabType =
   | "v4-minter"
   | "multihop"
   | "portfolio"
-  | "history";
+  | "history"
+  | "calculator";
 
 export type TxStatus = "pending" | "confirmed" | "failed";
 
@@ -56,6 +57,36 @@ export interface GasData {
   lastUpdated: number;
 }
 
+export interface BotConfig {
+  enabled: boolean;
+  profitThreshold: number; // minimum profit ratio to auto-mint
+  maxGasPrice: number; // max Gwei to spend
+  mintAmount: number; // default mint amount
+  interval: number; // seconds between checks
+  targetTokens: string[]; // token addresses to monitor
+  autoClaim: boolean; // auto-claim V4 rewards
+}
+
+export interface BotLogEntry {
+  id: string;
+  timestamp: number;
+  type: "info" | "mint" | "error" | "claim" | "skip";
+  message: string;
+  tokenSymbol?: string;
+  profitRatio?: number;
+}
+
+export interface ProfitAlert {
+  id: string;
+  tokenAddress: string;
+  tokenSymbol: string;
+  threshold: number; // profit ratio threshold
+  direction: "above" | "below"; // alert when above or below
+  triggered: boolean;
+  lastTriggered?: number;
+  createdAt: number;
+}
+
 interface AppState {
   // Wallet state
   address: string | null;
@@ -67,6 +98,8 @@ interface AppState {
   activeTab: TabType;
   isLoading: boolean;
   settingsOpen: boolean;
+  onboardingOpen: boolean;
+  hasSeenOnboarding: boolean;
 
   // Market data
   plsPriceUSD: number;
@@ -99,6 +132,16 @@ interface AppState {
   autoRefreshInterval: number;
   botMode: boolean;
 
+  // Bot configuration
+  botConfig: BotConfig;
+  botRunning: boolean;
+  botLogs: BotLogEntry[];
+  botMintCount: number;
+  botTotalProfit: number;
+
+  // Profit alerts
+  profitAlerts: ProfitAlert[];
+
   // Actions
   setAddress: (address: string | null) => void;
   setBalance: (balance: string) => void;
@@ -107,6 +150,8 @@ interface AppState {
   setActiveTab: (tab: TabType) => void;
   setIsLoading: (loading: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
+  setOnboardingOpen: (open: boolean) => void;
+  setHasSeenOnboarding: (seen: boolean) => void;
   setPlsPriceUSD: (price: number) => void;
   setMintCostUSD: (cost: number) => void;
   setLastPriceUpdate: (timestamp: number) => void;
@@ -115,6 +160,7 @@ interface AppState {
   updateToken: (address: string, data: Partial<TokenData>) => void;
   removeToken: (address: string) => void;
   setSelectedToken: (token: TokenData | null) => void;
+  setMintToken: (address: string) => void;
   setMultihopPreview: (preview: MultiHopPreview | null) => void;
   setMultihopLoading: (loading: boolean) => void;
   addTransaction: (tx: TransactionRecord) => void;
@@ -126,8 +172,27 @@ interface AppState {
   setTokenDetailOpen: (open: boolean) => void;
   setTokenDetailAddress: (address: string | null) => void;
   setGasData: (data: GasData | null) => void;
+  setBotConfig: (config: Partial<BotConfig>) => void;
+  setBotRunning: (running: boolean) => void;
+  addBotLog: (log: BotLogEntry) => void;
+  clearBotLogs: () => void;
+  setBotMintCount: (count: number) => void;
+  setBotTotalProfit: (profit: number) => void;
+  addProfitAlert: (alert: ProfitAlert) => void;
+  removeProfitAlert: (id: string) => void;
+  updateProfitAlert: (id: string, data: Partial<ProfitAlert>) => void;
   clearAll: () => void;
 }
+
+const defaultBotConfig: BotConfig = {
+  enabled: false,
+  profitThreshold: 1.2,
+  maxGasPrice: 50,
+  mintAmount: 1000,
+  interval: 30,
+  targetTokens: [],
+  autoClaim: false,
+};
 
 const initialState = {
   // Wallet
@@ -140,6 +205,8 @@ const initialState = {
   activeTab: "dashboard" as TabType,
   isLoading: false,
   settingsOpen: false,
+  onboardingOpen: false,
+  hasSeenOnboarding: false,
 
   // Market
   plsPriceUSD: 0.000028,
@@ -171,6 +238,16 @@ const initialState = {
   // Settings
   autoRefreshInterval: 15000,
   botMode: false,
+
+  // Bot
+  botConfig: defaultBotConfig,
+  botRunning: false,
+  botLogs: [],
+  botMintCount: 0,
+  botTotalProfit: 0,
+
+  // Profit alerts
+  profitAlerts: [],
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -186,6 +263,8 @@ export const useAppStore = create<AppState>((set) => ({
   setActiveTab: (activeTab) => set({ activeTab }),
   setIsLoading: (isLoading) => set({ isLoading }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  setOnboardingOpen: (onboardingOpen) => set({ onboardingOpen }),
+  setHasSeenOnboarding: (hasSeenOnboarding) => set({ hasSeenOnboarding }),
 
   // Market actions
   setPlsPriceUSD: (plsPriceUSD) => set({ plsPriceUSD }),
@@ -212,6 +291,7 @@ export const useAppStore = create<AppState>((set) => ({
       tokens: state.tokens.filter((t) => t.address !== address),
     })),
   setSelectedToken: (selectedToken) => set({ selectedToken }),
+  setMintToken: (address) => set({ selectedToken: null }),
 
   // Token detail dialog actions
   setTokenDetailOpen: (tokenDetailOpen) => set({ tokenDetailOpen }),
@@ -245,6 +325,36 @@ export const useAppStore = create<AppState>((set) => ({
   setAutoRefreshInterval: (autoRefreshInterval) =>
     set({ autoRefreshInterval }),
   setBotMode: (botMode) => set({ botMode }),
+
+  // Bot actions
+  setBotConfig: (config) =>
+    set((state) => ({
+      botConfig: { ...state.botConfig, ...config },
+    })),
+  setBotRunning: (botRunning) => set({ botRunning }),
+  addBotLog: (log) =>
+    set((state) => ({
+      botLogs: [log, ...state.botLogs].slice(0, 200),
+    })),
+  clearBotLogs: () => set({ botLogs: [] }),
+  setBotMintCount: (botMintCount) => set({ botMintCount }),
+  setBotTotalProfit: (botTotalProfit) => set({ botTotalProfit }),
+
+  // Profit alerts
+  addProfitAlert: (alert) =>
+    set((state) => ({
+      profitAlerts: [...state.profitAlerts, alert],
+    })),
+  removeProfitAlert: (id) =>
+    set((state) => ({
+      profitAlerts: state.profitAlerts.filter((a) => a.id !== id),
+    })),
+  updateProfitAlert: (id, data) =>
+    set((state) => ({
+      profitAlerts: state.profitAlerts.map((a) =>
+        a.id === id ? { ...a, ...data } : a
+      ),
+    })),
 
   // Clear
   clearAll: () => set(initialState),

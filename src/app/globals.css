@@ -360,3 +360,137 @@
 .recharts-area {
   filter: drop-shadow(0 0 6px oklch(0.7 0.17 162 / 30%));
 }
+
+/* === ROUND 2 ADDITIONS === */
+
+/* Animated bounce for empty states */
+@keyframes gentle-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-gentle-bounce {
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+/* Rotate animation */
+@keyframes slow-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-slow-rotate {
+  animation: slow-rotate 20s linear infinite;
+}
+
+/* Stagger animation for list items */
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-stagger-in {
+  animation: stagger-in 0.3s ease-out forwards;
+  opacity: 0;
+}
+
+/* Progress bar animation */
+@keyframes progress-stripe {
+  0% { background-position: 1rem 0; }
+  100% { background-position: 0 0; }
+}
+
+.progress-striped {
+  background-image: linear-gradient(
+    45deg,
+    oklch(1 0 0 / 10%) 25%,
+    transparent 25%,
+    transparent 50%,
+    oklch(1 0 0 / 10%) 50%,
+    oklch(1 0 0 / 10%) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1rem 1rem;
+  animation: progress-stripe 0.5s linear infinite;
+}
+
+/* Status dot pulse */
+@keyframes dot-ping {
+  0% { transform: scale(1); opacity: 1; }
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+.dot-ping {
+  animation: dot-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Text gradient */
+.text-gradient-emerald {
+  background: linear-gradient(135deg, oklch(0.7 0.17 162), oklch(0.75 0.15 140));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-amber {
+  background: linear-gradient(135deg, oklch(0.65 0.2 40), oklch(0.75 0.15 60));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Input autofill override for dark theme */
+input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px oklch(0.16 0 0) inset !important;
+  -webkit-text-fill-color: oklch(0.985 0 0) !important;
+}
+
+/* Number input spin button styling */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 0.3;
+  height: 28px;
+}
+
+input[type="number"]:hover::-webkit-inner-spin-button,
+input[type="number"]:hover::-webkit-outer-spin-button {
+  opacity: 0.6;
+}
+
+/* Smooth scrollbar for card containers */
+.overflow-y-auto {
+  scroll-behavior: smooth;
+}
+
+/* Tooltip style overrides */
+[role="tooltip"] {
+  max-width: 280px;
+}
+
+/* Badge hover transitions */
+.badge-hover {
+  transition: all 0.15s ease;
+}
+
+.badge-hover:hover {
+  filter: brightness(1.2);
+}
+
+/* Skeleton pulse variant */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 2s ease-in-out infinite;
+}
+
+/* Responsive table improvements */
+@media (max-width: 640px) {
+  .glass-header {
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+  }
+}

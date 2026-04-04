@@ -181,3 +181,184 @@ The application was fully functional with all core features (V3/V4 minting, Mult
 4. **Count-up Animations**: Stats card values use CSS transitions but true count-up (animating from old to new number) could be enhanced with a React hook like `useSpring` from framer-motion.
 5. **Custom Token Validation**: Could add deeper validation (checking if address is a valid ERC20, verifying V3 vs V4 contract type automatically).
 6. **Token Detail "Mint More"**: Currently uses DOM manipulation to set the mint input. A cleaner approach would use Zustand state to pass the selected token to the minter tab.
+
+---
+## Task ID: ENHANCE-TABS - Portfolio & History Tab Enhancements
+### Work Task
+Enhance the existing Portfolio and History tabs with new features: distribution chart, P&L summary, CSV export, relative timestamps, stats summary bar, row expansion, date range filtering, improved empty states, version-colored avatars, and hover effects.
+
+### Completed Modifications
+
+**1. `src/components/portfolio-tab.tsx` - Full Enhancement**
+- **Portfolio Distribution PieChart**: Added recharts PieChart (donut style) showing token distribution by value. Uses emerald, amber, rose, cyan, violet colors. Displayed in a 2-column layout with stats grid (3/5 width) on left and chart (2/5 width) on right, stacking on mobile via `lg:grid-cols-5`.
+- **P&L Summary Row**: Added 3 cards below stats grid: "Best Performer" with Crown icon and animated emerald glow text showing profit ratio, "Worst Performer" with AlertTriangle icon and rose text, "Avg. Profit Ratio" with Percent icon and color-coded average.
+- **Improved Empty State**: When no tokens, shows animated bouncing wallet icon, 3-step guide (Create → Mint → Track) with colored icon circles, and "Create Your First Token" CTA button that navigates to V3 minter tab.
+- **Row Hover Effects**: Table rows use `hover:bg-gray-800/80 transition-all duration-200`.
+- **Token Version Colors**: V3 tokens get emerald avatar (`bg-emerald-500/10 border-emerald-500/20 text-emerald-400`), V4 tokens get amber avatar (`bg-amber-500/10 border-amber-500/20 text-amber-400`).
+- **Export CSV Button**: Added Download icon button in header that exports current portfolio data (Name, Symbol, Address, Balance, Price, Multiplier, Profit Ratio, Value, Version) to CSV file.
+- **Styling**: All stat cards use `card-hover` and `gradient-border` classes. Token count badge in header. `animate-fade-in-up` on root container. `input-focus-ring` on search. `btn-hover-scale` on export button.
+
+**2. `src/components/history-tab.tsx` - Full Enhancement**
+- **Relative Timestamps**: Replaced time/date display with relative timestamps ("just now", "2 min ago", "1 hour ago", "3 days ago", etc.). Full date shown via Tooltip on hover using shadcn/ui Tooltip component.
+- **Stats Summary Bar**: Added 4 mini-stat cards at top: Total TX Count (Activity icon), Success Rate % (color-coded emerald/amber/rose based on threshold), Most Active Type (Flame icon), Gas Spent sum (Gauge icon with formatUSD).
+- **Export CSV Button**: Added Download icon button in card header that exports full transaction history (Type, Status, Token Symbol, Token Address, Amount, TX Hash, Gas Cost, Version, Timestamp, Details) to CSV file.
+- **Improved Empty State**: Animated bouncing Clock icon with "No Transactions Yet" message and "Start Minting" CTA button that navigates to V3 minter tab.
+- **Transaction Detail Expansion**: Click any row to expand and show detail panel with 4-column grid: TX Hash (with copy button), Gas Cost (formatted), Full Timestamp, and Version + Status badges + token address. Uses chevron indicator and `React.Fragment` with key for proper React key handling.
+- **Date Range Filter**: Added Select dropdown with options: All Time, Today, Last 7 Days, Last 30 Days. Uses `getDateRangeFilter()` helper to compute timestamp threshold. Styled with dark theme (bg-gray-800 border-gray-700).
+- **Styling**: All cards use `card-hover`, `gradient-border`, `number-animate`. Rows use `hover:bg-gray-800/80 transition-all duration-200`. `animate-fade-in-up` on root. Filter buttons use `btn-hover-scale`. Search input uses `input-focus-ring`.
+
+### Verification Results
+- **ESLint**: Both modified files pass lint with zero errors (pre-existing error in profit-alerts-panel.tsx unrelated to this task)
+- **Dev Server**: Compiles successfully with `✓ Compiled in 155ms`, all GET requests return 200
+- **No files modified outside scope**: Only touched `src/components/portfolio-tab.tsx` and `src/components/history-tab.tsx`
+- **No modifications to UI components, store, or ethereum utilities**
+
+---
+## Task ID: BOT-ONBOARD - Bot Panel & Onboarding Modal
+### Work Task
+Create two new components for the Treasury Minter Engine: (1) a comprehensive Bot Mode automation panel with config, target tokens, live status, activity log, and simulation loop, and (2) a 3-step onboarding welcome modal for first-time users.
+
+### Work Summary
+
+**1. `src/components/bot-panel.tsx` - Bot Mode Panel (NEW FILE)**
+- **ConfigSection**: Collapsible configuration card with: Profit Threshold slider (1.0x-5.0x with labels), Max Gas Price input (Gwei), Default Mint Amount (PLS), Check Interval slider (5s-120s), Auto-Claim V4 Rewards toggle (Switch). All controls bound to `botConfig` store state via `setBotConfig`.
+- **TargetTokenSection**: Collapsible target token list with: checkboxes to select/deselect tokens for monitoring, quick-select buttons (Select All, Clear, Profitable >1.0x, High >2.0x), sorted by profit ratio descending, shows token symbol, version badge (V3 emerald / V4 amber), profit ratio, and multiplier. Empty state with message when no tokens tracked.
+- **SessionStatCard**: Reusable mini stat card with icon, label, value, and color accent (emerald/amber/rose). Used for Mints Executed, Est. Profit, Checks Performed, Uptime.
+- **LogEntryRow**: Color-coded log entry with icon and background per type: green for mints, amber for skips, red for errors, violet for claims, blue for info. Shows timestamp, profit ratio badge.
+- **BotStatusBadge**: Shows running/idle status with animated pulse dot, "Bot Active" pulsing amber badge when running.
+- **Controls Bar**: Start/Stop/Pause/Resume buttons with proper state management. Live profit summary pill. Clear logs button. Countdown bar showing next check interval.
+- **Simulation Loop**: Uses `setInterval` at configured interval. Checks gas against max, evaluates each target token with random noise variation, generates mint/skip/claim/info/error log entries probabilistically. Updates mint count and profit totals. All simulated — no real blockchain calls.
+- **Profit Summary Card**: Shows session profit, total mints, avg. mint profit, success rate. Color-coded based on profit positive/negative.
+- **Styling**: Uses `gradient-border`, `card-hover`, `btn-hover-scale`, `input-focus-ring`, `bot-mode-pulse`, `glow-amber-animated`, `number-animate`, `animate-fade-in-up` classes. Dark theme throughout with emerald/amber accents.
+
+**2. `src/components/onboarding-modal.tsx` - Onboarding Modal (NEW FILE)**
+- **StepWelcome** (Step 1): Animated concentric ring illustration with Activity icon, project title, 4 feature highlight cards (V3 Minter, V4 Minter, MultiHop, Bot Mode) each with colored icon and description.
+- **StepHowItWorks** (Step 2): Side-by-side V3 vs V4 comparison with numbered step lists. V3 section (emerald) explains create → mint → multiplier → profit ratio. V4 section (amber) explains variants → GAI staking → claim rewards → withdraw. "Pro Tip" insight card about Bot Mode.
+- **StepGetStarted** (Step 3): Wallet illustration, context-aware CTA (varies based on connection state), 4-item checklist with completion states (done/undone), large CTA button.
+- **Step Navigation**: 3 clickable step dots with completion checkmarks and connecting lines. Back/Next/Skip buttons. "Don't show again" checkbox that persists via `setHasSeenOnboarding`.
+- **Dialog Integration**: Uses shadcn/ui Dialog component. Controls `onboardingOpen` and `hasSeenOnboarding` from store. `DialogDescription` for accessibility.
+- **Styling**: Gradient headers, glass-like cards, emerald accent buttons, `btn-hover-scale`, `glow-emerald-animated`, responsive layout.
+
+**3. Integration Notes**
+- Both components are exported as named exports (`BotPanel`, `OnboardingModal`) ready to be imported and used in `page.tsx`.
+- Bot panel uses existing store types: `useAppStore`, `BotConfig`, `BotLogEntry`, `TokenData`.
+- Onboarding modal uses existing store state: `onboardingOpen`, `hasSeenOnboarding`, `connected`, `setActiveTab`.
+- No existing files were modified.
+- Both files pass ESLint with zero errors.
+- Dev server compiles successfully (verified via dev.log).
+
+### Verification Results
+- **ESLint**: `src/components/bot-panel.tsx` and `src/components/onboarding-modal.tsx` pass with zero errors
+- **Dev Server**: Compiles successfully, GET / returns 200
+- **No files modified**: Only created 2 new files, no existing files touched
+
+---
+## Task ID: CALC-ALERTS - Calculator Tab & Profit Alerts Panel
+### Work Task
+Create two new components: (1) Mint Profit Calculator tab with cost/revenue/profit estimation, multiplier projections, break-even analysis, multi-hop profit estimator, and recharts visualizations; (2) Profit Alerts Manager panel for creating, viewing, filtering, and deleting profit alerts with full CRUD operations.
+
+### Work Summary
+
+**1. `src/components/calculator-tab.tsx` - Mint Profit Calculator (NEW FILE)**
+- **Mint Cost Calculator**: Input fields for mint amount and token price. Calculates: mint cost (amount × $0.00006972), potential revenue (amount × token price), profit/loss (color-coded emerald/rose), ROI percentage with trend arrows.
+- **Quick Presets**: Three preset buttons — Conservative (1,000 tokens), Moderate (10,000 tokens), Aggressive (100,000 tokens). Active state highlighted with emerald border/background.
+- **Multiplier Calculator**: Inputs for current multiplier and number of future mints. Projects multiplier growth with diminishing returns formula (8% increase per mint, decaying at 0.7^n). Shows projected final multiplier with emerald glow text and estimated profit change percentage.
+- **MultiHop Profit Estimator**: Inputs for source token price, target token price, and chain depth (hops). Calculates total cost, gross revenue, net profit, and ROI percentage. Cost calculated as sourcePrice × depth × 1000 tokens per hop.
+- **Break-Even Analyzer**: Shows how many tokens needed at current price to break even vs. mint cost. Includes cost vs. token price comparison arrows. Tooltip explaining the calculation methodology.
+- **Visual Summary — PieChart**: Recharts donut chart showing cost vs. revenue breakdown. Dynamic colors: emerald for revenue + gray for cost (profit mode), gray for cost + rose for loss (loss mode). Custom tooltip with dark theme styling.
+- **Visual Summary — BarChart**: Recharts bar chart for multiplier projections across N mints. Gray bar for current multiplier, emerald bars for projected values. Custom tooltip and axis formatting (1.0x notation).
+- **Summary Card**: Consolidated view of all key metrics: mint amount, profit/loss with trend icon, ROI badge, break-even tokens, projected multiplier.
+- **Store Integration**: Imports `useAppStore` for `mintCostUSD`. Uses `formatUSD` and `formatLargeNumber` from `@/lib/ethereum`.
+- **Styling**: `gradient-border`, `card-hover`, `btn-hover-scale`, `input-focus-ring`, `text-glow-emerald`, `number-animate`, `animate-fade-in-up`. Responsive grid layout (2-col left for calculators, 1-col right for charts on lg+).
+
+**2. `src/components/profit-alerts-panel.tsx` - Profit Alerts Manager (NEW FILE)**
+- **Dual Layout Mode**: Supports both `embedded` mode (compact, for embedding in dashboard/dialogs) and full panel mode (standalone with header and filter bar). Controlled via `embedded` prop.
+- **Alert List**: Each alert row shows: direction icon (TrendingUp emerald for "above" / TrendingDown rose for "below"), token symbol, direction badge, threshold value, relative timestamp. Triggered alerts have emerald-tinted background; waiting alerts have neutral gray background. Delete button appears on row hover.
+- **Alert Status Badges**: "Triggered" badge (emerald with CheckCircle2 icon) or "Waiting" badge (gray with Clock icon). Header shows triggered/waiting counts.
+- **Create Alert Form** (via Dialog): Select token from tracked tokens list (via shadcn/ui Select), set profit ratio threshold, choose direction with styled toggle buttons (emerald "Goes Above" / rose "Goes Below"). Live preview showing alert description. Validation: duplicate check, required fields, no-tracked-tokens warning.
+- **Filter Bar**: Quick filter buttons for All / Triggered / Waiting with active count badges. Emerald highlight on active filter.
+- **Empty State**: Full empty state with BellOff icon, explanatory message, and contextual CTA. Shows amber warning when no tokens are tracked (directs user to V3/V4 minter tabs). Compact variant for embedded mode.
+- **Store Integration**: Uses `profitAlerts`, `addProfitAlert`, `removeProfitAlert`, `tokens` from `useAppStore`. Alert type matches `ProfitAlert` interface from store.
+- **Extracted Components**: `AlertsEmptyState`, `AlertRow`, and `CreateAlertDialog` are defined outside the main component to avoid ESLint `react-hooks/static-components` errors.
+- **Styling**: Same design system as rest of application. `gradient-border`, `card-hover`, `btn-hover-scale`, `input-focus-ring`, `animate-fade-in-up`, `glow-emerald`.
+
+### Verification Results
+- **ESLint**: Both files pass with zero errors. Fixed initial `react-hooks/static-components` error by extracting inner components (`EmptyState`, `AlertRow`) to module-level.
+- **Dev Server**: Compiles successfully with `✓ Compiled` messages, GET / returns 200.
+- **No existing files modified**: Only created 2 new files — `src/components/calculator-tab.tsx` and `src/components/profit-alerts-panel.tsx`.
+
+---
+## Task ID: DEV-ROUND-2 - Integration, MultiHop Enhancement, CSS Polish, QA
+
+### Current Project Status
+The application has 14 custom components, 8 tabs (Dashboard, V3 Minter, V4 Minter, MultiHop, Calculator, Portfolio, History, Bot Mode), onboarding modal, profit alerts panel, and comprehensive styling. All core features are functional. This round focused on integrating new components, enhancing MultiHop, adding CSS polish, and performing QA.
+
+### Completed Modifications
+
+**1. `src/lib/store.ts` - Extended State for New Features**
+- Added `TabType` union: now includes `"calculator"` and `"bot-mode"`
+- Added `onboardingOpen: boolean` and `hasSeenOnboarding: boolean` state
+- Added `BotConfig` interface: `{ enabled, profitThreshold, maxGasPrice, mintAmount, interval, targetTokens, autoClaim }`
+- Added `BotLogEntry` interface: `{ id, timestamp, type, message, tokenSymbol?, profitRatio? }`
+- Added `ProfitAlert` interface: `{ id, tokenAddress, tokenSymbol, threshold, direction, triggered, lastTriggered?, createdAt }`
+- Added bot state: `botConfig, botRunning, botLogs, botMintCount, botTotalProfit`
+- Added profit alerts: `profitAlerts: ProfitAlert[]`
+- Added actions: `setOnboardingOpen, setHasSeenOnboarding, setBotConfig, setBotRunning, addBotLog, clearBotLogs, setBotMintCount, setBotTotalProfit, addProfitAlert, removeProfitAlert, updateProfitAlert, setMintToken`
+
+**2. `src/app/page.tsx` - Major Integration Update**
+- Added imports for 4 new components: `BotPanel`, `CalculatorTab`, `OnboardingModal`
+- Extended TABS array with Calculator (Calculator icon) and Bot Mode (Bot icon, "New" badge)
+- Added `TooltipProvider` wrapper for global tooltip support
+- Added HelpCircle button in header to re-trigger onboarding
+- Added tooltips on tab buttons (mobile: show label tooltip)
+- Added bot running status indicator in header (green "Bot Running" vs amber "Bot Active")
+- Added bot running status badge in footer with pulse animation
+- Settings Dialog enhanced with: Slider for profit threshold (1.0x-5.0x), max gas price input, mint amount input, save bot config button, "Show Getting Started Guide" button
+- Added `useEffect` to auto-show onboarding for first-time users (1.5s delay)
+- All new tabs rendered conditionally in AnimatePresence
+
+**3. `src/components/multihop-tab.tsx` - Complete Rewrite with Enhancements**
+- Added header info card with GitBranch icon, description, Advanced badge, and info tooltip
+- Added swap button between source and target token inputs (RefreshCw icon)
+- Added quick preset amount buttons (1K, 5K, 10K, 50K) above target amount input
+- Added tooltips on all action buttons explaining their function
+- Added execution progress bar (Progress component) during auto-mint
+- Enhanced chain visualization: rounded-xl cards with step-specific border colors (emerald for source, amber for target), CheckCircle2 icons for completed steps during execution
+- Preview results: 4-column summary grid (Source Cost, Target Output, Efficiency, Profit Ratio), color-coded efficiency text with glow animation
+- Added ProfitIndicator for efficiency ratio
+- Added security disclaimer card about gas costs
+- Error state: styled with AlertTriangle icon and rose border
+- Chain steps: improved with hover effects, border highlights, step completion indicators
+- Uses TooltipProvider wrapper
+
+**4. `src/app/globals.css` - Round 2 CSS Additions**
+- `animate-gentle-bounce`: Bouncing animation for empty state icons
+- `animate-slow-rotate`: 20s rotation for decorative elements
+- `animate-stagger-in`: Staggered list item entry animation
+- `progress-striped`: Animated striped progress bar
+- `dot-ping`: Ping animation for status dots
+- `text-gradient-emerald`: Gradient text effect (emerald to green)
+- `text-gradient-amber`: Gradient text effect (amber to gold)
+- `input:-webkit-autofill`: Dark theme autofill override
+- Number input spin button styling with opacity control
+- Smooth scrolling for overflow-y-auto containers
+- Tooltip max-width override (280px)
+- `badge-hover`: Brightness filter on hover
+- `skeleton-pulse`: Alternative skeleton pulse animation
+- Responsive glass-header blur reduction for mobile
+
+### Verification Results
+- **ESLint**: `bun run lint` passes cleanly with zero errors
+- **Dev Server**: Compiles successfully, GET / returns 200, all tabs render correctly
+- **Browser QA**: Verified via agent-browser — onboarding modal shows correctly, all 8 tabs visible, Calculator tab renders, Bot Mode tab renders, MultiHop tab renders with new styling
+- **No runtime errors** in dev.log
+- **Files modified**: `src/lib/store.ts`, `src/app/page.tsx`, `src/components/multihop-tab.tsx`, `src/app/globals.css`
+- **Files created by subagents**: `src/components/bot-panel.tsx`, `src/components/onboarding-modal.tsx`, `src/components/calculator-tab.tsx`, `src/components/profit-alerts-panel.tsx`, `src/components/portfolio-tab.tsx` (updated), `src/components/history-tab.tsx` (updated)
+
+### Unresolved Issues & Next Phase Recommendations
+1. **Profit Alerts Check**: The profit alerts panel is built but alert evaluation against live token data is not yet automated. Need to add a useEffect in dashboard or background process to check thresholds.
+2. **Bot Mode → Real Blockchain**: Bot simulation works well but real blockchain integration (actual mintV3/mintV4 calls from bot loop) requires wallet session persistence and gas estimation.
+3. **Data Persistence**: Token list, transactions, and settings reset on page refresh. Consider adding localStorage or IndexedDB persistence via Zustand middleware.
+4. **Real-time Price Updates**: Price/multiplier refresh could use WebSocket subscription for truly real-time updates instead of polling.
+5. **Mobile Responsiveness**: Some complex components (Bot Panel config, Calculator charts) may need further mobile optimization.
+6. **Accessibility**: Add ARIA labels to custom interactive elements, ensure keyboard navigation works for all custom components.
