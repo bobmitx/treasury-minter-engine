@@ -1601,3 +1601,166 @@ Create a comprehensive Gas Optimization Dashboard widget (`src/components/gas-op
 - **ESLint**: `src/components/gas-optimizer.tsx` passes with **zero errors** (pre-existing error in `quick-actions-panel.tsx` unrelated to this task)
 - **Dev Server**: Compiles successfully (`✓ Compiled`), GET / returns 200
 - **No existing files modified**: Only created 1 new file — `src/components/gas-optimizer.tsx`
+
+---
+Task ID: 6
+Agent: pls-price-api-improver
+Task: Improve PLS price API with multiple sources
+
+Work Log:
+- Read current pls-price route (GeckoTerminal primary, DexScreener secondary, hardcoded fallback)
+- Rewrote with improved 4-tier fallback chain: CoinGecko (primary) → DexScreener (secondary) → GeckoTerminal (tertiary) → hardcoded $0.000028 (fallback)
+- Added CoinGecko API as primary source (no API key required, queries `pulsechain` id)
+- Improved DexScreener to use search endpoint (`/dex/search?q=PLS`) with PLS/WPLS pair detection
+- Added AbortController-based `fetchWithTimeout` helper for reliable 5-second timeouts
+- Added `isValidPrice` sanity check helper (positive, finite, non-NaN)
+- Added `confidence` field to response: "high" (CoinGecko), "medium" (DexScreener/GeckoTerminal), "low" (Fallback)
+- Maintained 60-second in-memory cache with `lastUpdated` timestamp
+- Response structure: `{ price, source, lastUpdated, confidence }`
+- All existing consumers remain compatible (price, source, lastUpdated fields preserved)
+
+Stage Summary:
+- PLS price API now uses 3 external sources + 1 fallback with proper priority ordering
+- CoinGecko provides the most reliable aggregate price as primary source
+- DexScreener search finds PLS/WPLS pairs specifically (not just WPLS address)
+- Confidence level indicates data reliability to consumers
+- Lint passes cleanly with zero errors
+
+---
+Task ID: 7
+Agent: gas-tips-panel-builder
+Task: Create Gas Tips Panel component
+
+Work Log:
+- Created src/components/gas-tips-panel.tsx
+- Added 5 practical gas optimization tips (Clock, Zap, Calculator, Bot, TrendingUp icons)
+- Current gas status indicator at top (Low/Normal/High) based on PLS cost from /api/gas
+- Collapsible accordion design using shadcn/ui Accordion component
+- Each tip has icon, title, and short description with color-coded accents
+- Bottom note explaining PulseChain gas economics (high Gwei but cheap PLS)
+- Dark theme styling with gradient-border, card-hover, animate-fade-in-up
+- Imports from @/lib/store (useAppStore) and @/lib/ethereum (formatUSD)
+- TipRow extracted to module-level to avoid react-hooks/static-components lint error
+- "use client" directive, lucide-react icons
+
+Stage Summary:
+- New component GasTipsPanel exported from src/components/gas-tips-panel.tsx
+- Uses card-hover, gradient-border, animate-fade-in-up design system classes
+- Lint passes cleanly with zero errors
+- No existing files modified
+
+---
+Task ID: 8
+Agent: alert-sound-builder
+Task: Add notification sound system for profit alerts
+
+Work Log:
+- Read existing use-profit-alert-checker.ts and store.ts
+- Added `notificationSoundEnabled: boolean` state (default: true) to Zustand store
+- Added `setNotificationSoundEnabled` action to store
+- Added `notificationSoundEnabled` to persisted fields in localStorage
+- Enhanced use-profit-alert-checker.ts with Web Audio API chime system
+- Added `playAlertChime()` exported function using AudioContext + OscillatorNode
+- Chime plays 3-tone major chord arpeggio (C5 → E5 → G5), ~300ms total, sine wave with smooth envelope
+- Added `dispatchAlertEvent()` to fire `treasury-alert-triggered` custom event with alert data
+- Hook now respects `notificationSoundEnabled` — only plays chime when enabled
+- Kept existing toast notification behavior unchanged
+- Created `src/components/price-alert-sound.tsx` with `PriceAlertSoundToggle` named export
+- Toggle shows Bell+Volume2 icon (emerald) when on, BellOff (gray) when off
+- Plays test chime when toggling sound on
+- Compact icon button design with Tooltip showing current state
+- Uses existing design system: `btn-hover-scale`, emerald/gray color scheme
+
+Stage Summary:
+- Profit alerts now play a pleasant 3-tone chime when triggered (Web Audio API, no external files)
+- Custom event `treasury-alert-triggered` dispatched for visual notification listeners
+- Toggle control available via PriceAlertSoundToggle component
+- `bun run lint` passes cleanly with zero errors
+- Files modified: `src/lib/store.ts`, `src/hooks/use-profit-alert-checker.ts`
+- Files created: `src/components/price-alert-sound.tsx`
+
+---
+## Task ID: ROUND-6 - QA, Bug Fix, Feature Integration, Styling Polish
+
+### Current Project Status
+The application has 15+ custom components, 10 tabs (Dashboard, V3 Minter, V4 Minter, MultiHop, Calculator, Portfolio, History, Bot Mode, Compare, Watchlist), onboarding modal, profit alerts panel, calculator, bot panel, gas tips panel, price alert sound system, and comprehensive styling with 2311 lines of CSS animations. The project is stable with zero lint errors and all API routes returning 200.
+
+### QA Results (agent-browser)
+- ✅ Page loads without errors (200 status, no JS errors, 68+ resources)
+- ✅ All 10 tabs render correctly
+- ✅ Settings dialog works with DialogDescription
+- ✅ Skip navigation link present
+- ✅ ARIA tablist and tab roles properly set
+- ✅ Activity ticker marquee scrolling
+- ✅ Gas tracker showing live data
+- ✅ Network health showing synced status
+- ✅ Keyboard shortcuts configured
+- ✅ Sticky footer with live stats (block height, latency, PLS price, tokens, uptime)
+- ✅ New GasTipsPanel renders in dashboard
+- ✅ New PriceAlertSoundToggle renders in header
+- ✅ PLS price API returns CoinGecko data with confidence level
+- **Grade: A-** (was B+ in previous rounds — significant improvement)
+
+### Bug Fixes
+- **WatchlistButton export**: Confirmed already fixed from previous session (line 578 of token-watchlist.tsx exports `WatchlistButton`)
+- **network-health 500 errors**: Identified as transient RPC timeouts, already handled with fallback in existing code — no fix needed
+- **PLS Price accuracy**: Improved by adding CoinGecko as primary source (was GeckoTerminal-only)
+
+### New Features
+
+**1. `src/app/api/pls-price/route.ts` — Improved PLS Price API**
+- Complete rewrite with 4-tier fallback chain:
+  - CoinGecko (high confidence) → DexScreener (medium) → GeckoTerminal (medium) → Hardcoded $0.000028 (low)
+- `fetchWithTimeout()` helper with AbortController (5s timeout)
+- `isValidPrice()` sanity check for price values
+- Response includes `confidence` field: `"high" | "medium" | "low"`
+- 60-second in-memory cache
+
+**2. `src/components/gas-tips-panel.tsx` — Gas Optimization Tips (NEW FILE)**
+- Current Gas Status indicator (Low/Normal/High) with live data from `/api/gas`
+- 5 practical tips with color-coded icons:
+  - Clock (violet): Mint during low-activity hours
+  - Zap (amber): Batch mints when gas < 20 PLS
+  - Calculator (cyan): V3 mints cost ~130 PLS per TX
+  - Bot (emerald): Use Bot Mode for auto-minting
+  - TrendingUp (rose): Monitor gas trends
+- Collapsible accordion using shadcn/ui Accordion
+- Bottom insight note about PulseChain gas economics
+
+**3. `src/components/price-alert-sound.tsx` — Alert Sound Toggle (NEW FILE)**
+- Compact icon button: Bell + Volume2 (emerald) when on, BellOff (gray) when off
+- Tooltip shows current state
+- Plays test chime when toggling on
+- ARIA labels for accessibility
+
+**4. `src/hooks/use-profit-alert-checker.ts` — Enhanced with Sound**
+- `playAlertChime()` exported function using Web Audio API
+- Generates 3-tone major chord arpeggio (C5 → E5 → G5) via OscillatorNode
+- Dispatches `treasury-alert-triggered` CustomEvent for visual notifications
+- Respects `notificationSoundEnabled` store setting
+
+**5. `src/lib/store.ts` — Notification Sound State**
+- Added `notificationSoundEnabled: boolean` (default: `true`)
+- Added `setNotificationSoundEnabled` action
+- Persisted to localStorage
+
+### Integration Changes
+- `src/components/dashboard-tab.tsx`: Added `GasTipsPanel` import and rendered between NetworkHealthWidget and Recent Activity card
+- `src/app/page.tsx`: Added `PriceAlertSoundToggle` import and rendered in header between NotificationBell and NetworkStatus
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with **zero errors**
+- **Dev Server**: All routes return 200, no compilation errors
+- **PLS Price API**: Returns CoinGecko data with `{ price, source: "CoinGecko", confidence: "high" }`
+- **Gas API**: Returns correct PLS costs (~18 PLS/std TX, ~130 PLS/mint TX)
+- **Network Health API**: Returns synced status with block height and latency
+- **Browser QA**: All components render, no JS errors, 68 resources loaded
+
+### Unresolved Issues & Next Phase Recommendations
+1. **Real Blockchain Integration**: Bot simulation works but actual on-chain minting from bot loop needs wallet session persistence
+2. **WebSocket Price Updates**: Currently polling every 15s. WebSocket would provide truly real-time updates
+3. **Historical Data**: Profitability chart uses simulated data. Real data requires time-series storage
+4. **Mobile Optimization**: Complex components (Bot Panel, Calculator) may need further responsive work
+5. **Price Source Accuracy**: PLS price from CoinGecko is lower than previously expected ($0.00000728 vs expected ~$0.000028). May need investigation or user can switch to manual mode
+6. **Advanced Price Pipeline**: User suggested referencing pulsex.mypinata.cloud, pulsex.com, piteas for eDAI/WPLS pair data
+

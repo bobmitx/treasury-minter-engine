@@ -162,6 +162,9 @@ interface AppState {
   notifications: NotificationItem[];
   unreadCount: number;
 
+  // Alert sound
+  notificationSoundEnabled: boolean;
+
   // Watchlist
   watchlist: string[];
 
@@ -211,6 +214,7 @@ interface AppState {
   addToWatchlist: (address: string) => void;
   removeFromWatchlist: (address: string) => void;
   toggleWatchlist: (address: string) => void;
+  setNotificationSoundEnabled: (enabled: boolean) => void;
   clearAll: () => void;
 }
 
@@ -282,6 +286,9 @@ const initialState = {
   // Notifications
   notifications: [],
   unreadCount: 0,
+
+  // Alert sound
+  notificationSoundEnabled: true,
 
   // Watchlist
   watchlist: [],
@@ -445,6 +452,10 @@ export const useAppStore = create<AppState>()(
             : [...state.watchlist, address],
         })),
 
+      // Alert sound
+      setNotificationSoundEnabled: (notificationSoundEnabled) =>
+        set({ notificationSoundEnabled }),
+
       // Clear
       clearAll: () => set(initialState),
     }),
@@ -462,6 +473,7 @@ export const useAppStore = create<AppState>()(
         botConfig: state.botConfig,
         profitAlerts: state.profitAlerts,
         hasSeenOnboarding: state.hasSeenOnboarding,
+        notificationSoundEnabled: state.notificationSoundEnabled,
         watchlist: state.watchlist,
       }),
     }

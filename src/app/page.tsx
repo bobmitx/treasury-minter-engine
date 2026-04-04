@@ -14,6 +14,7 @@ import { CalculatorTab } from "@/components/calculator-tab";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { ActivityTicker } from "@/components/activity-ticker";
 import { NotificationBell } from "@/components/notification-center";
+import { PriceAlertSoundToggle } from "@/components/price-alert-sound";
 import { QuickMintFAB } from "@/components/quick-mint-fab";
 import { TokenComparison } from "@/components/token-comparison";
 import { TokenWatchlist } from "@/components/token-watchlist";
@@ -838,6 +839,7 @@ export default function Home() {
                   </TooltipContent>
                 </Tooltip>
                 <NotificationBell />
+                <PriceAlertSoundToggle />
                 <NetworkStatus />
                 <WalletButton />
               </div>

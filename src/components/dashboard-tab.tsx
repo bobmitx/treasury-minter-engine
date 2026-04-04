@@ -17,6 +17,7 @@ import { TokenWatchlist } from "@/components/token-watchlist";
 import { TokenComparison } from "@/components/token-comparison";
 import { MintAnalytics } from "@/components/mint-analytics";
 import { GasOptimizer } from "@/components/gas-optimizer";
+import { GasTipsPanel } from "@/components/gas-tips-panel";
 import { MarketOverview } from "@/components/market-overview";
 import {
   DollarSign,
@@ -818,6 +819,7 @@ export function DashboardTab() {
         <div className="space-y-6">
           <GasTrackerCard />
           <NetworkHealthWidget />
+          <GasTipsPanel />
 
           <Card className="bg-gray-900 border-gray-800/70 card-hover glass-card-depth">
             <CardHeader className="pb-3">
