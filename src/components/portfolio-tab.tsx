@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { useState, useMemo, useCallback } from "react";
 import { ProfitIndicator } from "@/components/profit-indicator";
+import { MiniSparkline } from "@/components/mini-sparkline";
 import {
   PieChart,
   Pie,
@@ -51,6 +52,13 @@ import {
   ResponsiveContainer,
   Tooltip as RechartsTooltip,
 } from "recharts";
+
+function generateSparklineData(profitRatio: number): number[] {
+  return Array.from({ length: 7 }, (_, i) => {
+    const noise = (Math.sin(i * 1.3 + profitRatio * 5) * 0.15) + (i * 0.04);
+    return Math.max(0, profitRatio * (0.6 + noise + i * 0.06));
+  });
+}
 
 type SortKey =
   | "name"
@@ -642,6 +650,9 @@ export function PortfolioTab() {
                     <TableHead className="text-gray-400 text-right hidden lg:table-cell">
                       Value
                     </TableHead>
+                    <TableHead className="text-gray-400 text-center w-20 hidden xl:table-cell">
+                      Trend
+                    </TableHead>
                     <TableHead className="text-gray-400 text-center w-10">
                       Ver
                     </TableHead>
@@ -706,6 +717,15 @@ export function PortfolioTab() {
                         </TableCell>
                         <TableCell className="text-right text-sm text-white font-mono hidden lg:table-cell">
                           {formatUSD(value)}
+                        </TableCell>
+                        <TableCell className="text-center hidden xl:table-cell">
+                          <div className="flex justify-center">
+                            <MiniSparkline
+                              data={generateSparklineData(token.profitRatio)}
+                              width={64}
+                              height={20}
+                            />
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge

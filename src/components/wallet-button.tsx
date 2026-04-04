@@ -54,14 +54,20 @@ export function WalletButton() {
   const prevBalanceRef = useRef(balance);
   const [balanceDirection, setBalanceDirection] = useState<"up" | "down" | null>(null);
 
-  // Track balance changes for direction indicator
+  const [balancePulse, setBalancePulse] = useState(false);
+
+  // Track balance changes for direction indicator and pulse effect
   useEffect(() => {
     if (connected && prevBalanceRef.current !== balance) {
       const prev = parseFloat(prevBalanceRef.current) || 0;
       const curr = parseFloat(balance) || 0;
       if (Math.abs(curr - prev) > 0.001) {
         setBalanceDirection(curr > prev ? "up" : "down");
-        const timer = setTimeout(() => setBalanceDirection(null), 2000);
+        setBalancePulse(true);
+        const timer = setTimeout(() => {
+          setBalanceDirection(null);
+          setBalancePulse(false);
+        }, 2000);
         return () => clearTimeout(timer);
       }
       prevBalanceRef.current = balance;
@@ -151,7 +157,9 @@ export function WalletButton() {
         disabled={connecting}
         className={cn(
           "bg-emerald-600 hover:bg-emerald-700 text-white gap-2",
-          connecting && "connecting-spinner"
+          "focus-ring-animated",
+          connecting && "connecting-spinner",
+          !connecting && "breathe-glow"
         )}
       >
         <Wallet className={cn("h-4 w-4", connecting && "animate-pulse")} />
@@ -180,11 +188,17 @@ export function WalletButton() {
       )}
 
       {/* PLS Balance display with change indicator */}
-      <div className="flex items-center gap-1.5 bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5 transition-all duration-200 hover:border-gray-700">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-gentle-pulse" />
+      <div className={cn(
+        "flex items-center gap-1.5 bg-gray-900 border rounded-lg px-3 py-1.5 transition-all duration-200 hover:border-gray-700",
+        "neon-border-emerald"
+      )}>
+        <div className={cn(
+          "flex items-center gap-1.5",
+          balancePulse && "animate-micro-pulse"
+        )}>
+          <div className="w-2 h-2 rounded-full bg-emerald-500 status-dot-success status-dot-pulse" />
           <span className="text-xs text-gray-400">PLS</span>
-          <span className="text-sm font-semibold text-white number-animate">
+          <span className="text-sm font-semibold text-white number-animate" style={{ textShadow: "0 1px 3px oklch(0.7 0.17 162 / 30%)" }}>
             {formattedBalance}
           </span>
           {/* Balance change direction arrow */}
@@ -207,10 +221,13 @@ export function WalletButton() {
         <DropdownMenuTrigger asChild>
           <Button
             variant="outline"
-            className="bg-gray-900 border-gray-800 hover:border-gray-700 text-white gap-1 transition-all duration-200"
+            className={cn(
+              "bg-gray-900 border-gray-800 hover:border-gray-700 text-white gap-1 transition-all duration-200",
+              "focus-ring-animated"
+            )}
           >
-            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-            {shortenAddress(address!)}
+            <div className="w-2 h-2 rounded-full bg-emerald-500 status-dot-success" />
+            <span style={{ textShadow: "0 1px 4px oklch(0 0 0 / 50%)" }}>{shortenAddress(address!)}</span>
             <ChevronDown className="h-3 w-3 text-gray-400 transition-transform duration-200" />
           </Button>
         </DropdownMenuTrigger>

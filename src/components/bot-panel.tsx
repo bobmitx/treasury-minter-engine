@@ -52,7 +52,7 @@ function BotStatusBadge({ running }: { running: boolean }) {
         <div
           className={cn(
             "w-2 h-2 rounded-full",
-            running ? "bg-emerald-500 animate-pulse" : "bg-gray-500"
+            running ? "bg-emerald-500 status-dot-success status-dot-pulse" : "bg-gray-500"
           )}
         />
         {running ? "Running" : "Idle"}
@@ -119,7 +119,7 @@ function SessionStatCard({
   );
 }
 
-function LogEntryRow({ entry }: { entry: BotLogEntry }) {
+function LogEntryRow({ entry, index }: { entry: BotLogEntry; index: number }) {
   const colorMap: Record<
     BotLogEntry["type"],
     { dot: string; text: string; bg: string; icon: any }
@@ -163,9 +163,10 @@ function LogEntryRow({ entry }: { entry: BotLogEntry }) {
   return (
     <div
       className={cn(
-        "flex items-start gap-2.5 p-2.5 rounded-lg border transition-all",
+        "flex items-start gap-2.5 p-2.5 rounded-lg border transition-all animate-stagger-slide-up",
         style.bg
       )}
+      style={{ animationDelay: `${index * 30}ms` }}
     >
       <IconComp className={cn("h-3.5 w-3.5 mt-0.5 flex-shrink-0", style.text)} />
       <div className="flex-1 min-w-0">
@@ -196,11 +197,14 @@ function LogEntryRow({ entry }: { entry: BotLogEntry }) {
 }
 
 function ConfigSection() {
-  const { botConfig, setBotConfig } = useAppStore();
+  const { botConfig, setBotConfig, botRunning } = useAppStore();
   const [expanded, setExpanded] = useState(true);
 
   return (
-    <Card className="bg-gray-900 border-gray-800/70 gradient-border">
+    <Card className={cn(
+      "bg-gray-900 border-gray-800/70 gradient-border",
+      botRunning && "neon-border-amber"
+    )}>
       <CardHeader className="pb-3">
         <button
           onClick={() => setExpanded(!expanded)}
@@ -861,7 +865,10 @@ export function BotPanel() {
               {!botRunning ? (
                 <Button
                   onClick={handleStart}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-2 shadow-lg shadow-emerald-500/20"
+                  className={cn(
+                    "bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-2 shadow-lg shadow-emerald-500/20",
+                    !botRunning && "breathe-glow focus-ring-animated"
+                  )}
                 >
                   <Play className="h-4 w-4" />
                   Start Bot
@@ -937,10 +944,11 @@ export function BotPanel() {
           {/* Next check countdown */}
           {botRunning && !isPaused && (
             <div className="mt-3 flex items-center gap-2">
-              <div className="h-1 flex-1 rounded-full bg-gray-800 overflow-hidden">
+              <div className="h-1.5 flex-1 rounded-full bg-gray-800 overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-emerald-500 to-amber-500 rounded-full transition-all"
+                  className="h-full rounded-full progress-gradient-animated transition-all"
                   style={{
+                    width: "100%",
                     animation: `countdown ${botConfig.interval}s linear infinite`,
                   }}
                 />
@@ -998,8 +1006,8 @@ export function BotPanel() {
               </div>
             ) : (
               <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
-                {botLogs.map((entry) => (
-                  <LogEntryRow key={entry.id} entry={entry} />
+                {botLogs.map((entry, idx) => (
+                  <LogEntryRow key={entry.id} entry={entry} index={idx} />
                 ))}
                 <div ref={logEndRef} />
               </div>
@@ -1024,8 +1032,14 @@ export function BotPanel() {
                 />
               </div>
               <div>
-                <p className="text-xs text-gray-400">Session Profit Summary</p>
-                <p className={cn("text-2xl font-bold font-mono", profitColor)}>
+                <p className="text-xs text-gray-400">
+                  <span className="status-dot status-dot-success status-dot-pulse inline-block w-1.5 h-1.5 mr-1.5 align-middle" />
+                  Session Profit Summary
+                </p>
+                <p className={cn(
+                  "text-2xl font-bold font-mono",
+                  botTotalProfit > 0 ? "text-gradient-emerald" : profitColor
+                )}>
                   ${botTotalProfit.toFixed(4)}
                 </p>
               </div>

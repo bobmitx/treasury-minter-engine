@@ -430,6 +430,12 @@ export function MultihopTab() {
                   value={(executionStep / (multihopPreview.steps.length || 1)) * 100}
                   className="h-2 bg-gray-800"
                 />
+                <div
+                  className="h-2 rounded-full progress-gradient-animated mt-[-32px] pointer-events-none"
+                  style={{
+                    width: `${(executionStep / (multihopPreview.steps.length || 1)) * 100}%`,
+                  }}
+                />
               </div>
             )}
           </CardContent>
@@ -455,9 +461,13 @@ export function MultihopTab() {
                   <div key={i} className="flex items-center gap-2">
                     <div className={cn(
                       "bg-gray-800/80 border rounded-xl px-4 py-3 flex flex-col items-center min-w-[130px] transition-all duration-200",
-                      i === 0 ? "border-emerald-500/30" : i === discoveredChain.length - 1 ? "border-amber-500/30" : "border-gray-700"
+                      "hover:scale-105 hover:shadow-lg",
+                      i === 0 ? "border-emerald-500/30 hover:shadow-emerald-500/10" : i === discoveredChain.length - 1 ? "border-amber-500/30 hover:shadow-amber-500/10" : "border-gray-700 hover:shadow-gray-500/10"
                     )}>
-                      <span className="text-[10px] text-gray-500 uppercase tracking-wider">Step {i + 1}</span>
+                      <span className={cn(
+                        "chip",
+                        i === 0 ? "chip-emerald" : i === discoveredChain.length - 1 ? "chip-amber" : "bg-gray-700/50 text-gray-400 border-gray-600/30"
+                      )}>Step {i + 1}</span>
                       <span className="text-xs font-mono text-white truncate max-w-[110px] mt-1">
                         {shortenAddress(addr, 6)}
                       </span>
@@ -568,7 +578,10 @@ export function MultihopTab() {
                       key={i}
                       className="flex items-center gap-4 p-3 rounded-xl bg-gray-800/40 hover:bg-gray-800/70 transition-all duration-200 border border-transparent hover:border-gray-700/50"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 border border-emerald-500/10 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 border border-emerald-500/10 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0",
+                        "chip-emerald"
+                      )}>
                         {i + 1}
                       </div>
                       <div className="flex-1 min-w-0">

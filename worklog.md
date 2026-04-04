@@ -574,3 +574,116 @@ Add 5 critical missing features to the Treasury Minter Engine: (1) localStorage 
 - **No files modified in `src/components/ui/` or `src/lib/contracts.ts`**
 - **Files modified**: `src/lib/store.ts`, `src/lib/ethereum.ts`, `src/components/dashboard-tab.tsx`, `src/app/page.tsx`, `src/components/profit-indicator.tsx`
 - **Files created**: `src/app/api/pls-price/route.ts`, `src/hooks/use-profit-alert-checker.ts`
+
+---
+## Task ID: ROUND-4 - Network Health, Sparklines, Activity Ticker, Deep Styling
+
+### Current Project Status
+The application is fully stable with 14+ components, 8 tabs, localStorage persistence, live PLS price, keyboard shortcuts, profit alerts, and comprehensive styling. All previous bugs fixed. This round adds 3 new features and 18+ new CSS utilities.
+
+### New Features
+
+**1. Network Health Monitor Widget**
+- **`src/app/api/network-health/route.ts`** (NEW): GET endpoint that fetches from PulseChain RPC:
+  - `eth_blockNumber` → current block height (~26M)
+  - `eth_syncing` → sync status (synced/not syncing)
+  - Measures round-trip latency with `performance.now()`
+  - In-memory cache with 15-second TTL
+  - Returns `{ blockNumber, syncStatus, latency, lastUpdated }`
+- **`src/components/dashboard-tab.tsx`**: Added `NetworkHealthWidget`:
+  - Block height as clickable link to PulseChain explorer
+  - Sync status badge (emerald "Synced" / amber "Syncing...")
+  - Latency color coding: green (<200ms), amber (<500ms), rose (>500ms)
+  - Pulse animation on block height changes
+  - Placed below Gas Tracker in dashboard right column
+
+**2. Mini Sparkline Charts**
+- **`src/components/mini-sparkline.tsx`** (NEW): Pure SVG sparkline component
+  - Props: `data: number[]`, `width` (default 80), `height` (default 24), `color`, `showArea`
+  - Auto-trends: emerald for upward, rose for downward
+  - Optional gradient fill area
+  - No external charting library — pure SVG for performance
+- **`src/components/dashboard-tab.tsx`**: Added 64×20px sparkline to each token row in "Top Performing Tokens"
+- **`src/components/portfolio-tab.tsx`**: Added "Trend" column (xl+ screens) with sparkline per row
+
+**3. Activity Feed / Live Ticker**
+- **`src/components/activity-ticker.tsx`** (NEW): Horizontal scrolling marquee ticker
+  - 10 simulated blockchain events (mints, prices, blocks, tokens, multipliers, swaps)
+  - CSS `animate-marquee` for seamless 60s infinite scroll loop
+  - Only renders when wallet is NOT connected (engagement for non-connected users)
+  - Auto-refreshes items every 60 seconds
+  - Hydration-safe: uses `typeof window` check in lazy initializer to prevent SSR mismatch
+- **`src/app/globals.css`**: Added `animate-marquee` keyframes and `.ticker-container`
+- **`src/app/page.tsx`**: Renders `<ActivityTicker />` between tab nav and main content
+
+### Styling Improvements (18 New CSS Utilities)
+
+**4. `src/app/globals.css` — 18 New Classes** (all with `prefers-reduced-motion` support):
+- `.focus-ring-animated` — Expanding emerald ring on focus-visible
+- `.skeleton-shimmer` — Gradient sweep loading placeholder
+- `.typewriter-cursor::after` — Blinking cursor after text
+- `.breathe-glow` — Slow 3s breathing glow pulse
+- `.neon-border-emerald` / `.neon-border-amber` — Glowing borders with hover intensification
+- `.text-shimmer` — White→emerald shimmer sweep on headings
+- `.card-press` — Scale down to 0.97 on :active for tactile feedback
+- `.progress-gradient-animated` — Animated emerald→amber→green gradient
+- `.float-label` — Floating label pattern for inputs
+- `.chip` / `.chip-emerald` / `.chip-amber` / `.chip-rose` — Pill-shaped tag components
+- `.dot-grid-bg` — Subtle dot-grid radial gradient background
+- `.number-tick` — Slide-up animation for number value changes
+- `.scroll-progress` — Fixed gradient bar for scroll indication
+- `.tooltip-animate` — Fade-in + scale entrance for tooltips
+- `.status-dot` / `.status-dot-success` / `.status-dot-warning` / `.status-dot-error` / `.status-dot-pulse` — Colored status indicators
+
+**5. `src/components/wallet-button.tsx` — Enhanced**
+- Balance pulse effect on change, neon border when connected
+- Status dot uses `status-dot-success status-dot-pulse`
+- Connect button breathing glow when idle
+
+**6. `src/components/stats-card.tsx` — Enhanced**
+- Number tick animation on value changes (tracked via `prevValueRef`)
+- Card press click feedback
+- Dot grid pattern on empty stat cards
+
+**7. `src/components/multihop-tab.tsx` — Enhanced**
+- Chain step hover scale-up with color-matched shadows
+- Chip step badges for step numbers
+- Progress gradient animated execution bar
+
+**8. `src/components/bot-panel.tsx` — Enhanced**
+- Breathe-glow on idle Start Bot button
+- Neon border on config when running
+- Staggered log entry animations (30ms delay per entry)
+- Gradient text on positive session profit
+
+**9. `src/components/calculator-tab.tsx` — Enhanced**
+- Card press on preset buttons
+- Skeleton shimmer on chart loading
+- Neon border + gradient text on summary card when profitable
+
+**10. `src/components/token-detail-dialog.tsx` — Enhanced**
+- Neon border glow on dialog
+- Text shimmer on token name
+- Status dot indicators per metric (green=good, amber=borderline)
+- Staggered fade-in on metric cards (0/60/120/180ms delays)
+
+### Bug Fix
+- **Hydration Error in ActivityTicker**: Fixed by replacing `useState(false)` + `setMounted(true)` in useEffect with `typeof window` check in lazy initializer. Eliminates "Recoverable Error: Hydration failed" dialog.
+- **ESLint `react-hooks/set-state-in-effect`**: Removed the setState-in-effect pattern entirely.
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with **zero errors**
+- **Dev Server**: Compiles successfully, all routes return 200
+- **New API**: `/api/network-health` returns live PulseChain data (block ~26M, synced, ~800ms latency)
+- **Browser QA**: No error dialogs, no hydration mismatches, all 8 tabs functional
+- **Files created**: `src/app/api/network-health/route.ts`, `src/components/mini-sparkline.tsx`, `src/components/activity-ticker.tsx`
+- **Files modified**: `src/app/globals.css`, `src/app/page.tsx`, `src/components/dashboard-tab.tsx`, `src/components/portfolio-tab.tsx`, `src/components/stats-card.tsx`, `src/components/wallet-button.tsx`, `src/components/multihop-tab.tsx`, `src/components/bot-panel.tsx`, `src/components/calculator-tab.tsx`, `src/components/token-detail-dialog.tsx`
+
+### Unresolved Issues & Next Phase Recommendations
+1. **LP Pair Discovery**: eDAI/WPLS pair not found on canonical Uniswap V2 Factory. Need PulseX-specific router/factory.
+2. **Real Blockchain Bot Integration**: Bot simulation needs actual on-chain minting calls.
+3. **WebSocket Price Updates**: Polling every 15s → WebSocket for real-time.
+4. **Export All Data**: Full JSON/CSV export of all app data.
+5. **Mobile Optimization**: Bot Panel and Calculator charts need further responsive work.
+6. **Token Detail "Mint More"**: DOM manipulation → Zustand state passing.
+

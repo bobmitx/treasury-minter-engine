@@ -76,6 +76,7 @@ function CustomBarTooltip({ active, payload, label }: any) {
 
 export function CalculatorTab() {
   const { mintCostUSD } = useAppStore();
+  const [chartLoading] = useState(true);
 
   // ─── Mint Cost Calculator State ───
   const [mintAmount, setMintAmount] = useState("1000");
@@ -210,7 +211,7 @@ export function CalculatorTab() {
               size="sm"
               onClick={() => handlePresetClick(preset.amount)}
               className={cn(
-                "border-gray-700 hover:border-gray-600 bg-gray-900/50 text-gray-300 hover:text-white btn-hover-scale",
+                "border-gray-700 hover:border-gray-600 bg-gray-900/50 text-gray-300 hover:text-white btn-hover-scale card-press",
                 mintAmount === preset.amount.toString() && "border-emerald-500/30 bg-emerald-500/5 text-emerald-400"
               )}
             >
@@ -509,7 +510,10 @@ export function CalculatorTab() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[220px]">
+                <div className="h-[220px] relative">
+                  {chartLoading && (
+                    <div className="absolute inset-0 skeleton-shimmer rounded-lg z-10" />
+                  )}
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -569,7 +573,10 @@ export function CalculatorTab() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[220px]">
+                <div className="h-[220px] relative">
+                  {chartLoading && (
+                    <div className="absolute inset-0 skeleton-shimmer rounded-lg z-10" />
+                  )}
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={multiplierData.data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
                       <XAxis
@@ -621,7 +628,10 @@ export function CalculatorTab() {
             </Card>
 
             {/* Summary Card */}
-            <Card className="bg-gray-900/80 border-gray-800 card-hover gradient-border">
+            <Card className={cn(
+              "bg-gray-900/80 border-gray-800 card-hover gradient-border",
+              mintCostCalc.profit >= 0 && "neon-border-emerald"
+            )}>
               <CardContent className="p-4">
                 <h4 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">
                   Summary
@@ -644,7 +654,7 @@ export function CalculatorTab() {
                       )}
                       <span className={cn(
                         "text-sm font-bold number-animate",
-                        mintCostCalc.profit >= 0 ? "text-emerald-400" : "text-rose-400"
+                        mintCostCalc.profit >= 0 ? "text-gradient-emerald" : "text-rose-400"
                       )}>
                         {mintCostCalc.profit >= 0 ? "+" : ""}
                         {formatUSD(mintCostCalc.profit)}

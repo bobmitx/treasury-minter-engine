@@ -12,6 +12,7 @@ import { HistoryTab } from "@/components/history-tab";
 import { BotPanel } from "@/components/bot-panel";
 import { CalculatorTab } from "@/components/calculator-tab";
 import { OnboardingModal } from "@/components/onboarding-modal";
+import { ActivityTicker } from "@/components/activity-ticker";
 import { useProfitAlertChecker } from "@/hooks/use-profit-alert-checker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -659,6 +660,9 @@ export default function Home() {
             </div>
           </div>
         </nav>
+
+        {/* Activity Ticker - shown when wallet not connected */}
+        <ActivityTicker />
 
         {/* Main Content */}
         <main className="flex-1 relative">

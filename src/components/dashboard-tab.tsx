@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { getPLSPriceInUSD, getMintCost, formatUSD, formatLargeNumber } from "@/lib/ethereum";
 import { CONTRACTS } from "@/lib/contracts";
 import { StatsCard } from "@/components/stats-card";
 import { ProfitIndicator } from "@/components/profit-indicator";
 import { TokenDetailDialog } from "@/components/token-detail-dialog";
+import { MiniSparkline } from "@/components/mini-sparkline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,9 @@ import {
   GitBranch,
   Gift,
   RefreshCw,
+  Wifi,
+  WifiOff,
+  ExternalLink,
 } from "lucide-react";
 import {
   AreaChart,
@@ -246,6 +250,135 @@ function ProfitabilityChart({ tokens }: { tokens: Array<{ symbol: string; profit
   );
 }
 
+function NetworkHealthWidget() {
+  const [healthData, setHealthData] = useState<{
+    blockNumber: number;
+    syncStatus: boolean;
+    latency: number;
+    lastUpdated: number;
+  } | null>(null);
+  const [prevBlock, setPrevBlock] = useState<number | null>(null);
+  const [pulseKey, setPulseKey] = useState(0);
+
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const res = await fetch("/api/network-health");
+        const data = await res.json();
+        if (data.blockNumber && data.blockNumber !== 0) {
+          setHealthData(data);
+          if (prevBlock !== null && data.blockNumber !== prevBlock) {
+            setPulseKey((k) => k + 1);
+          }
+          setPrevBlock(data.blockNumber);
+        }
+      } catch {
+        // use stale data
+      }
+    };
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 15000);
+    return () => clearInterval(interval);
+  }, [prevBlock]);
+
+  const getLatencyColor = (latency: number) => {
+    if (latency < 0) return "text-gray-500";
+    if (latency < 200) return "text-emerald-400";
+    if (latency < 500) return "text-amber-400";
+    return "text-rose-400";
+  };
+
+  const getLatencyBg = (latency: number) => {
+    if (latency < 0) return "bg-gray-500/10 border-gray-500/20";
+    if (latency < 200) return "bg-emerald-500/10 border-emerald-500/20";
+    if (latency < 500) return "bg-amber-500/10 border-amber-500/20";
+    return "bg-rose-500/10 border-rose-500/20";
+  };
+
+  const blockExplorerUrl = healthData
+    ? `https://scan.pulsechain.com/block/${healthData.blockNumber}`
+    : "#";
+
+  return (
+    <Card className="bg-gray-900 border-gray-800/70 card-hover">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white text-sm flex items-center gap-2">
+            <Wifi className="h-4 w-4 text-emerald-400" />
+            Network Health
+          </CardTitle>
+          {healthData && (
+            <Badge
+              variant="outline"
+              className={`${getLatencyBg(healthData.latency)} border text-[10px] ${getLatencyColor(healthData.latency)}`}
+            >
+              {healthData.syncStatus ? "Synced" : "Syncing..."}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {!healthData || healthData.blockNumber === 0 ? (
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-36" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        ) : (
+          <>
+            {/* Block Height */}
+            <div>
+              <p className="text-[10px] text-gray-500 mb-0.5">Block Height</p>
+              <div className="flex items-center gap-1.5">
+                <a
+                  href={blockExplorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  key={pulseKey}
+                  className={`text-lg font-bold font-mono text-white hover:text-emerald-300 transition-colors ${pulseKey > 0 ? "animate-block-pulse" : ""}`}
+                >
+                  {healthData.blockNumber.toLocaleString()}
+                </a>
+                <ExternalLink className="h-3 w-3 text-gray-600" />
+              </div>
+            </div>
+
+            {/* Sync Status + Latency */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2 rounded-lg bg-gray-800/50">
+                <p className="text-[10px] text-gray-500">Status</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      healthData.syncStatus ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
+                    }`}
+                  />
+                  <span
+                    className={`text-xs font-semibold ${
+                      healthData.syncStatus ? "text-emerald-400" : "text-amber-400"
+                    }`}
+                  >
+                    {healthData.syncStatus ? "Synced" : "Syncing"}
+                  </span>
+                </div>
+              </div>
+              <div className="p-2 rounded-lg bg-gray-800/50">
+                <p className="text-[10px] text-gray-500">Latency</p>
+                <p
+                  className={`text-xs font-mono font-semibold mt-0.5 ${getLatencyColor(
+                    healthData.latency
+                  )}`}
+                >
+                  {healthData.latency}ms
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function QuickActionsBar() {
   const { setActiveTab, connected } = useAppStore();
 
@@ -352,6 +485,19 @@ export function DashboardTab() {
 
   const profitableTokens = tokens.filter((t) => t.profitRatio > 1.0);
   const recentTx = transactions.slice(0, 5);
+
+  // Generate mock sparkline data for each token
+  const sparklineData = useMemo(() => {
+    const map = new Map<string, number[]>();
+    tokens.forEach((token) => {
+      const points = Array.from({ length: 7 }, (_, i) => {
+        const noise = (Math.sin(i * 1.3 + token.profitRatio * 5) * 0.15) + (i * 0.04);
+        return Math.max(0, token.profitRatio * (0.6 + noise + i * 0.06));
+      });
+      map.set(token.address, points);
+    });
+    return map;
+  }, [tokens]);
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -461,6 +607,11 @@ export function DashboardTab() {
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
+                          <MiniSparkline
+                            data={sparklineData.get(token.address) || []}
+                            width={64}
+                            height={20}
+                          />
                           <div className="text-right">
                             <p className="text-sm font-medium text-white">
                               {formatUSD(token.priceUSD)}
@@ -479,9 +630,10 @@ export function DashboardTab() {
           </CardContent>
         </Card>
 
-        {/* Right Column: Gas + Activity */}
+        {/* Right Column: Gas + Network Health + Activity */}
         <div className="space-y-6">
           <GasTrackerCard />
+          <NetworkHealthWidget />
 
           <Card className="bg-gray-900 border-gray-800/70 card-hover">
             <CardHeader className="pb-3">

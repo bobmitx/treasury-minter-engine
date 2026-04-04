@@ -26,6 +26,7 @@ import {
   X,
   Check,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface TokenDetailDialogProps {
@@ -78,7 +79,7 @@ export function TokenDetailDialog({ tokenAddress, children }: TokenDetailDialogP
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <div onClick={() => setOpen(true)}>{children}</div>
-      <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
+      <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md neon-border-emerald">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center text-sm font-bold text-emerald-400">
@@ -86,7 +87,7 @@ export function TokenDetailDialog({ tokenAddress, children }: TokenDetailDialogP
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-white">{token.name || token.symbol}</span>
+                <span className="text-shimmer text-white">{token.name || token.symbol}</span>
                 <Badge
                   variant="outline"
                   className={`text-[10px] ${
@@ -106,21 +107,32 @@ export function TokenDetailDialog({ tokenAddress, children }: TokenDetailDialogP
         <div className="space-y-4 mt-2">
           {/* Key metrics */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Price</p>
-              <p className="text-sm font-semibold text-white font-mono">{formatUSD(token.priceUSD)}</p>
+            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800 animate-stagger-slide-up" style={{ animationDelay: "0ms" }}>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <span className="status-dot status-dot-success" />Price
+              </p>
+              <p className="text-sm font-semibold text-white font-mono number-tick">{formatUSD(token.priceUSD)}</p>
             </div>
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Balance</p>
-              <p className="text-sm font-semibold text-white font-mono">{balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800 animate-stagger-slide-up" style={{ animationDelay: "60ms" }}>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <span className="status-dot status-dot-success" />Balance
+              </p>
+              <p className="text-sm font-semibold text-white font-mono number-tick">{balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
             </div>
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Multiplier</p>
-              <p className="text-sm font-semibold text-white font-mono">{formatLargeNumber(token.multiplier)}x</p>
+            <div className={cn(
+              "rounded-lg p-3 border animate-stagger-slide-up",
+              token.multiplier > 1 ? "bg-emerald-500/5 border-emerald-500/15" : "bg-gray-800/50 border-gray-800"
+            )} style={{ animationDelay: "120ms" }}>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <span className={cn("status-dot", token.multiplier > 1 ? "status-dot-success" : "status-dot-warning")} />Multiplier
+              </p>
+              <p className="text-sm font-semibold text-white font-mono number-tick">{formatLargeNumber(token.multiplier)}x</p>
             </div>
-            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Value</p>
-              <p className="text-sm font-semibold text-white font-mono">{formatUSD(value)}</p>
+            <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800 animate-stagger-slide-up" style={{ animationDelay: "180ms" }}>
+              <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <span className={cn("status-dot", value > 0 ? "status-dot-success" : "status-dot-warning")} />Value
+              </p>
+              <p className="text-sm font-semibold text-white font-mono number-tick">{formatUSD(value)}</p>
             </div>
           </div>
 

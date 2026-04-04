@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { LucideIcon, TrendingUp, TrendingDown } from "lucide-react";
@@ -53,6 +53,19 @@ export function StatsCard({
 }: StatsCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [valueTick, setValueTick] = useState(false);
+  const prevValueRef = useRef(value);
+
+  // Trigger number-tick animation when value changes
+  useEffect(() => {
+    if (prevValueRef.current !== value) {
+      prevValueRef.current = value;
+      const timer = setTimeout(() => {
+        // Animation reset handled via CSS class re-application
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [value]);
 
   const colors = accentMap[accent];
 
@@ -74,7 +87,7 @@ export function StatsCard({
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
         "bg-gray-900 border-gray-800/70 card-hover gradient-border card-spotlight",
-        "gradient-bg-shift",
+        "gradient-bg-shift card-press",
         colors.glowClass,
         className
       )}
@@ -88,7 +101,10 @@ export function StatsCard({
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1 min-w-0">
             <p className="text-sm text-gray-400 truncate">{title}</p>
-            <p className="text-xl font-bold text-white truncate number-animate">
+            <p className={cn(
+              "text-xl font-bold text-white truncate number-animate",
+              valueTick && "number-tick"
+            )}>
               {value}
             </p>
             {(subtitle || trendValue) && (
@@ -126,6 +142,9 @@ export function StatsCard({
             )}>
               <Icon className={cn("h-4 w-4", colors.iconText)} />
             </div>
+          )}
+          {!value && !subtitle && !trendValue && (
+            <div className="absolute inset-0 dot-grid-bg rounded-[inherit] opacity-30 pointer-events-none" />
           )}
         </div>
       </CardContent>
