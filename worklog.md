@@ -1972,3 +1972,55 @@ Create a new `AppGuide` component that serves as an in-app documentation page fo
 - **ESLint**: `bun run lint` passes with zero errors
 - **Dev Server**: Compiles successfully, GET / returns 200
 - **No files modified in `src/components/ui/`**
+
+---
+## Task ID: FIX-ORANGE-GRADIENT - Fix Orange Gradient Window Issue
+
+### Current Project Status
+User reported that clicking some windows/dialogs showed an "orange gradient window with nothing to see except bright colour." Investigation revealed multiple contributing factors in the CSS layer.
+
+### Bug Analysis
+The "orange gradient" was caused by:
+1. **Mesh gradient background blobs**: The `mesh-gradient-bg::after` used `oklch(0.65 0.2 25)` (amber/warm) and `mesh-blob-amber` used `oklch(0.65 0.2 40)` (amber/orange). When page components failed to render (e.g., due to 500 errors), these blobs became the only visible content, appearing as an "orange gradient window."
+2. **gradient-border mask fallback**: The `gradient-border::before` pseudo-element used a `mask-composite` CSS trick to show only a 1px border. If the mask didn't apply (browser compatibility), the gradient (`oklch(0.7 0.17 162), oklch(0.65 0.2 40)`) could overlay the entire card content.
+3. **Dev log historical errors**: Found evidence of `ReferenceError: BookOpen is not defined`, `GET / 500`, and `GET /api/pls-price 500` errors that would cause the page to fail to render, exposing the background gradient.
+
+### Completed Fixes
+
+**1. `src/app/globals.css` - Mesh Gradient Background Fixes**
+- Reduced mesh blob opacity from `0.07` to `0.03` (60% reduction)
+- Changed `mesh-gradient-bg::after` color from amber `oklch(0.65 0.2 25)` to emerald `oklch(0.7 0.17 162)` — eliminates warm color entirely
+- Changed `mesh-blob-amber` color from amber `oklch(0.65 0.2 40)` to emerald `oklch(0.7 0.17 162)` — all blobs now use the same emerald hue
+- Reduced `mesh-blob-amber` opacity from `0.04` to `0.02` (50% reduction)
+- Increased `mesh-blob-amber` blur from `140px` to `150px` for softer appearance
+- Reduced `mesh-blob-amber` size from `450px` to `400px`
+
+**2. `src/app/globals.css` - Gradient Border Fixes**
+- Changed `gradient-border::before` gradient from `emerald→amber→emerald` to `emerald→teal→emerald` — removes all amber/orange from the border
+- Added `z-index: -1` to ensure pseudo-element stays behind content even if mask fails
+- Changed `border-rotate::before` gradient to remove amber `oklch(0.65 0.2 40)` color
+- Added `z-index: -1` to `border-rotate::before` for same safety
+
+**3. Verified Existing Components**
+- `WatchlistButton` IS exported from `token-watchlist.tsx` (line 578) — no export issue
+- `BookOpen` icon exists in installed `lucide-react` — no undefined reference
+- All lint checks pass cleanly
+- Dev server compiles successfully with no 500 errors
+
+### Verification Results
+- **ESLint**: `bun run lint` passes cleanly with zero errors
+- **Dev Server**: Compiles successfully, all routes return 200
+- **Browser QA**: Tested all major interactions via agent-browser:
+  - Dashboard renders correctly
+  - Settings dialog opens with full content
+  - Getting Started Guide modal renders properly
+  - Notification dropdown shows correctly
+  - All tabs switch without errors
+  - V3 Minter tab renders correctly
+  - Background gradient now shows only emerald tones — no orange/amber visible
+
+### Impact
+- Background is now much more subtle with consistent emerald tones instead of warm amber/orange
+- If any component fails to render in the future, the exposed background will be a dark emerald gradient rather than bright orange
+- gradient-border and border-rotate are protected against mask-composite browser compatibility issues with z-index: -1
+- No code changes outside CSS — all component behavior remains unchanged

@@ -222,7 +222,7 @@
   inset: 0;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(135deg, oklch(0.7 0.17 162), oklch(0.65 0.2 40), oklch(0.7 0.17 162));
+  background: linear-gradient(135deg, oklch(0.7 0.17 162), oklch(0.75 0.15 140), oklch(0.7 0.17 162));
   background-size: 300% 300%;
   animation: gradient-border 4s ease infinite;
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -231,6 +231,7 @@
   -webkit-mask-composite: xor;
   pointer-events: none;
   opacity: 0;
+  z-index: -1;
   transition: opacity 0.3s ease;
 }
 
@@ -281,7 +282,7 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.07;
+  opacity: 0.03;
 }
 
 .mesh-gradient-bg::before {
@@ -298,7 +299,7 @@
   height: 500px;
   bottom: -200px;
   left: -100px;
-  background: oklch(0.65 0.2 25);
+  background: oklch(0.7 0.17 162);
   animation: mesh-float 25s ease-in-out infinite reverse;
 }
 
@@ -568,15 +569,15 @@ input[type="number"]:hover::-webkit-outer-spin-button {
 /* Uses child divs with .mesh-blob class for additional gradient layers */
 .mesh-gradient-bg .mesh-blob-amber {
   position: absolute;
-  width: 450px;
-  height: 450px;
+  width: 400px;
+  height: 400px;
   top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  filter: blur(140px);
-  opacity: 0.04;
-  background: oklch(0.65 0.2 40);
+  filter: blur(150px);
+  opacity: 0.02;
+  background: oklch(0.7 0.17 162);
   animation: mesh-float 30s ease-in-out infinite 5s;
   pointer-events: none;
 }
@@ -1365,8 +1366,8 @@ input[type="number"]:hover::-webkit-outer-spin-button {
   background: linear-gradient(
     135deg,
     oklch(0.7 0.17 162 / 40%),
-    oklch(0.65 0.2 40 / 20%),
-    oklch(0.75 0.15 140 / 30%),
+    oklch(0.75 0.15 140 / 20%),
+    oklch(0.7 0.17 162 / 30%),
     oklch(0.7 0.17 162 / 40%)
   );
   background-size: 300% 300%;
@@ -1377,6 +1378,7 @@ input[type="number"]:hover::-webkit-outer-spin-button {
   -webkit-mask-composite: xor;
   pointer-events: none;
   opacity: 0.6;
+  z-index: -1;
   transition: opacity 0.3s ease;
 }
 
