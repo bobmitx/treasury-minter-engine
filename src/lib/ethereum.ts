@@ -296,8 +296,8 @@ export async function getPLSPriceInUSD(): Promise<number> {
   }
 }
 
-// Find Uniswap V2 pair address using factory getPair
-// Uses the canonical Uniswap V2 Factory copied to PulseChain from Ethereum
+// Find LP pair address using PulseX V1 Factory getPair
+// PulseX V1 is the actual DEX on PulseChain (not the canonical Uniswap V2 which has no pairs)
 export async function findPairAddress(
   tokenA: string,
   tokenB: string
@@ -305,8 +305,8 @@ export async function findPairAddress(
   try {
     const provider = getProvider();
 
-    // Uniswap V2 Factory on PulseChain (state-copied from Ethereum mainnet)
-    const factoryAddress = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
+    // PulseX V1 Factory (the actual DEX on PulseChain with live LP pairs)
+    const factoryAddress = CONTRACTS.pulsexV1Factory;
 
     const factoryABI = [
       "function getPair(address tokenA, address tokenB) view returns (address)",

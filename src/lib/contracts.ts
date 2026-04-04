@@ -23,6 +23,9 @@ export const CONTRACTS = {
   wPLS: "0xA1077a294dDE1B09bB078844df40758a5D0f9a27" as const,
   sweeper: "0xf62191c931209AC42D7d088dADca15156D8EC13a" as const,
   logoVoting: "0xc15c5F699Daf5e1135732139f05D2c05b3EF4354" as const,
+  // PulseX V1 (the actual DEX on PulseChain, NOT Uniswap V2 canonical)
+  pulsexV1Factory: "0x1715a3E4A142d8b698131108995174F37aEBA10D" as const,
+  pulsexV1Router: "0x98bf93ebf5c380C0e6Ae8e192A7e2AE08edAcc02" as const,
 };
 
 export const ABIS = {

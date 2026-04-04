@@ -15,6 +15,8 @@ import { OnboardingModal } from "@/components/onboarding-modal";
 import { ActivityTicker } from "@/components/activity-ticker";
 import { NotificationBell } from "@/components/notification-center";
 import { QuickMintFAB } from "@/components/quick-mint-fab";
+import { TokenComparison } from "@/components/token-comparison";
+import { TokenWatchlist } from "@/components/token-watchlist";
 import { useProfitAlertChecker } from "@/hooks/use-profit-alert-checker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,6 +57,8 @@ import {
   Timer,
   ArrowUpRight,
   ArrowDownRight,
+  GitCompare,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getChainId, switchToPulseChain, isPulseChain } from "@/lib/ethereum";
@@ -75,6 +79,8 @@ const TABS: Array<{
   { id: "portfolio", label: "Portfolio", icon: Wallet },
   { id: "history", label: "History", icon: History },
   { id: "bot-mode", label: "Bot Mode", icon: Bot, badge: "New" },
+  { id: "comparison", label: "Compare", icon: GitCompare },
+  { id: "watchlist", label: "Watchlist", icon: Eye },
 ];
 
 function SettingsDialog() {
@@ -300,7 +306,7 @@ function SettingsDialog() {
             </Label>
             <div className="bg-gray-800 rounded-lg p-3 space-y-2 text-sm">
               {[
-                { key: "1-8", desc: "Switch tabs (Dashboard through Bot Mode)" },
+                { key: "1-9, 0", desc: "Switch tabs (Dashboard through Watchlist)" },
                 { key: "W", desc: "Connect wallet / open wallet dialog" },
                 { key: "R", desc: "Refresh market data" },
                 { key: "Esc", desc: "Close any open dialog" },
@@ -652,6 +658,8 @@ export default function Home() {
       "6": "portfolio",
       "7": "history",
       "8": "bot-mode",
+      "9": "comparison",
+      "0": "watchlist",
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -668,7 +676,7 @@ export default function Home() {
 
       const key = e.key;
 
-      // 1-8: Switch tabs
+      // 1-9, 0: Switch tabs
       if (tabMap[key]) {
         e.preventDefault();
         setActiveTab(tabMap[key]);
@@ -894,6 +902,8 @@ export default function Home() {
                 {activeTab === "portfolio" && <PortfolioTab />}
                 {activeTab === "history" && <HistoryTab />}
                 {activeTab === "bot-mode" && <BotPanel />}
+                {activeTab === "comparison" && <TokenComparison />}
+                {activeTab === "watchlist" && <TokenWatchlist />}
               </motion.div>
             </AnimatePresence>
           </div>

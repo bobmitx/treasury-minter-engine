@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ExportDialog } from "@/components/export-dialog";
 import { TokenWatchlist } from "@/components/token-watchlist";
 import { TokenComparison } from "@/components/token-comparison";
+import { MintAnalytics } from "@/components/mint-analytics";
 import {
   DollarSign,
   Coins,
@@ -982,6 +983,9 @@ export function DashboardTab() {
         {/* PLS Market Stats Widget */}
         <MarketStatsWidget />
       </div>
+
+      {/* Mint Analytics */}
+      <MintAnalytics />
     </div>
   );
 }

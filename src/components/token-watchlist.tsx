@@ -575,9 +575,12 @@ function WatchlistSummary({ tokens }: { tokens: TokenData[] }) {
 }
 
 // ── Watchlist Button (used by V3/V4 minter tabs) ─────────────────────────────
-export function WatchlistButton({ tokenAddress }: { tokenAddress: string }) {
+export function WatchlistButton({ tokenAddress, size = "md" }: { tokenAddress: string; size?: "sm" | "md" }) {
   const { watchlist, toggleWatchlist } = useAppStore();
   const isWatched = watchlist.includes(tokenAddress);
+
+  const iconSize = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+  const padding = size === "sm" ? "p-1" : "p-1.5";
 
   return (
     <button
@@ -586,7 +589,7 @@ export function WatchlistButton({ tokenAddress }: { tokenAddress: string }) {
         toggleWatchlist(tokenAddress);
       }}
       className={cn(
-        "p-1.5 rounded-lg transition-all duration-200 flex-shrink-0",
+        `${padding} rounded-lg transition-all duration-200 flex-shrink-0`,
         isWatched
           ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
           : "text-gray-600 hover:text-gray-400 hover:bg-gray-800"
@@ -594,9 +597,9 @@ export function WatchlistButton({ tokenAddress }: { tokenAddress: string }) {
       title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
     >
       {isWatched ? (
-        <Star className="h-4 w-4 fill-amber-400" />
+        <Star className={cn(iconSize, "fill-amber-400")} />
       ) : (
-        <Star className="h-4 w-4" />
+        <Star className={iconSize} />
       )}
     </button>
   );

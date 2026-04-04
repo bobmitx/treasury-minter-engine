@@ -8,7 +8,10 @@ export type TabType =
   | "multihop"
   | "portfolio"
   | "history"
-  | "calculator";
+  | "calculator"
+  | "bot-mode"
+  | "comparison"
+  | "watchlist";
 
 export type TxStatus = "pending" | "confirmed" | "failed";
 

@@ -7,18 +7,28 @@ let cachedAt = 0;
 const CACHE_TTL = 60_000; // 60 seconds
 
 const FALLBACK_PRICE = 0.000028;
-const PLS_ADDRESS = "0xA1077a294dDE1B09bB078844df40758a5D0f9a27";
+const WPLS_ADDRESS = "0xA1077a294dDE1B09bB078844df40758a5D0f9a27";
 
-async function fetchFromCoinGecko(): Promise<{ price: number; source: string } | null> {
+// Primary: GeckoTerminal (best PulseChain DEX data coverage)
+async function fetchFromGeckoTerminal(): Promise<{ price: number; source: string } | null> {
   try {
-    const res = await fetch(
-      "https://api.coingecko.com/api/v3/simple/price?ids=pulse&vs_currencies=usd",
-      { next: { revalidate: 0 }, signal: AbortSignal.timeout(5000) }
-    );
+    const url = `https://api.geckoterminal.com/api/v2/simple/networks/pulsechain/token_price/${WPLS_ADDRESS}`;
+    const res = await fetch(url, {
+      next: { revalidate: 0 },
+      signal: AbortSignal.timeout(5000),
+      headers: { Accept: "application/json" },
+    });
     if (!res.ok) return null;
     const data = await res.json();
-    if (data?.pulse?.usd && typeof data.pulse.usd === "number") {
-      return { price: data.pulse.usd, source: "CoinGecko" };
+    const attrs = data?.data?.attributes;
+    if (attrs?.token_prices && typeof attrs.token_prices === "object") {
+      const priceStr = attrs.token_prices[WPLS_ADDRESS.toLowerCase()];
+      if (priceStr) {
+        const price = parseFloat(priceStr);
+        if (price > 0 && isFinite(price)) {
+          return { price, source: "GeckoTerminal" };
+        }
+      }
     }
     return null;
   } catch {
@@ -26,10 +36,11 @@ async function fetchFromCoinGecko(): Promise<{ price: number; source: string } |
   }
 }
 
+// Fallback 1: DexScreener
 async function fetchFromDexScreener(): Promise<{ price: number; source: string } | null> {
   try {
     const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${PLS_ADDRESS}`,
+      `https://api.dexscreener.com/latest/dex/tokens/${WPLS_ADDRESS}`,
       { next: { revalidate: 0 }, signal: AbortSignal.timeout(5000) }
     );
     if (!res.ok) return null;
@@ -61,15 +72,15 @@ export async function GET() {
     });
   }
 
-  // Try CoinGecko first
-  let result = await fetchFromCoinGecko();
+  // Try GeckoTerminal first (best PulseChain data)
+  let result = await fetchFromGeckoTerminal();
 
   // Fallback to DexScreener
   if (!result) {
     result = await fetchFromDexScreener();
   }
 
-  // Final fallback
+  // Final hardcoded fallback
   if (!result) {
     result = { price: FALLBACK_PRICE, source: "Fallback" };
   }
