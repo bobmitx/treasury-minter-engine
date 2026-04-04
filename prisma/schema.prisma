@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// This is your Prisma schema file
 
 generator client {
   provider = "prisma-client-js"
@@ -29,4 +25,41 @@ model Post {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Transaction {
+  id          String   @id @default(cuid())
+  walletAddress String
+  type        String   // create, mint, claim, multihop, withdraw
+  version     String   // V3, V4, MultiHop
+  tokenAddress String?
+  tokenSymbol  String?
+  amount      String?
+  txHash      String
+  status      String   // pending, confirmed, failed
+  gasCost     String?
+  details     String?
+  blockNumber Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([walletAddress])
+  @@index([txHash])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model TrackedToken {
+  id          String   @id @default(cuid())
+  address     String   @unique
+  name        String?
+  symbol      String?
+  decimals    Int      @default(18)
+  version     String   // V3 or V4
+  creatorAddress String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([address])
+  @@index([version])
 }
