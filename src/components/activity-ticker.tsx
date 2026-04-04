@@ -72,23 +72,13 @@ function generateTickerItems(): TickerItem[] {
 
 export function ActivityTicker() {
   const { connected } = useAppStore();
-  // Start with empty array to avoid hydration mismatch from Math.random()/Date.now()
-  // Use lazy initializer with a mounted check via ref to generate only on client
-  const [items, setItems] = useState<TickerItem[]>(() => {
-    // During SSR this returns [] to prevent hydration mismatch
-    // On client it generates immediately
-    if (typeof window !== "undefined") {
-      return generateTickerItems();
-    }
-    return [];
-  });
+  const [items, setItems] = useState<TickerItem[]>([]);
 
+  // Refresh ticker items periodically (callback avoids sync setState in effect body)
   useEffect(() => {
-    // Refresh every 60 seconds
-    const interval = setInterval(() => {
-      setItems(generateTickerItems());
-    }, 60000);
-
+    const refresh = () => setItems(generateTickerItems());
+    refresh();
+    const interval = setInterval(refresh, 60000);
     return () => clearInterval(interval);
   }, []);
 

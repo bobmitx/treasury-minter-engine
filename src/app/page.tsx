@@ -14,6 +14,7 @@ import { CalculatorTab } from "@/components/calculator-tab";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { ActivityTicker } from "@/components/activity-ticker";
 import { NotificationBell } from "@/components/notification-center";
+import { QuickMintFAB } from "@/components/quick-mint-fab";
 import { useProfitAlertChecker } from "@/hooks/use-profit-alert-checker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -468,7 +469,7 @@ function NetworkStatus() {
 }
 
 export default function Home() {
-  const { activeTab, setActiveTab, setChainId, botMode, botRunning, onboardingOpen, hasSeenOnboarding, setOnboardingOpen } = useAppStore();
+  const { activeTab, setActiveTab, setChainId, botMode, botRunning, onboardingOpen, hasSeenOnboarding, setOnboardingOpen, setSettingsOpen } = useAppStore();
 
   // Run profit alert background checker
   useProfitAlertChecker();
@@ -620,8 +621,23 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Right Side: Help + Network + Wallet */}
+              {/* Right Side: Settings + Help + Notifications + Network + Wallet */}
               <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-gray-500 hover:text-white hover:bg-gray-800/50"
+                      onClick={() => setSettingsOpen(true)}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="bg-gray-900 border-gray-800 text-xs">
+                    Settings
+                  </TooltipContent>
+                </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -757,6 +773,9 @@ export default function Home() {
 
         {/* Onboarding Modal */}
         <OnboardingModal />
+
+        {/* Quick Mint Floating Action Button */}
+        <QuickMintFAB />
       </div>
     </TooltipProvider>
   );

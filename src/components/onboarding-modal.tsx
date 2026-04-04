@@ -402,9 +402,8 @@ export function OnboardingModal() {
   };
 
   const handleClose = () => {
-    if (dontShowAgain) {
-      setHasSeenOnboarding(true);
-    }
+    // Always mark as seen when closing (Skip or any dismiss action)
+    setHasSeenOnboarding(true);
     setOnboardingOpen(false);
   };
 

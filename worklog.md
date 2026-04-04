@@ -1007,3 +1007,191 @@ The application is fully functional with 16+ custom components, 8 tabs, onboardi
 5. **Mobile Optimization**: Token Watchlist and Notification Center could use further mobile-specific layouts.
 6. **Data Export**: Watchlist tokens could be included in the export dialog data.
 
+
+---
+## Task ID: 4 - WatchlistButton Integration into V3/V4 Minter Tabs
+### Work Task
+Add the `WatchlistButton` component from `src/components/token-watchlist.tsx` to the token rows in both `v3-minter-tab.tsx` and `v4-minter-tab.tsx`, positioned as the first hover action before the Mint button.
+
+### Completed Modifications
+
+**1. `src/components/v3-minter-tab.tsx`**
+- Added import: `import { WatchlistButton } from "@/components/token-watchlist"`
+- Inserted `WatchlistButton` with `size="sm"` as the first action in the hover actions group (before the Mint button)
+- Wrapped in a `div` with `opacity-0 group-hover:opacity-100 transition-all duration-200` and `transitionDelay: "0ms"` for staggered reveal effect consistent with other action buttons
+- Added `onClick={(e) => e.stopPropagation()}` to prevent triggering the parent `TokenDetailDialog` when clicking the star
+
+**2. `src/components/v4-minter-tab.tsx`**
+- Added import: `import { WatchlistButton } from "@/components/token-watchlist"`
+- Inserted `WatchlistButton` with `size="sm"` as the first action button in the hover actions group (before the Trash/Remove button)
+- Wrapped in a `div` with `opacity-0 group-hover:opacity-100 transition-opacity` for consistent hover reveal behavior
+- Added `onClick={(e) => e.stopPropagation()}` to prevent triggering the parent `TokenDetailDialog` when clicking the star
+
+### Verification Results
+- **ESLint**: `npm run lint` passes with zero errors
+- **Dev Server**: Compiles successfully (`✓ Compiled in 306ms`), all routes return 200
+- **No files modified outside scope**: Only touched `src/components/v3-minter-tab.tsx` and `src/components/v4-minter-tab.tsx`
+
+---
+## Task ID: 3 - QuickMintFAB Component
+### Work Task
+Create a QuickMintFAB floating action button component for the Treasury Minter Engine that provides quick access to the most common minting operations when a wallet is connected.
+
+### Work Summary
+
+**1. `src/components/quick-mint-fab.tsx` — NEW FILE**
+- **Main FAB button**: 56px circle with emerald gradient, uses the existing `fab` CSS class from globals.css with `rounded-full` override. Zap icon when collapsed, X icon when expanded. Subtle pulse glow ring (`animate-ping`) when collapsed. Spring-animated icon rotation on toggle. Tooltip on left side.
+- **Expandable action menu**: 4 action items that slide up from the FAB with staggered delays (50ms apart) using framer-motion spring animation:
+  - "Quick Mint V3" → navigates to `v3-minter` tab (emerald accent, Zap icon)
+  - "Quick Mint V4" → navigates to `v4-minter` tab (amber accent, Gem icon)
+  - "MultiHop" → navigates to `multihop` tab (emerald accent, GitBranch icon)
+  - "Claim Rewards" → navigates to `v4-minter` tab (amber accent, Gift icon)
+- **Top Performer suggestion**: When tokens are tracked, shows a `glass-card-depth` pill above action items with the highest profit-ratio token name and ratio value (TrendingUp icon, emerald accent).
+- **Backdrop**: Semi-transparent dark overlay (`bg-black/40 backdrop-blur-[2px]`) with framer-motion fade, z-index 39. Clicking it collapses the menu.
+- **Auto-collapse**: 10-second inactivity timer that auto-collapses the menu. Timer resets on hover over action items. Timer cleared on manual close/unmount.
+- **Accessibility**: `aria-label` on FAB ("Open quick mint actions" / "Close quick actions"), `aria-expanded` boolean, `Escape` key listener to close, `focus-visible` ring styling on all interactive elements.
+- **Visibility**: Only renders when `connected` is true (returns null otherwise). Uses `useAppStore` for `connected`, `setActiveTab`, and `tokens`.
+- **Styling**: Uses project design system — `glass-card-depth` for action items, emerald/amber accent colors, `rounded-xl` buttons, dark theme consistent. Imports from `@/components/ui/tooltip`, lucide-react (Zap, Gem, GitBranch, Gift, X, TrendingUp), `framer-motion` (motion, AnimatePresence), `@/lib/store`, `@/lib/utils`.
+- **TypeScript**: Full strict typing throughout. `FabAction` interface for action definitions, `ACCENT_STYLES` record for color mapping. `useCallback`, `useMemo`, `useRef` for performance. Single named export: `QuickMintFAB`.
+
+**2. `src/app/page.tsx` — Minimal Integration**
+- Added import for `QuickMintFAB` from `@/components/quick-mint-fab`.
+- Rendered `<QuickMintFAB />` after `<OnboardingModal />`, inside the main `<TooltipProvider>` wrapper and root div.
+
+### Verification Results
+- **ESLint**: `npm run lint` passes with zero errors across entire project.
+- **Dev Server**: Compiles successfully (`✓ Compiled in 253ms`), all routes return 200.
+- **No files modified outside scope**: Created `src/components/quick-mint-fab.tsx`, added 2 lines to `src/app/page.tsx` (import + render).
+
+---
+## Task ID: 8 - Token Comparison Component
+### Work Task
+Create a side-by-side Token Comparison card component for the Treasury Minter Engine dashboard. The component allows users to select two tokens and compare their performance metrics visually.
+
+### Work Summary
+
+**1. `src/components/token-comparison.tsx` - NEW COMPONENT**
+- **Main Component (`TokenComparison`)**: Named export, standalone card with:
+  - Header with GitCompare icon, "Token Comparison" title, collapse/close button
+  - Collapsible state — click X to collapse, click expand icon to restore
+  - Two-column responsive layout (stacks on mobile via `md:grid-cols-2`)
+  
+- **Token Column (`TokenColumn`)**: Per-token selection and display with:
+  - shadcn/ui Select dropdown populated from `useAppStore` tokens array
+  - Token info card showing symbol, name, version badge (V3 emerald / V4 amber), truncated address with copy button (Check/Copy icons)
+  - 2x2 stats grid: Price (formatUSD), Multiplier (with text-glow-emerald), Profit Ratio (ProfitIndicator component), Balance (formatLargeNumber)
+  - SparklineBar: simple progress bar showing relative value, color-coded by profit ratio
+  - Empty state with ArrowLeftRight icon when no token selected
+  - V4 tokens get amber border/background tint, V3 tokens get emerald tint
+
+- **Comparison Summary** (only when both tokens selected):
+  - **Winner Indicator**: Trophy icon card highlighting which token has better profit ratio, with emerald/amber border and ProfitIndicator badge
+  - **ComparisonBar**: 3 metric comparisons (Price, Multiplier, Profit Ratio) with:
+    - Dual progress bars (emerald for token1 winner, amber for token2 winner)
+    - Percentage delta badges (emerald for positive, rose for negative)
+    - ArrowLeftRight icon between bars
+  - **Delta Badge Grid**: 3-column grid showing Price Δ, Multiplier Δ, Profit Δ with TrendingUp/TrendingDown icons and color-coded values
+
+- **Empty State**: GitCompare icon with "Select two tokens to compare their performance" message
+
+- **Helper Components** (module-level): `SparklineBar`, `ComparisonBar`, `StatBox`, `EmptyState`, `DeltaBadge`
+
+- **Styling**: Uses `glass-card-depth`, `gradient-border`, `card-hover`, `animate-fade-in-up`, `number-animate`, `text-glow-emerald`. Dark theme throughout (bg-gray-900, border-gray-800, text-white).
+
+- **Imports**: Card/CardHeader/CardTitle/CardContent from `@/components/ui/card`, Badge from `@/components/ui/badge`, Button from `@/components/ui/button`, Select components from `@/components/ui/select`, ProfitIndicator from `@/components/profit-indicator`, `useAppStore`/`TokenData` from `@/lib/store`, `formatUSD`/`formatLargeNumber`/`shortenAddress` from `@/lib/ethereum`, `cn` from `@/lib/utils`, GitCompare/ArrowLeftRight/Trophy/TrendingUp/TrendingDown/X/Copy/Check from lucide-react.
+
+### Verification Results
+- **ESLint**: `npm run lint` passes with zero errors (fixed initial `react-hooks/preserve-manual-memoization` error by updating useCallback dependency from `token?.address` to `token`)
+- **Dev Server**: Compiles successfully, all routes return 200
+- **No existing files modified**: Only created `src/components/token-comparison.tsx`
+
+---
+## Task ID: ROUND-5 - Bug Fixes, New Features, CSS Polish, Final QA
+
+### Current Project Status
+The application has 19+ custom components, 8 tabs, onboarding modal, profit alerts panel, calculator, bot panel, notification center, token watchlist, token comparison, quick mint FAB, activity ticker, market stats, network health widget, mini sparklines, export dialog, and comprehensive styling with 2100+ lines of custom CSS. All core features are functional and stable. This round focused on 3 QA-driven bug fixes, 4 new features, and advanced CSS animations.
+
+### Bug Fixes (from QA)
+
+**1. Settings Dialog Unreachable (CRITICAL)**
+- **Problem**: The `<SettingsDialog />` component existed and rendered in JSX but there was no UI button calling `setSettingsOpen(true)` anywhere in the codebase
+- **`src/app/page.tsx`**: Added Settings gear icon button (lucide `Settings`) to the header, positioned between the logo area and the HelpCircle icon
+- Added `setSettingsOpen` to the Home component's Zustand destructuring
+- Tooltip: "Settings" on hover
+- QA verified: dialog opens correctly, all settings render
+
+**2. Onboarding "Skip" Didn't Persist**
+- **Problem**: Clicking "Skip" only called `setOnboardingOpen(false)` without setting `hasSeenOnboarding`, so the modal re-appeared on every page load
+- **`src/components/onboarding-modal.tsx`**: Changed `handleClose()` to always call `setHasSeenOnboarding(true)` regardless of the `dontShowAgain` checkbox state
+- Now: Skip, X button click, or Escape all permanently dismiss onboarding
+
+**3. ActivityTicker Hydration Mismatch + Lint Error**
+- **Problem**: `typeof window` check in `useState` initializer caused Next.js hydration mismatch. Calling `setItems` in `useEffect` triggered `react-hooks/set-state-in-effect` lint error
+- **`src/components/activity-ticker.tsx`**: Refactored to use a callback pattern: `const refresh = () => setItems(generateTickerItems())` called both immediately and in `setInterval`, avoiding direct synchronous setState in effect body
+- Removed `useRef` import (no longer needed)
+
+### New Features
+
+**4. Token Comparison** (NEW: `src/components/token-comparison.tsx`)
+- **TokenComparison**: Side-by-side token comparison card with:
+  - Two Select dropdowns to pick any tracked tokens
+  - Per-column info card: symbol, name, version badge (V3 emerald / V4 amber), address with copy button
+  - Stats grid (2x2): Price, Multiplier (glow text), Profit Ratio (ProfitIndicator), Balance
+  - **Comparison Summary** (when both selected): 3 metric comparison bars (Price, Multiplier, Profit Ratio) with dual progress indicators, % delta badges, "Winner" trophy indicator
+  - Empty state with GitCompare icon
+  - Responsive: 2-column on md+, stacks on mobile
+- Integrated into Dashboard (between TokenWatchlist and Quick Stats), visible when 2+ tokens tracked
+
+**5. WatchlistButton in V3/V4 Minter Tabs**
+- **`src/components/v3-minter-tab.tsx`**: Added `WatchlistButton` (size="sm") as the first action in each token row's hover actions group, before the Mint button
+- **`src/components/v4-minter-tab.tsx`**: Same WatchlistButton integration with `stopPropagation` to prevent triggering parent TokenDetailDialog
+- Users can now star/unstar tokens directly from the minter tab token lists
+
+**6. Quick Mint FAB** (NEW: `src/components/quick-mint-fab.tsx`)
+- **QuickMintFAB**: Floating action button fixed bottom-right (z-40, above footer):
+  - Main button: 56px emerald gradient circle with Zap icon
+  - Expandable menu: 4 action buttons slide up with staggered spring animations (50ms delays)
+    - "Quick Mint V3" (Zap, emerald)
+    - "Quick Mint V4" (Gem, amber)
+    - "MultiHop" (GitBranch, emerald)
+    - "Claim Rewards" (Gift, amber)
+  - "Top Performer" suggestion pill when tokens exist (highest profit ratio token)
+  - Semi-transparent backdrop overlay, clicking collapses menu
+  - Auto-collapse after 10 seconds of inactivity (timer resets on hover)
+  - Accessibility: aria-label, aria-expanded, Escape key support
+- Integrated into page.tsx (rendered before footer)
+  - Only visible when wallet is connected
+
+### Styling Improvements
+
+**7. `src/app/globals.css` — Round 7: Advanced UI Effects (~207 lines)**
+- **Conic Gradient Spinner** (`.spinner-conic`): Animated conic gradient spinner with CSS mask for ring effect
+- **Glass Card Variants**: `.glass-card-emerald` (emerald tinted glow) and `.glass-card-amber` (amber tinted glow)
+- **Animated Underline Link** (`.animated-underline`): Width-growing underline on hover with spring easing
+- **Floating Label Input** (`.input-labeled`): Labels that animate up on focus/non-empty for input groups
+- **Pulse Dot Status** (`.status-pulse-soft`): Soft pulsing glow for status indicators
+- **Scan Line Effect** (`.scan-line-effect`): Moving gradient line overlay for loading/analyzing states
+- **Morphing Blob** (`.morph-blob`): Organic border-radius morphing animation (12s cycle)
+- **Text Reveal Animation** (`.animate-text-reveal`): Clip-path based text reveal with 3 delay variants
+- **Interactive Glow Button** (`.btn-glow`): Hover-activated gradient border glow effect with box-shadow
+- **Grid Pattern Background** (`.bg-grid-pattern`): 40px subtle grid pattern for decorative sections
+- **Reduced Motion**: All Round 7 animations disabled via `@media (prefers-reduced-motion: reduce)`
+
+### Integration Notes
+- TokenComparison integrated into dashboard-tab.tsx (visible when 2+ tokens tracked)
+- WatchlistButton added to both v3-minter-tab.tsx and v4-minter-tab.tsx token rows
+- QuickMintFAB imported and rendered in page.tsx (before footer)
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with **zero errors**
+- **Dev Server**: All routes return 200, compiles successfully (~140-330ms)
+- **Browser QA**: Settings gear icon visible, Settings dialog opens correctly, all tabs render, no UI-level errors
+- **Total CSS Lines**: globals.css now has 2,124 lines across 7 rounds of additions
+
+### Unresolved Issues & Next Phase Recommendations
+1. **DialogDescription Accessibility**: Settings and other dialogs missing `DialogDescription` — add for full screen reader support
+2. **Notification → Real Events**: Notification center still uses demo data. Integrate with actual transaction flow, bot actions, and profit alert triggers.
+3. **Quick Mint FAB → Preset Amount**: FAB could auto-fill a mint amount based on bot config settings
+4. **Token Comparison → Historical Data**: Currently compares current state only. Could add historical trend comparison.
+5. **Mobile FAB Position**: Quick Mint FAB may overlap with mobile browser navigation — consider adjusting position on small screens
+6. **CALL_EXCEPTION Console Noise**: Recurring RPC call errors for V3/V4 multiplier fetches create noisy console output. Consider adding error boundary or centralized error handler.

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExportDialog } from "@/components/export-dialog";
 import { TokenWatchlist } from "@/components/token-watchlist";
+import { TokenComparison } from "@/components/token-comparison";
 import {
   DollarSign,
   Coins,
@@ -903,6 +904,9 @@ export function DashboardTab() {
 
       {/* Token Watchlist */}
       {tokens.length > 0 && <TokenWatchlist />}
+
+      {/* Token Comparison */}
+      {tokens.length >= 2 && <TokenComparison />}
 
       {/* Quick Stats Bottom Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

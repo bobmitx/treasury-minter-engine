@@ -19,6 +19,7 @@ import { CONTRACTS } from "@/lib/contracts";
 import { StatsCard } from "@/components/stats-card";
 import { ProfitIndicator } from "@/components/profit-indicator";
 import { TokenDetailDialog } from "@/components/token-detail-dialog";
+import { WatchlistButton } from "@/components/token-watchlist";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -726,6 +727,15 @@ export function V3MinterTab() {
                               <p className="text-xs text-gray-400">
                                 {formatLargeNumber(token.multiplier)}x mult.
                               </p>
+                            </div>
+
+                            {/* Watchlist quick action */}
+                            <div
+                              className="opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              style={{ transitionDelay: "0ms" }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <WatchlistButton tokenAddress={token.address} size="sm" />
                             </div>
 
                             {/* Mint quick action */}
