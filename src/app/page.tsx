@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState, useRef } from "react";
 import { useAppStore, TabType } from "@/lib/store";
 import { WalletButton } from "@/components/wallet-button";
 import { DashboardTab } from "@/components/dashboard-tab";
@@ -12,6 +12,7 @@ import { HistoryTab } from "@/components/history-tab";
 import { BotPanel } from "@/components/bot-panel";
 import { CalculatorTab } from "@/components/calculator-tab";
 import { OnboardingModal } from "@/components/onboarding-modal";
+import { useProfitAlertChecker } from "@/hooks/use-profit-alert-checker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,6 +45,7 @@ import {
   Calculator,
   Info,
   HelpCircle,
+  Keyboard,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getChainId, switchToPulseChain, isPulseChain } from "@/lib/ethereum";
@@ -276,6 +278,31 @@ function SettingsDialog() {
             </div>
           </div>
 
+          <Separator className="bg-gray-800" />
+
+          {/* Keyboard Shortcuts */}
+          <div className="space-y-2">
+            <Label className="text-gray-300 flex items-center gap-2">
+              <Keyboard className="h-3.5 w-3.5 text-emerald-400" />
+              Keyboard Shortcuts
+            </Label>
+            <div className="bg-gray-800 rounded-lg p-3 space-y-2 text-sm">
+              {[
+                { key: "1-8", desc: "Switch tabs (Dashboard through Bot Mode)" },
+                { key: "W", desc: "Connect wallet / open wallet dialog" },
+                { key: "R", desc: "Refresh market data" },
+                { key: "Esc", desc: "Close any open dialog" },
+              ].map((shortcut) => (
+                <div key={shortcut.key} className="flex items-center justify-between">
+                  <span className="text-gray-400 text-xs">{shortcut.desc}</span>
+                  <kbd className="inline-flex items-center justify-center h-5 min-w-[24px] px-1.5 rounded bg-gray-900 border border-gray-700 text-[10px] font-mono text-gray-300">
+                    {shortcut.key}
+                  </kbd>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <Button
             onClick={handleSave}
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
@@ -286,6 +313,61 @@ function SettingsDialog() {
       </DialogContent>
     </Dialog>
   );
+}
+
+/* Parallax mesh gradient background that shifts on scroll */
+function ParallaxMeshBackground() {
+  const bgRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!bgRef.current) return;
+      const scrollY = window.scrollY;
+      const maxShift = 30;
+      const shift = Math.min(scrollY * 0.05, maxShift);
+      bgRef.current.style.transform = `translateY(${shift}px)`;
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  return (
+    <div ref={bgRef} className="mesh-gradient-bg">
+      {/* Extra amber blob for richer gradient */}
+      <div className="mesh-blob-amber" />
+    </div>
+  );
+}
+
+/* Thin loading bar at top of page during route transitions */
+function RouteLoadingBar() {
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const start = () => {
+      setLoading(true);
+      timer = setTimeout(() => setLoading(false), 2000);
+    };
+    const stop = () => {
+      clearTimeout(timer);
+      setTimeout(() => setLoading(false), 200);
+    };
+
+    // Simulate initial page load
+    start();
+
+    window.addEventListener("treasury-route-start", start);
+    window.addEventListener("treasury-route-stop", stop);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("treasury-route-start", start);
+      window.removeEventListener("treasury-route-stop", stop);
+    };
+  }, []);
+
+  if (!loading) return null;
+  return <div className="route-loading-bar" />;
 }
 
 function NetworkStatus() {
@@ -363,6 +445,9 @@ function NetworkStatus() {
 export default function Home() {
   const { activeTab, setActiveTab, setChainId, botMode, botRunning, onboardingOpen, hasSeenOnboarding, setOnboardingOpen } = useAppStore();
 
+  // Run profit alert background checker
+  useProfitAlertChecker();
+
   // Listen for account changes
   useEffect(() => {
     if (typeof window === "undefined" || !window.ethereum) return;
@@ -390,11 +475,91 @@ export default function Home() {
     }
   }, [hasSeenOnboarding, setOnboardingOpen]);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const tabMap: Record<string, TabType> = {
+      "1": "dashboard",
+      "2": "v3-minter",
+      "3": "v4-minter",
+      "4": "multihop",
+      "5": "calculator",
+      "6": "portfolio",
+      "7": "history",
+      "8": "bot-mode",
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger when typing in inputs/textareas
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      const key = e.key;
+
+      // 1-8: Switch tabs
+      if (tabMap[key]) {
+        e.preventDefault();
+        setActiveTab(tabMap[key]);
+        return;
+      }
+
+      // w: Connect wallet
+      if (key === "w") {
+        e.preventDefault();
+        if (typeof window !== "undefined" && window.ethereum) {
+          window.ethereum.request({ method: "eth_requestAccounts" });
+        }
+        return;
+      }
+
+      // Escape: Close any open dialog
+      if (key === "Escape") {
+        const state = useAppStore.getState();
+        if (state.settingsOpen) {
+          state.setSettingsOpen(false);
+          return;
+        }
+        if (state.onboardingOpen) {
+          state.setOnboardingOpen(false);
+          return;
+        }
+        if (state.tokenDetailOpen) {
+          state.setTokenDetailOpen(false);
+          return;
+        }
+        return;
+      }
+
+      // r: Refresh market data
+      if (key === "r") {
+        e.preventDefault();
+        // Dispatch a custom event that DashboardTab can listen to
+        window.dispatchEvent(new CustomEvent("treasury-refresh-data"));
+        toast.info("Refreshing market data...");
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [setActiveTab]);
+
   return (
     <TooltipProvider delayDuration={300}>
       <div className="min-h-screen bg-gray-950 flex flex-col">
-        {/* Animated mesh gradient background */}
-        <div className="mesh-gradient-bg" />
+        {/* Route loading bar */}
+        <RouteLoadingBar />
+
+        {/* Animated mesh gradient background with parallax and extra amber blob */}
+        <ParallaxMeshBackground />
 
         {/* Header - Glassmorphism */}
         <header className="sticky top-0 z-50 glass-header border-b border-gray-800/70">
@@ -479,8 +644,8 @@ export default function Home() {
                         {isActive && (
                           <motion.div
                             layoutId="tab-indicator"
-                            className="absolute inset-0 rounded-md border border-emerald-500/20 -z-10"
-                            transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
+                            className="absolute inset-0 rounded-md border border-emerald-500/20 -z-10 animate-tab-spring"
+                            transition={{ type: "spring", bounce: 0.5, duration: 0.6, stiffness: 300, damping: 20 }}
                           />
                         )}
                       </button>
@@ -544,7 +709,7 @@ export default function Home() {
                 )}
                 <Badge
                   variant="outline"
-                  className="border-gray-800 text-gray-500 text-[10px] font-mono"
+                  className="border-gray-800 text-gray-500 text-[10px] font-mono footer-badge-pulse"
                 >
                   Chain {PULSECHAIN_CONFIG.chainId}
                 </Badge>

@@ -24,6 +24,7 @@ import {
   Plus,
   GitBranch,
   Gift,
+  RefreshCw,
 } from "lucide-react";
 import {
   AreaChart,
@@ -37,12 +38,14 @@ import {
 function GasTrackerCard() {
   const { gasData, setGasData } = useAppStore();
   const [loading, setLoading] = useState(true);
+  const [gasInfo, setGasInfo] = useState<any>(null);
 
   useEffect(() => {
     const fetchGas = async () => {
       try {
         const res = await fetch("/api/gas");
         const data = await res.json();
+        setGasInfo(data);
         setGasData({
           fast: data.fast,
           standard: data.standard,
@@ -60,57 +63,81 @@ function GasTrackerCard() {
     return () => clearInterval(interval);
   }, [setGasData]);
 
-  const getGasLevel = (gwei: number) => {
-    if (gwei > 30) return { label: "High", color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" };
-    if (gwei > 15) return { label: "Normal", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" };
+  const getGasLevel = (plsCost: number) => {
+    // PulseChain gas is very cheap; thresholds in PLS for a standard tx
+    if (plsCost > 50) return { label: "High", color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" };
+    if (plsCost > 20) return { label: "Normal", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" };
     return { label: "Low", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" };
   };
 
-  const level = gasData ? getGasLevel(gasData.standard) : { label: "...", color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" };
+  const level = gasInfo ? getGasLevel(gasInfo.standard) : { label: "...", color: "text-gray-400", bg: "bg-gray-500/10", border: "border-gray-500/20" };
 
   return (
     <Card className="bg-gray-900 border-gray-800/70 card-hover">
       <CardHeader className="pb-2">
-        <CardTitle className="text-white text-sm flex items-center gap-2">
-          <Fuel className="h-4 w-4 text-amber-400" />
-          Gas Tracker
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-white text-sm flex items-center gap-2">
+            <Fuel className="h-4 w-4 text-amber-400" />
+            Gas Tracker
+          </CardTitle>
+          <Badge variant="outline" className={`${level.bg} ${level.color} ${level.border} border text-[10px]`}>
+            {level.label}
+          </Badge>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {loading ? (
+        {loading || !gasInfo ? (
           <div className="space-y-2">
-            <Skeleton className="h-6 w-20" />
-            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-4 w-20" />
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold font-mono text-white">
-                {gasData ? `${Math.round(gasData.standard)}` : "..."}
-              </span>
-              <span className="text-xs text-gray-500">Gwei</span>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold font-mono text-white">
+                  {gasInfo.standard < 0.001
+                    ? gasInfo.standard.toExponential(2)
+                    : gasInfo.standard < 1
+                    ? gasInfo.standard.toFixed(4)
+                    : Math.round(gasInfo.standard)}
+                </span>
+                <span className="text-xs text-gray-500">PLS</span>
+              </div>
+              <p className="text-[10px] text-gray-600 mt-0.5">Per standard TX (21K gas)</p>
             </div>
-            <Badge variant="outline" className={`${level.bg} ${level.color} ${level.border} border text-[10px]`}>
-              {level.label}
-            </Badge>
             <div className="grid grid-cols-3 gap-2 pt-1">
               <div className="text-center p-1.5 rounded-lg bg-gray-800/50">
                 <p className="text-[10px] text-gray-500">Slow</p>
                 <p className="text-xs font-mono font-semibold text-gray-300">
-                  {gasData ? `${Math.round(gasData.slow)}` : "..."}
+                  {gasInfo.slow < 0.001 ? gasInfo.slow.toFixed(4) : Math.round(gasInfo.slow)}
                 </p>
               </div>
               <div className="text-center p-1.5 rounded-lg bg-gray-800/50 border border-emerald-500/10">
                 <p className="text-[10px] text-gray-500">Standard</p>
                 <p className="text-xs font-mono font-semibold text-white">
-                  {gasData ? `${Math.round(gasData.standard)}` : "..."}
+                  {gasInfo.standard < 0.001 ? gasInfo.standard.toFixed(4) : Math.round(gasInfo.standard)}
                 </p>
               </div>
               <div className="text-center p-1.5 rounded-lg bg-gray-800/50">
                 <p className="text-[10px] text-gray-500">Fast</p>
                 <p className="text-xs font-mono font-semibold text-gray-300">
-                  {gasData ? `${Math.round(gasData.fast)}` : "..."}
+                  {gasInfo.fast < 0.001 ? gasInfo.fast.toFixed(4) : Math.round(gasInfo.fast)}
                 </p>
+              </div>
+            </div>
+            <div className="bg-gray-800/30 rounded-lg p-2 border border-gray-800">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-gray-500">Mint TX cost</span>
+                <span className="text-[10px] font-mono text-amber-400">
+                  ~{gasInfo.mintStandard || "?"} PLS
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-0.5">
+                <span className="text-[10px] text-gray-500">Raw gas price</span>
+                <span className="text-[10px] font-mono text-gray-600">
+                  {gasInfo.gasPriceGwei?.toLocaleString() || "?"} Gwei
+                </span>
               </div>
             </div>
           </>
@@ -259,12 +286,17 @@ export function DashboardTab() {
     mintCostUSD,
     tokens,
     transactions,
+    lastPriceUpdate,
     setPlsPriceUSD,
     setMintCostUSD,
     setLastPriceUpdate,
   } = useAppStore();
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [timeAgo, setTimeAgo] = useState("");
+
   const fetchMarketData = useCallback(async () => {
+    setIsRefreshing(true);
     try {
       const [plsPrice, mintCost] = await Promise.all([
         getPLSPriceInUSD(),
@@ -275,13 +307,47 @@ export function DashboardTab() {
       setLastPriceUpdate(Date.now());
     } catch (error) {
       console.error("Failed to fetch market data:", error);
+    } finally {
+      setIsRefreshing(false);
     }
   }, [setPlsPriceUSD, setMintCostUSD, setLastPriceUpdate]);
+
+  const handleManualRefresh = useCallback(async () => {
+    if (isRefreshing) return;
+    await fetchMarketData();
+  }, [fetchMarketData, isRefreshing]);
 
   useEffect(() => {
     fetchMarketData();
     const interval = setInterval(fetchMarketData, 15000);
     return () => clearInterval(interval);
+  }, [fetchMarketData]);
+
+  // Update time-ago text every second
+  useEffect(() => {
+    const update = () => {
+      if (lastPriceUpdate === 0) {
+        setTimeAgo("");
+        return;
+      }
+      const diff = Math.floor((Date.now() - lastPriceUpdate) / 1000);
+      if (diff < 5) setTimeAgo("just now");
+      else if (diff < 60) setTimeAgo(`${diff}s ago`);
+      else if (diff < 3600) setTimeAgo(`${Math.floor(diff / 60)}m ago`);
+      else setTimeAgo(`${Math.floor(diff / 3600)}h ago`);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [lastPriceUpdate]);
+
+  // Listen for manual refresh events from keyboard shortcuts
+  useEffect(() => {
+    const handler = () => {
+      fetchMarketData();
+    };
+    window.addEventListener("treasury-refresh-data", handler);
+    return () => window.removeEventListener("treasury-refresh-data", handler);
   }, [fetchMarketData]);
 
   const profitableTokens = tokens.filter((t) => t.profitRatio > 1.0);
@@ -322,6 +388,23 @@ export function DashboardTab() {
           subtitle={`of ${tokens.length} tokens`}
           trend={profitableTokens.length > 0 ? "up" : "neutral"}
         />
+      </div>
+
+      {/* Price Refresh Indicator */}
+      <div className="flex items-center justify-center gap-2">
+        {timeAgo && (
+          <span className="text-[11px] text-gray-500">
+            Last updated: <span className="text-gray-400 font-mono">{timeAgo}</span>
+          </span>
+        )}
+        <button
+          onClick={handleManualRefresh}
+          disabled={isRefreshing}
+          className="inline-flex items-center justify-center w-6 h-6 rounded-md text-gray-500 hover:text-emerald-400 hover:bg-gray-800/50 transition-all duration-200 disabled:opacity-50"
+          title="Refresh market data"
+        >
+          <RefreshCw className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`} />
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

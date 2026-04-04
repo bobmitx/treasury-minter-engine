@@ -232,8 +232,24 @@ export async function getTokenPrice(tokenAddress: string): Promise<{
   }
 }
 
-// Get PLS price in USD using eDAI peg
+// Get PLS price in USD via external API with on-chain fallback
 export async function getPLSPriceInUSD(): Promise<number> {
+  try {
+    // Try the API route first for real-time price
+    if (typeof window !== "undefined") {
+      const res = await fetch("/api/pls-price");
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.price && typeof data.price === "number" && data.price > 0) {
+          return data.price;
+        }
+      }
+    }
+  } catch {
+    // API route failed, fall through to on-chain lookup
+  }
+
+  // On-chain fallback: use eDAI peg
   try {
     const provider = getProvider();
 
@@ -274,13 +290,14 @@ export async function getPLSPriceInUSD(): Promise<number> {
 
     // Since eDAI ~ $1, PLS price = 1 / plsPerEdai
     return 1 / plsPerEdai;
-  } catch (error) {
-    console.error("Error getting PLS price:", error);
-    return 0.000028; // fallback
+  } catch {
+    // LP pair not available on-chain; use fallback PLS price
+    return 0.000028;
   }
 }
 
-// Find Uniswap V2 pair address using CREATE2 (simplified)
+// Find Uniswap V2 pair address using factory getPair
+// Uses the canonical Uniswap V2 Factory copied to PulseChain from Ethereum
 export async function findPairAddress(
   tokenA: string,
   tokenB: string
@@ -288,8 +305,8 @@ export async function findPairAddress(
   try {
     const provider = getProvider();
 
-    // PulseChain Uniswap V2 Factory (known address)
-    const factoryAddress = "0x9F571dC1301972f95ACa8e05F3a4E5f2360a3f26";
+    // Uniswap V2 Factory on PulseChain (state-copied from Ethereum mainnet)
+    const factoryAddress = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f";
 
     const factoryABI = [
       "function getPair(address tokenA, address tokenB) view returns (address)",
@@ -305,8 +322,9 @@ export async function findPairAddress(
 
     const pairAddress = await factory.getPair(addr1, addr2);
     return pairAddress;
-  } catch (error) {
-    console.error("Error finding pair:", error);
+  } catch {
+    // Pair not found or factory unavailable - silently return zero address
+    // Callers handle AddressZero gracefully with fallback values
     return ethers.constants.AddressZero;
   }
 }

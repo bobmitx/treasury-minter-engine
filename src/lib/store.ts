@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type TabType =
   | "dashboard"
@@ -250,112 +251,132 @@ const initialState = {
   profitAlerts: [],
 };
 
-export const useAppStore = create<AppState>((set) => ({
-  ...initialState,
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      ...initialState,
 
-  // Wallet actions
-  setAddress: (address) => set({ address, connected: !!address }),
-  setBalance: (balance) => set({ balance }),
-  setChainId: (chainId) => set({ chainId }),
-  setConnected: (connected) => set({ connected }),
+      // Wallet actions
+      setAddress: (address) => set({ address, connected: !!address }),
+      setBalance: (balance) => set({ balance }),
+      setChainId: (chainId) => set({ chainId }),
+      setConnected: (connected) => set({ connected }),
 
-  // UI actions
-  setActiveTab: (activeTab) => set({ activeTab }),
-  setIsLoading: (isLoading) => set({ isLoading }),
-  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
-  setOnboardingOpen: (onboardingOpen) => set({ onboardingOpen }),
-  setHasSeenOnboarding: (hasSeenOnboarding) => set({ hasSeenOnboarding }),
+      // UI actions
+      setActiveTab: (activeTab) => set({ activeTab }),
+      setIsLoading: (isLoading) => set({ isLoading }),
+      setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+      setOnboardingOpen: (onboardingOpen) => set({ onboardingOpen }),
+      setHasSeenOnboarding: (hasSeenOnboarding) => set({ hasSeenOnboarding }),
 
-  // Market actions
-  setPlsPriceUSD: (plsPriceUSD) => set({ plsPriceUSD }),
-  setMintCostUSD: (mintCostUSD) => set({ mintCostUSD }),
-  setLastPriceUpdate: (lastPriceUpdate) => set({ lastPriceUpdate }),
+      // Market actions
+      setPlsPriceUSD: (plsPriceUSD) => set({ plsPriceUSD }),
+      setMintCostUSD: (mintCostUSD) => set({ mintCostUSD }),
+      setLastPriceUpdate: (lastPriceUpdate) => set({ lastPriceUpdate }),
 
-  // Token actions
-  setTokens: (tokens) => set({ tokens }),
-  addToken: (token) =>
-    set((state) => ({
-      tokens: [
-        ...state.tokens.filter((t) => t.address !== token.address),
-        token,
-      ],
-    })),
-  updateToken: (address, data) =>
-    set((state) => ({
-      tokens: state.tokens.map((t) =>
-        t.address === address ? { ...t, ...data } : t
-      ),
-    })),
-  removeToken: (address) =>
-    set((state) => ({
-      tokens: state.tokens.filter((t) => t.address !== address),
-    })),
-  setSelectedToken: (selectedToken) => set({ selectedToken }),
-  setMintToken: (address) => set({ selectedToken: null }),
+      // Token actions
+      setTokens: (tokens) => set({ tokens }),
+      addToken: (token) =>
+        set((state) => ({
+          tokens: [
+            ...state.tokens.filter((t) => t.address !== token.address),
+            token,
+          ],
+        })),
+      updateToken: (address, data) =>
+        set((state) => ({
+          tokens: state.tokens.map((t) =>
+            t.address === address ? { ...t, ...data } : t
+          ),
+        })),
+      removeToken: (address) =>
+        set((state) => ({
+          tokens: state.tokens.filter((t) => t.address !== address),
+        })),
+      setSelectedToken: (selectedToken) => set({ selectedToken }),
+      setMintToken: (address) => set({ selectedToken: null }),
 
-  // Token detail dialog actions
-  setTokenDetailOpen: (tokenDetailOpen) => set({ tokenDetailOpen }),
-  setTokenDetailAddress: (tokenDetailAddress) => set({ tokenDetailAddress }),
+      // Token detail dialog actions
+      setTokenDetailOpen: (tokenDetailOpen) => set({ tokenDetailOpen }),
+      setTokenDetailAddress: (tokenDetailAddress) => set({ tokenDetailAddress }),
 
-  // MultiHop actions
-  setMultihopPreview: (multihopPreview) => set({ multihopPreview }),
-  setMultihopLoading: (multihopLoading) => set({ multihopLoading }),
+      // MultiHop actions
+      setMultihopPreview: (multihopPreview) => set({ multihopPreview }),
+      setMultihopLoading: (multihopLoading) => set({ multihopLoading }),
 
-  // Transaction actions
-  addTransaction: (tx) =>
-    set((state) => ({
-      transactions: [tx, ...state.transactions].slice(0, 100),
-    })),
-  updateTransaction: (id, data) =>
-    set((state) => ({
-      transactions: state.transactions.map((t) =>
-        t.id === id ? { ...t, ...data } : t
-      ),
-    })),
+      // Transaction actions
+      addTransaction: (tx) =>
+        set((state) => ({
+          transactions: [tx, ...state.transactions].slice(0, 100),
+        })),
+      updateTransaction: (id, data) =>
+        set((state) => ({
+          transactions: state.transactions.map((t) =>
+            t.id === id ? { ...t, ...data } : t
+          ),
+        })),
 
-  // Portfolio actions
-  setTotalPortfolioValue: (totalPortfolioValue) =>
-    set({ totalPortfolioValue }),
-  setTotalPnL: (totalPnL) => set({ totalPnL }),
+      // Portfolio actions
+      setTotalPortfolioValue: (totalPortfolioValue) =>
+        set({ totalPortfolioValue }),
+      setTotalPnL: (totalPnL) => set({ totalPnL }),
 
-  // Gas data
-  setGasData: (gasData) => set({ gasData }),
+      // Gas data
+      setGasData: (gasData) => set({ gasData }),
 
-  // Settings
-  setAutoRefreshInterval: (autoRefreshInterval) =>
-    set({ autoRefreshInterval }),
-  setBotMode: (botMode) => set({ botMode }),
+      // Settings
+      setAutoRefreshInterval: (autoRefreshInterval) =>
+        set({ autoRefreshInterval }),
+      setBotMode: (botMode) => set({ botMode }),
 
-  // Bot actions
-  setBotConfig: (config) =>
-    set((state) => ({
-      botConfig: { ...state.botConfig, ...config },
-    })),
-  setBotRunning: (botRunning) => set({ botRunning }),
-  addBotLog: (log) =>
-    set((state) => ({
-      botLogs: [log, ...state.botLogs].slice(0, 200),
-    })),
-  clearBotLogs: () => set({ botLogs: [] }),
-  setBotMintCount: (botMintCount) => set({ botMintCount }),
-  setBotTotalProfit: (botTotalProfit) => set({ botTotalProfit }),
+      // Bot actions
+      setBotConfig: (config) =>
+        set((state) => ({
+          botConfig: { ...state.botConfig, ...config },
+        })),
+      setBotRunning: (botRunning) => set({ botRunning }),
+      addBotLog: (log) =>
+        set((state) => ({
+          botLogs: [log, ...state.botLogs].slice(0, 200),
+        })),
+      clearBotLogs: () => set({ botLogs: [] }),
+      setBotMintCount: (botMintCount) => set({ botMintCount }),
+      setBotTotalProfit: (botTotalProfit) => set({ botTotalProfit }),
 
-  // Profit alerts
-  addProfitAlert: (alert) =>
-    set((state) => ({
-      profitAlerts: [...state.profitAlerts, alert],
-    })),
-  removeProfitAlert: (id) =>
-    set((state) => ({
-      profitAlerts: state.profitAlerts.filter((a) => a.id !== id),
-    })),
-  updateProfitAlert: (id, data) =>
-    set((state) => ({
-      profitAlerts: state.profitAlerts.map((a) =>
-        a.id === id ? { ...a, ...data } : a
-      ),
-    })),
+      // Profit alerts
+      addProfitAlert: (alert) =>
+        set((state) => ({
+          profitAlerts: [...state.profitAlerts, alert],
+        })),
+      removeProfitAlert: (id) =>
+        set((state) => ({
+          profitAlerts: state.profitAlerts.filter((a) => a.id !== id),
+        })),
+      updateProfitAlert: (id, data) =>
+        set((state) => ({
+          profitAlerts: state.profitAlerts.map((a) =>
+            a.id === id ? { ...a, ...data } : a
+          ),
+        })),
 
-  // Clear
-  clearAll: () => set(initialState),
-}));
+      // Clear
+      clearAll: () => set(initialState),
+    }),
+    {
+      name: "treasury-minter-engine",
+      partialize: (state) => ({
+        // Persist these fields
+        connected: state.connected,
+        address: state.address,
+        balance: state.balance,
+        tokens: state.tokens,
+        transactions: state.transactions,
+        autoRefreshInterval: state.autoRefreshInterval,
+        botMode: state.botMode,
+        botConfig: state.botConfig,
+        profitAlerts: state.profitAlerts,
+        hasSeenOnboarding: state.hasSeenOnboarding,
+      }),
+    }
+  )
+);

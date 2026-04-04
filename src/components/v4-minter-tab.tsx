@@ -30,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import {
   Zap,
   Plus,
@@ -105,6 +106,10 @@ export function V4MinterTab() {
   const [addingToken, setAddingToken] = useState(false);
   const [showAddToken, setShowAddToken] = useState(false);
 
+  // Token creation animation state
+  const [createdTokenKey, setCreatedTokenKey] = useState(0);
+  const [createdGaiKey, setCreatedGaiKey] = useState(0);
+
   const fetchSystemData = useCallback(async () => {
     setLoadingMultiplier(true);
     try {
@@ -174,6 +179,7 @@ export function V4MinterTab() {
 
       setCreateName("");
       setCreateSymbol("");
+      setCreatedTokenKey((k) => k + 1);
       fetchSystemData();
     } catch (error: any) {
       toast.error(error.message || "Failed to create V4 token");
@@ -228,6 +234,7 @@ export function V4MinterTab() {
 
       setGaiName("");
       setGaiSymbol("");
+      setCreatedGaiKey((k) => k + 1);
     } catch (error: any) {
       toast.error(error.message || "Failed to create GAI token");
     } finally {
@@ -438,11 +445,12 @@ export function V4MinterTab() {
           value={loadingMultiplier ? "..." : `${formatLargeNumber(currentMultiplier)}x`}
           icon={Zap}
           subtitle="Current"
+          accent="amber"
         />
         <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Server className="h-4 w-4 text-gray-400" />
+              <Server className="h-4 w-4 text-amber-400" />
               <span className="text-xs text-gray-400">BBC</span>
             </div>
             <p className="text-xs font-mono text-white mt-1 truncate">
@@ -453,7 +461,7 @@ export function V4MinterTab() {
         <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-gray-400" />
+              <Shield className="h-4 w-4 text-amber-400" />
               <span className="text-xs text-gray-400">Index Minter</span>
             </div>
             <p className="text-xs font-mono text-white mt-1 truncate">
@@ -464,7 +472,7 @@ export function V4MinterTab() {
         <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
-              <Gem className="h-4 w-4 text-gray-400" />
+              <Gem className="h-4 w-4 text-amber-400" />
               <span className="text-xs text-gray-400">Contracts</span>
             </div>
             <p className="text-xs text-white mt-1">
@@ -481,28 +489,28 @@ export function V4MinterTab() {
         <TabsList className="bg-gray-900 border border-gray-800/70">
           <TabsTrigger
             value="create"
-            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
+            className="data-[state=active]:bg-amber-600/20 data-[state=active]:text-amber-400 btn-hover-scale"
           >
             <Plus className="h-3 w-3 mr-1" />
             Create
           </TabsTrigger>
           <TabsTrigger
             value="gai"
-            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
+            className="data-[state=active]:bg-amber-600/20 data-[state=active]:text-amber-400 btn-hover-scale"
           >
             <Gem className="h-3 w-3 mr-1" />
             GAI
           </TabsTrigger>
           <TabsTrigger
             value="mint"
-            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
+            className="data-[state=active]:bg-amber-600/20 data-[state=active]:text-amber-400 btn-hover-scale"
           >
             <Coins className="h-3 w-3 mr-1" />
             Mint
           </TabsTrigger>
           <TabsTrigger
             value="claim"
-            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
+            className="data-[state=active]:bg-amber-600/20 data-[state=active]:text-amber-400 btn-hover-scale"
           >
             <Gift className="h-3 w-3 mr-1" />
             Claim
@@ -511,10 +519,13 @@ export function V4MinterTab() {
 
         {/* Create Tab */}
         <TabsContent value="create">
-          <Card className="bg-gray-900 border-gray-800/70 card-hover">
+          <Card key={createdTokenKey} className={cn(
+            "bg-gray-900 border-gray-800/70 card-hover",
+            createdTokenKey > 0 && "animate-expand-in"
+          )}>
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-emerald-400" />
+                <Sparkles className="h-4 w-4 text-amber-400" />
                 Create New V4 Token
               </CardTitle>
             </CardHeader>
@@ -581,7 +592,7 @@ export function V4MinterTab() {
               <Button
                 onClick={handleCreateToken}
                 disabled={creating || !connected}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
+                className="bg-amber-600 hover:bg-amber-700 text-white btn-hover-scale"
               >
                 {creating ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -596,11 +607,15 @@ export function V4MinterTab() {
 
         {/* GAI Tab */}
         <TabsContent value="gai">
-          <Card className="bg-gray-900 border-gray-800/70 card-hover">
+          <Card key={createdGaiKey} className={cn(
+            "bg-gray-900 border-gray-800/70 card-hover border-amber-500/10",
+            createdGaiKey > 0 && "animate-expand-in"
+          )}>
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
-                <Gem className="h-4 w-4 text-emerald-400" />
+                <Gem className="h-4 w-4 text-amber-400" />
                 Create GAI Token
+                <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px]">Special</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -608,6 +623,21 @@ export function V4MinterTab() {
                 GAI tokens are special V4 tokens created through the GAI mechanism.
                 They have unique properties within the V4 ecosystem.
               </p>
+              {/* GAI feature cards */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2.5 text-center">
+                  <Shield className="h-3.5 w-3.5 mx-auto mb-1 text-amber-400" />
+                  <p className="text-[10px] text-amber-300 font-medium">Staking</p>
+                </div>
+                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2.5 text-center">
+                  <Gift className="h-3.5 w-3.5 mx-auto mb-1 text-amber-400" />
+                  <p className="text-[10px] text-amber-300 font-medium">Rewards</p>
+                </div>
+                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2.5 text-center">
+                  <TrendingUp className="h-3.5 w-3.5 mx-auto mb-1 text-amber-400" />
+                  <p className="text-[10px] text-amber-300 font-medium">Yield</p>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-gray-300 text-sm">GAI Token Name</Label>
@@ -636,7 +666,7 @@ export function V4MinterTab() {
               <Button
                 onClick={handleCreateGai}
                 disabled={creatingGai || !connected}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
+                className="bg-amber-600 hover:bg-amber-700 text-white btn-hover-scale"
               >
                 {creatingGai ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -654,7 +684,7 @@ export function V4MinterTab() {
           <Card className="bg-gray-900 border-gray-800/70 card-hover">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
-                <Coins className="h-4 w-4 text-emerald-400" />
+                <Coins className="h-4 w-4 text-amber-400" />
                 Mint V4 Tokens
               </CardTitle>
             </CardHeader>
@@ -700,7 +730,7 @@ export function V4MinterTab() {
               <Button
                 onClick={handleMint}
                 disabled={minting || !connected || !mintToken}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
+                className="bg-amber-600 hover:bg-amber-700 text-white btn-hover-scale"
               >
                 {minting ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -715,11 +745,12 @@ export function V4MinterTab() {
 
         {/* Claim Tab */}
         <TabsContent value="claim">
-          <Card className="bg-gray-900 border-gray-800/70 card-hover">
+          <Card className="bg-gray-900 border-gray-800/70 card-hover claim-preview-glow">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
-                <Gift className="h-4 w-4 text-emerald-400" />
+                <Gift className="h-4 w-4 text-amber-400" />
                 Claim V4 Rewards
+                <Badge className="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px]">Rewards</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -727,6 +758,25 @@ export function V4MinterTab() {
                 Claim accumulated rewards from the V4 system. Enter the amount
                 you wish to claim.
               </p>
+              {/* Reward estimation preview */}
+              {claimAmount && parseFloat(claimAmount) > 0 && (
+                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3 animate-slide-in-right">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="h-3.5 w-3.5 text-amber-400" />
+                    <span className="text-xs text-amber-300 font-medium">Estimated Reward Preview</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-[10px] text-gray-500 uppercase">Claim Amount</p>
+                      <p className="text-sm font-mono text-white">{parseFloat(claimAmount).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-500 uppercase">Est. Gas Cost</p>
+                      <p className="text-sm font-mono text-gray-400">~0.001 PLS</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label className="text-gray-300 text-sm">Claim Amount</Label>
                 <Input
@@ -740,8 +790,8 @@ export function V4MinterTab() {
               </div>
               <Button
                 onClick={handleClaim}
-                disabled={claiming || !connected}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
+                disabled={claiming || !connected || !claimAmount || parseFloat(claimAmount) <= 0}
+                className="bg-amber-600 hover:bg-amber-700 text-white btn-hover-scale"
               >
                 {claiming ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -807,7 +857,7 @@ export function V4MinterTab() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-white text-base flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-400" />
+              <TrendingUp className="h-4 w-4 text-amber-400" />
               Active V4 Tokens
               {v4Tokens.length > 0 && (
                 <Badge variant="outline" className="border-gray-700 text-gray-400 text-xs ml-2">

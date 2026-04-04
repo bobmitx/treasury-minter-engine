@@ -25,8 +25,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import {
   Zap,
   Plus,
@@ -41,6 +41,7 @@ import {
   Trash2,
   Loader2,
   Search,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -80,6 +81,9 @@ export function V3MinterTab() {
   // Token list refresh
   const [refreshing, setRefreshing] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
+  // Token creation animation state
+  const [createdTokenKey, setCreatedTokenKey] = useState(0);
 
   // Add custom token
   const [addTokenAddress, setAddTokenAddress] = useState("");
@@ -178,6 +182,7 @@ export function V3MinterTab() {
       setCreateName("");
       setCreateSymbol("");
       setCreateInitialMint("1000");
+      setCreatedTokenKey((k) => k + 1);
       fetchMultiplier();
     } catch (error: any) {
       toast.error(error.message || "Failed to create token");
@@ -345,32 +350,59 @@ export function V3MinterTab() {
 
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Multiplier Display */}
+      {/* Multiplier Display with Progress Ring */}
       <Card className="bg-gray-900 border-gray-800/70 card-hover">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-gray-400 mb-1">V3 Index Multiplier</p>
-              <div className="flex items-center gap-3">
-                {loadingMultiplier ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-12 w-32 shimmer" />
-                  </div>
-                ) : (
-                  <span className="text-4xl font-bold font-mono text-white text-glow-emerald-animated">
-                    {formatLargeNumber(currentMultiplier)}x
-                  </span>
-                )}
-                <Badge
-                  variant="outline"
-                  className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-                >
-                  Live
-                </Badge>
+            <div className="flex items-center gap-4">
+              {/* Progress ring around multiplier value */}
+              <div className="relative w-20 h-20 flex-shrink-0">
+                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36">
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.9155"
+                    fill="none"
+                    stroke="oklch(0.22 0 0)"
+                    strokeWidth="2"
+                  />
+                  <circle
+                    cx="18"
+                    cy="18"
+                    r="15.9155"
+                    fill="none"
+                    stroke="oklch(0.7 0.17 162)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeDasharray={loadingMultiplier ? "0 100" : `${Math.min(currentMultiplier * 5, 100)} 100`}
+                    className={cn(!loadingMultiplier && "animate-ring-fill")}
+                    style={{ transition: "stroke-dasharray 1s cubic-bezier(0.22, 1, 0.36, 1)" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  {loadingMultiplier ? (
+                    <Skeleton className="h-8 w-16 shimmer rounded" />
+                  ) : (
+                    <span className="text-lg font-bold font-mono text-white text-glow-emerald-animated">
+                      {formatLargeNumber(currentMultiplier)}x
+                    </span>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Increases every 1,111,111,111 tokens minted globally
-              </p>
+              <div>
+                <p className="text-sm text-gray-400 mb-1">V3 Index Multiplier</p>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
+                  >
+                    Live
+                  </Badge>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Increases every 1,111,111,111 tokens minted globally
+                </p>
+              </div>
             </div>
             <Button
               variant="outline"
@@ -389,8 +421,11 @@ export function V3MinterTab() {
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Create New Token */}
-        <Card className="bg-gray-900 border-gray-800/70 card-hover">
+        {/* Create New Token - with expand animation on success */}
+        <Card key={createdTokenKey} className={cn(
+          "bg-gray-900 border-gray-800/70 card-hover",
+          createdTokenKey > 0 && "animate-expand-in"
+        )}>
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-400" />
@@ -648,84 +683,108 @@ export function V3MinterTab() {
               </p>
             </div>
           ) : (
-            <ScrollArea className="max-h-96">
+            <ScrollArea className="max-h-96 scroll-shadow-bottom">
               <div className="space-y-2">
                 {v3Tokens
                   .sort((a, b) => b.profitRatio - a.profitRatio)
-                  .map((token) => (
-                    <TokenDetailDialog key={token.address} tokenAddress={token.address}>
-                      <div
-                        className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all duration-200 cursor-pointer group border border-transparent hover:border-gray-700/50"
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">
-                            {token.symbol.slice(0, 2)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-white truncate group-hover:text-emerald-300 transition-colors">
-                              {token.name || token.symbol}
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-400 font-mono">
-                                {token.symbol}
-                              </span>
-                              <span className="text-xs text-gray-600">·</span>
-                              <span className="text-xs text-gray-500 font-mono">
-                                {shortenAddress(token.address)}
-                              </span>
+                  .map((token, index) => (
+                    <div
+                      key={token.address}
+                      className="animate-stagger-slide-up"
+                      style={{ animationDelay: `${index * 60}ms` }}
+                    >
+                      <TokenDetailDialog tokenAddress={token.address}>
+                        <div
+                          className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all duration-300 cursor-pointer group border border-transparent hover:border-emerald-500/20 hover:shadow-[0_0_12px_oklch(0.7_0.17_162/8%)]"
+                        >
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0 transition-transform duration-300 group-hover:scale-110">
+                              {token.symbol.slice(0, 2)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-white truncate group-hover:text-emerald-300 transition-colors">
+                                {token.name || token.symbol}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400 font-mono">
+                                  {token.symbol}
+                                </span>
+                                <span className="text-xs text-gray-600">·</span>
+                                <span className="text-xs text-gray-500 font-mono">
+                                  {shortenAddress(token.address)}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <div className="text-right hidden sm:block">
-                            <p className="text-sm font-medium text-white">
-                              {formatUSD(token.priceUSD)}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {formatLargeNumber(token.multiplier)}x mult.
-                            </p>
+                          {/* Quick actions: revealed on hover with staggered fade */}
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <div className="text-right hidden sm:block mr-2">
+                              <p className="text-sm font-medium text-white">
+                                {formatUSD(token.priceUSD)}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {formatLargeNumber(token.multiplier)}x mult.
+                              </p>
+                            </div>
+
+                            {/* Mint quick action */}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs text-emerald-400 hover:bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-all duration-200 btn-hover-scale"
+                              style={{ transitionDelay: "50ms" }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMintToken(token.address);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                            >
+                              <Zap className="h-3 w-3 mr-0.5" />
+                              Mint
+                            </Button>
+
+                            {/* Details quick action */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all duration-200 text-gray-400 hover:text-white hover:bg-gray-700"
+                              style={{ transitionDelay: "100ms" }}
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+
+                            {/* Copy quick action */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              style={{ transitionDelay: "150ms" }}
+                              onClick={(e) => { e.stopPropagation(); copyAddress(token.address); }}
+                            >
+                              {copiedAddress === token.address ? (
+                                <Check className="h-3 w-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="h-3 w-3 text-gray-400" />
+                              )}
+                            </Button>
+
+                            {/* Remove quick action */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all duration-200 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10"
+                              style={{ transitionDelay: "200ms" }}
+                              onClick={(e) => { e.stopPropagation(); handleRemoveToken(token.address); }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+
+                            <ProfitIndicator ratio={token.profitRatio} size="sm" animated={token.profitRatio > 1.5} />
                           </div>
-
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-rose-400"
-                            onClick={(e) => { e.stopPropagation(); handleRemoveToken(token.address); }}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => { e.stopPropagation(); copyAddress(token.address); }}
-                          >
-                            {copiedAddress === token.address ? (
-                              <Check className="h-3 w-3 text-emerald-400" />
-                            ) : (
-                              <Copy className="h-3 w-3 text-gray-400" />
-                            )}
-                          </Button>
-
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 text-xs text-emerald-400 hover:bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity btn-hover-scale"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMintToken(token.address);
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
-                          >
-                            Mint <ArrowRight className="h-3 w-3 ml-1" />
-                          </Button>
-
-                          <ProfitIndicator ratio={token.profitRatio} size="sm" animated={token.profitRatio > 1.5} />
                         </div>
-                      </div>
-                    </TokenDetailDialog>
+                      </TokenDetailDialog>
+                    </div>
                   ))}
               </div>
             </ScrollArea>
