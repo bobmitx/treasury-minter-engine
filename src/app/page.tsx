@@ -801,17 +801,42 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Tab Navigation - Glassmorphism */}
-        <nav className="sticky top-14 z-40 glass-header border-b border-gray-800/70">
+        {/* Skip Navigation Link for keyboard users */}
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[60] focus:px-3 focus:py-1.5 focus:rounded-md focus:bg-emerald-600 focus:text-white focus:text-xs focus:font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 focus:ring-offset-gray-950">
+          Skip to main content
+        </a>
+
+        {/* Tab Navigation - Glassmorphism with ARIA tablist */}
+        <nav className="sticky top-14 z-40 glass-header border-b border-gray-800/70" aria-label="Main navigation">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex gap-0.5 overflow-x-auto scrollbar-none py-1">
+            <div role="tablist" className="flex gap-0.5 overflow-x-auto scrollbar-none py-1">
               {TABS.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <Tooltip key={tab.id}>
                     <TooltipTrigger asChild>
                       <button
+                        role="tab"
+                        aria-selected={isActive}
+                        aria-controls={`tabpanel-${tab.id}`}
+                        id={`tab-${tab.id}`}
+                        tabIndex={isActive ? 0 : -1}
                         onClick={() => setActiveTab(tab.id)}
+                        onKeyDown={(e) => {
+                          const tabIds = TABS.map(t => t.id);
+                          const currentIndex = tabIds.indexOf(tab.id);
+                          if (e.key === 'ArrowRight') {
+                            e.preventDefault();
+                            const nextIndex = (currentIndex + 1) % tabIds.length;
+                            setActiveTab(tabIds[nextIndex]);
+                            document.getElementById(`tab-${tabIds[nextIndex]}`)?.focus();
+                          } else if (e.key === 'ArrowLeft') {
+                            e.preventDefault();
+                            const prevIndex = (currentIndex - 1 + tabIds.length) % tabIds.length;
+                            setActiveTab(tabIds[prevIndex]);
+                            document.getElementById(`tab-${tabIds[prevIndex]}`)?.focus();
+                          }
+                        }}
                         className={cn(
                           "relative flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap btn-hover-scale",
                           isActive
@@ -851,7 +876,7 @@ export default function Home() {
         <ActivityTicker />
 
         {/* Main Content */}
-        <main className="flex-1 relative">
+        <main id="main-content" role="tabpanel" aria-label="Content area" className="flex-1 relative" tabIndex={0}>
           <div className="container-premium max-w-7xl mx-auto py-6">
             <AnimatePresence mode="wait">
               <motion.div

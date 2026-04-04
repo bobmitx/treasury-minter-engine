@@ -1,382 +1,797 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { useAppStore } from "@/lib/store";
-import { ProfitIndicator } from "@/components/profit-indicator";
+import { useAppStore, TokenData } from "@/lib/store";
+import { formatUSD, formatLargeNumber } from "@/lib/ethereum";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { ProfitIndicator } from "@/components/profit-indicator";
+import { TokenDetailDialog } from "@/components/token-detail-dialog";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Star,
-  StarOff,
-  TrendingUp,
-  Trash2,
-  Zap,
-  ExternalLink,
   Eye,
+  EyeOff,
+  Plus,
+  Search,
+  Star,
+  Trash2,
   ArrowUpDown,
-  Clock,
+  LayoutList,
+  LayoutGrid,
+  Crown,
+  Percent,
+  Sparkles,
+  ChevronDown,
+  X,
+  Check,
+  Zap,
+  ListFilter,
 } from "lucide-react";
-import { formatUSD, getExplorerAddressUrl, shortenAddress } from "@/lib/ethereum";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-// ---------------------------------------------------------------------------
-// WatchlistButton — star toggle for individual tokens
-// ---------------------------------------------------------------------------
+type SortOption = "profit" | "multiplier" | "name" | "recent";
+type ViewMode = "compact" | "full";
 
-interface WatchlistButtonProps {
-  tokenAddress: string;
-  size?: "sm" | "md";
-}
-
-export function WatchlistButton({ tokenAddress, size = "md" }: WatchlistButtonProps) {
-  const watchlist = useAppStore((s) => s.watchlist);
-  const toggleWatchlist = useAppStore((s) => s.toggleWatchlist);
-  const isWatched = watchlist.includes(tokenAddress);
-
-  const isSmall = size === "sm";
-  const iconClass = isSmall ? "h-3.5 w-3.5" : "h-5 w-5";
-  const btnClass = isSmall
-    ? "h-7 w-7 p-0"
-    : "h-8 w-8 p-0";
-
+// ── Empty State ──────────────────────────────────────────────────────────────
+function WatchlistEmptyState({ onOpenAdd }: { onOpenAdd: () => void }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          variant="ghost"
-          className={cn(
-            btnClass,
-            "rounded-full transition-all duration-200",
-            isWatched
-              ? "text-amber-400 hover:text-amber-300 hover:bg-amber-400/10"
-              : "text-gray-500 hover:text-gray-300 hover:bg-gray-700/50",
-            "btn-hover-scale"
-          )}
-          onClick={() => toggleWatchlist(tokenAddress)}
-        >
-          <Star
-            className={cn(
-              iconClass,
-              "transition-transform duration-300",
-              isWatched && "scale-110"
-            )}
-            fill={isWatched ? "currentColor" : "none"}
-          />
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side="top" className="text-xs">
-        {isWatched ? "Remove from watchlist" : "Add to watchlist"}
-      </TooltipContent>
-    </Tooltip>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sort options
-// ---------------------------------------------------------------------------
-
-type SortKey = "name" | "profit" | "multiplier" | "recent";
-
-const SORT_OPTIONS: { key: SortKey; label: string; icon: React.ReactNode }[] = [
-  { key: "name", label: "Name", icon: <ArrowUpDown className="h-3 w-3" /> },
-  { key: "profit", label: "Profit", icon: <TrendingUp className="h-3 w-3" /> },
-  { key: "multiplier", label: "Multiplier", icon: <Zap className="h-3 w-3" /> },
-  { key: "recent", label: "Recent", icon: <Clock className="h-3 w-3" /> },
-];
-
-// ---------------------------------------------------------------------------
-// TokenWatchlist — full panel / card view
-// ---------------------------------------------------------------------------
-
-export function TokenWatchlist() {
-  const tokens = useAppStore((s) => s.tokens);
-  const watchlist = useAppStore((s) => s.watchlist);
-  const removeFromWatchlist = useAppStore((s) => s.removeFromWatchlist);
-  const setActiveTab = useAppStore((s) => s.setActiveTab);
-  const [sortBy, setSortBy] = useState<SortKey>("recent");
-
-  const watchedTokens = useMemo(() => {
-    const watched = tokens.filter((t) => watchlist.includes(t.address));
-
-    switch (sortBy) {
-      case "name":
-        return [...watched].sort((a, b) => a.name.localeCompare(b.name));
-      case "profit":
-        return [...watched].sort((a, b) => b.profitRatio - a.profitRatio);
-      case "multiplier":
-        return [...watched].sort((a, b) => b.multiplier - a.multiplier);
-      case "recent":
-      default:
-        // Already filtered in store order — stable sort by lastUpdated desc
-        return [...watched].sort((a, b) => b.lastUpdated - a.lastUpdated);
-    }
-  }, [tokens, watchlist, sortBy]);
-
-  const handleClearAll = useCallback(() => {
-    watchlist.forEach((addr) => removeFromWatchlist(addr));
-  }, [watchlist, removeFromWatchlist]);
-
-  // ---- Empty state ----
-  if (watchedTokens.length === 0) {
-    return (
-      <div className="glass-card-depth gradient-border rounded-xl border border-gray-800 bg-gray-900 p-6 animate-fade-in-up">
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="h-16 w-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-4 animate-gentle-bounce">
-            <Star className="h-8 w-8 text-amber-400/60" />
-          </div>
-          <h3 className="text-base font-semibold text-gray-300 mb-1">
-            No tokens in watchlist
-          </h3>
-          <p className="text-sm text-gray-500 max-w-[260px]">
-            Start tracking tokens from V3/V4 Minter tabs
-          </p>
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center animate-fade-in-up">
+      <div className="relative mb-6">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-amber-500/10 border border-gray-800 flex items-center justify-center animate-gentle-bounce">
+          <Eye className="h-9 w-9 text-gray-500" />
+        </div>
+        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+          <Star className="h-3 w-3 text-emerald-400" />
         </div>
       </div>
-    );
-  }
-
-  // ---- Populated state ----
-  return (
-    <div className="glass-card-depth gradient-border rounded-xl border border-gray-800 bg-gray-900 animate-fade-in-up">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-gray-800 px-4 py-3 sm:px-5">
-        <div className="flex items-center gap-2.5">
-          <Star className="h-5 w-5 text-amber-400" fill="currentColor" />
-          <h2 className="text-base font-semibold text-white">Watchlist</h2>
-          <Badge
-            variant="secondary"
-            className="bg-amber-500/15 text-amber-400 border-amber-500/20 text-xs px-2 py-0"
-          >
-            {watchedTokens.length}
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Sort selector */}
-          <div className="hidden sm:flex items-center gap-1">
-            {SORT_OPTIONS.map((opt) => (
-              <button
-                key={opt.key}
-                onClick={() => setSortBy(opt.key)}
-                className={cn(
-                  "flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors",
-                  sortBy === opt.key
-                    ? "bg-amber-500/15 text-amber-400"
-                    : "text-gray-500 hover:text-gray-300 hover:bg-gray-800"
-                )}
-              >
-                {opt.icon}
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {/* Mobile sort */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => {
-                  const keys: SortKey[] = ["name", "profit", "multiplier", "recent"];
-                  const idx = (keys.indexOf(sortBy) + 1) % keys.length;
-                  setSortBy(keys[idx]);
-                }}
-                className="sm:hidden flex items-center justify-center h-8 w-8 rounded-md text-gray-500 hover:text-gray-300 hover:bg-gray-800 transition-colors"
-              >
-                <ArrowUpDown className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="text-xs">
-              Sort: {SORT_OPTIONS.find((o) => o.key === sortBy)?.label}
-            </TooltipContent>
-          </Tooltip>
-          {/* Clear all */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 px-2 text-gray-500 hover:text-rose-400 hover:bg-rose-400/10 text-xs"
-                onClick={handleClearAll}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                <span className="hidden sm:inline">Clear All</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="text-xs">
-              Remove all from watchlist
-            </TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
-
-      {/* Token list */}
-      <div className="max-h-96 overflow-y-auto divide-y divide-gray-800/60 smooth-scroll">
-        {watchedTokens.map((token) => (
-          <WatchlistRow
-            key={token.address}
-            token={token}
-            onRemove={() => removeFromWatchlist(token.address)}
-            onMintMore={() =>
-              setActiveTab(token.version === "V4" ? "v4-minter" : "v3-minter")
-            }
-          />
-        ))}
-      </div>
+      <h3 className="text-lg font-semibold text-white mb-2">
+        Start watching tokens
+      </h3>
+      <p className="text-sm text-gray-500 max-w-xs mb-6">
+        Add tokens to your watchlist to track their performance, set price
+        alerts, and monitor profit ratios at a glance.
+      </p>
+      <Button
+        onClick={onOpenAdd}
+        className="btn-hover-scale gap-2 bg-emerald-600 hover:bg-emerald-500 text-white"
+      >
+        <Plus className="h-4 w-4" />
+        Add from Tracked Tokens
+      </Button>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// WatchlistRow — single token row inside the panel
-// ---------------------------------------------------------------------------
-
-interface WatchlistRowProps {
-  token: import("@/lib/store").TokenData;
-  onRemove: () => void;
-  onMintMore: () => void;
-}
-
-function WatchlistRow({ token, onRemove, onMintMore }: WatchlistRowProps) {
-  const isV4 = token.version === "V4";
-  const firstChars = token.symbol.slice(0, 2).toUpperCase();
-
+// ── Compact Watchlist Item ───────────────────────────────────────────────────
+function CompactWatchlistItem({
+  token,
+  onRemove,
+}: {
+  token: TokenData;
+  onRemove: (addr: string) => void;
+}) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3 sm:px-5 hover:bg-gray-800/60 transition-colors group animate-stagger-slide-up">
-      {/* Star */}
-      <button
-        onClick={onRemove}
-        className="flex-shrink-0 text-amber-400 hover:text-amber-300 transition-colors"
-        aria-label="Remove from watchlist"
-      >
-        <Star className="h-4 w-4" fill="currentColor" />
-      </button>
-
-      {/* Token icon */}
-      <div
-        className={cn(
-          "flex-shrink-0 h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold border",
-          isV4
-            ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-            : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-        )}
-      >
-        {firstChars}
-      </div>
-
-      {/* Name + symbol + version */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium text-white truncate">
-            {token.name}
-          </span>
-          <span className="text-xs text-gray-500 truncate">{token.symbol}</span>
-          <Badge
-            variant="outline"
-            className={cn(
-              "text-[10px] px-1.5 py-0 leading-4 font-mono flex-shrink-0",
-              isV4
-                ? "border-amber-500/30 text-amber-400 bg-amber-500/10"
-                : "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-            )}
-          >
-            {token.version}
-          </Badge>
-        </div>
-        <p className="text-[11px] text-gray-600 font-mono truncate">
-          {shortenAddress(token.address)}
-        </p>
-      </div>
-
-      {/* Price */}
-      <div className="flex-shrink-0 text-right hidden sm:block">
-        <p className="text-sm font-mono text-white">
-          {formatUSD(token.priceUSD)}
-        </p>
-        <p className="text-[11px] text-gray-500">
-          {token.balance !== "0"
-            ? `${Number(token.balance).toLocaleString(undefined, { maximumFractionDigits: 4 })} ${token.symbol}`
-            : "—"}
-        </p>
-      </div>
-
-      {/* Multiplier */}
-      <div className="flex-shrink-0 text-right hidden md:block">
-        <p
+    <TokenDetailDialog tokenAddress={token.address}>
+      <div className="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-800/60 transition-all duration-200 cursor-pointer border border-transparent hover:border-gray-700/50">
+        {/* Avatar */}
+        <div
           className={cn(
-            "text-sm font-mono font-bold text-glow-emerald-animated",
-            token.multiplier >= 1
-              ? "text-emerald-400"
-              : "text-gray-400"
+            "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
+            token.version === "V4"
+              ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+              : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
           )}
         >
-          {token.multiplier.toFixed(2)}x
-        </p>
-        <p className="text-[11px] text-gray-500">mult.</p>
-      </div>
+          {token.symbol.charAt(0)}
+        </div>
 
-      {/* Profit indicator */}
-      <div className="flex-shrink-0 hidden lg:block">
-        <ProfitIndicator ratio={token.profitRatio} size="sm" showLabel={false} />
-      </div>
+        {/* Name + Symbol */}
+        <span className="text-sm text-gray-200 font-medium truncate flex-1 min-w-0">
+          {token.symbol}
+        </span>
 
-      {/* Actions */}
-      <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
+        {/* Price */}
+        <span className="text-xs text-gray-400 font-mono flex-shrink-0">
+          {formatUSD(token.priceUSD)}
+        </span>
+
+        {/* Profit Ratio */}
+        <div className="flex-shrink-0">
+          <ProfitIndicator ratio={token.profitRatio} size="sm" showLabel={false} />
+        </div>
+
+        {/* Remove button on hover */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemove(token.address);
+          }}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-rose-500/10"
+        >
+          <Trash2 className="h-3 w-3 text-rose-400" />
+        </button>
+      </div>
+    </TokenDetailDialog>
+  );
+}
+
+// ── Full Watchlist Item ──────────────────────────────────────────────────────
+function FullWatchlistItem({
+  token,
+  onRemove,
+  index,
+}: {
+  token: TokenData;
+  onRemove: (addr: string) => void;
+  index: number;
+}) {
+  const balance = parseFloat(token.balance) || 0;
+  const value = balance * token.priceUSD;
+
+  return (
+    <TokenDetailDialog tokenAddress={token.address}>
+      <div
+        className="group relative p-4 rounded-xl bg-gray-800/40 border border-gray-800 hover:border-gray-700 card-hover transition-all duration-300 cursor-pointer animate-fade-in-up"
+        style={{ animationDelay: `${index * 40}ms` }}
+      >
+        {/* Top row: Avatar + Name + Version + Price */}
+        <div className="flex items-start gap-3">
+          {/* Avatar */}
+          <div
+            className={cn(
+              "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0",
+              token.version === "V4"
+                ? "bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/20 text-amber-400"
+                : "bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 text-emerald-400"
+            )}
+          >
+            {token.symbol.slice(0, 2)}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            {/* Name + Symbol + Version badge */}
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-sm font-semibold text-white truncate">
+                {token.name || token.symbol}
+              </span>
+              <Badge
+                variant="outline"
+                className={cn(
+                  "text-[10px] flex-shrink-0",
+                  token.version === "V4"
+                    ? "border-amber-500/30 text-amber-400"
+                    : "border-emerald-500/30 text-emerald-400"
+                )}
+              >
+                {token.version}
+              </Badge>
+            </div>
+            <span className="text-xs text-gray-500 font-mono">
+              {token.symbol}
+            </span>
+          </div>
+
+          {/* Current Price */}
+          <div className="text-right flex-shrink-0">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">
+              Price
+            </p>
+            <p className="text-sm font-semibold text-white font-mono number-animate">
+              {formatUSD(token.priceUSD)}
+            </p>
+          </div>
+        </div>
+
+        {/* Metrics row */}
+        <div className="mt-3 flex items-center justify-between gap-4">
+          {/* Profit Ratio */}
+          <ProfitIndicator ratio={token.profitRatio} size="sm" animated />
+
+          {/* Multiplier */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+              Mult.
+            </span>
+            <span
               className={cn(
-                "h-7 w-7 p-0 text-xs",
-                isV4
-                  ? "text-amber-400 hover:bg-amber-400/10"
-                  : "text-emerald-400 hover:bg-emerald-400/10"
+                "text-sm font-bold font-mono number-animate",
+                token.multiplier > 1
+                  ? "text-emerald-400"
+                  : "text-gray-400"
               )}
-              onClick={onMintMore}
             >
-              <Zap className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-xs">
-            Mint More
-          </TooltipContent>
-        </Tooltip>
+              {formatLargeNumber(token.multiplier)}x
+            </span>
+          </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <a
-              href={getExplorerAddressUrl(token.address)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="h-7 w-7 flex items-center justify-center rounded-md text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 transition-colors"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-xs">
-            View on Explorer
-          </TooltipContent>
-        </Tooltip>
+          {/* Balance */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+              Bal.
+            </span>
+            <span className="text-sm font-mono text-gray-300">
+              {balance.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
+          </div>
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-gray-500 hover:text-gray-300 hover:bg-gray-700/50"
-              onClick={onRemove}
-            >
-              <Eye className="h-3.5 w-3.5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="top" className="text-xs">
-            Remove
-          </TooltipContent>
-        </Tooltip>
+          {/* Value */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+              Value
+            </span>
+            <span className="text-sm font-mono text-gray-300">
+              {formatUSD(value)}
+            </span>
+          </div>
+
+          {/* Remove button on hover */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(token.address);
+            }}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-rose-500/10 flex-shrink-0"
+          >
+            <Trash2 className="h-3.5 w-3.5 text-rose-400" />
+          </button>
+        </div>
       </div>
+    </TokenDetailDialog>
+  );
+}
+
+// ── Add to Watchlist Dialog ──────────────────────────────────────────────────
+function AddToWatchlistDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { tokens, watchlist, addToWatchlist, removeFromWatchlist } =
+    useAppStore();
+  const [search, setSearch] = useState("");
+
+  const availableTokens = useMemo(() => {
+    const notInWatchlist = tokens.filter(
+      (t) => !watchlist.includes(t.address)
+    );
+    if (!search.trim()) return notInWatchlist;
+    const q = search.toLowerCase();
+    return notInWatchlist.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        t.symbol.toLowerCase().includes(q) ||
+        t.address.toLowerCase().includes(q)
+    );
+  }, [tokens, watchlist, search]);
+
+  const alreadyWatchlisted = useMemo(() => {
+    if (!search.trim()) return [];
+    const q = search.toLowerCase();
+    return tokens.filter(
+      (t) =>
+        watchlist.includes(t.address) &&
+        (t.name.toLowerCase().includes(q) ||
+          t.symbol.toLowerCase().includes(q) ||
+          t.address.toLowerCase().includes(q))
+    );
+  }, [tokens, watchlist, search]);
+
+  const profitableTokens = useMemo(
+    () => tokens.filter((t) => t.profitRatio > 1.0 && !watchlist.includes(t.address)),
+    [tokens, watchlist]
+  );
+
+  const handleAddAllProfitable = useCallback(() => {
+    let added = 0;
+    profitableTokens.forEach((t) => {
+      if (!watchlist.includes(t.address)) {
+        addToWatchlist(t.address);
+        added++;
+      }
+    });
+    toast.success(`Added ${added} profitable tokens to watchlist`);
+  }, [profitableTokens, watchlist, addToWatchlist]);
+
+  const handleToggle = useCallback(
+    (address: string, symbol: string) => {
+      if (watchlist.includes(address)) {
+        removeFromWatchlist(address);
+        toast.success(`${symbol} removed from watchlist`);
+      } else {
+        addToWatchlist(address);
+        toast.success(`${symbol} added to watchlist`);
+      }
+    },
+    [watchlist, addToWatchlist, removeFromWatchlist]
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-lg neon-border-emerald">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5 text-emerald-400" />
+            Add to Watchlist
+          </DialogTitle>
+          <DialogDescription className="text-gray-500">
+            Search and add tracked tokens to your personal watchlist.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search by name, symbol, or address..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 input-focus-ring"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-gray-700"
+              >
+                <X className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+            )}
+          </div>
+
+          {/* Quick add all profitable */}
+          {profitableTokens.length > 0 && !search && (
+            <Button
+              onClick={handleAddAllProfitable}
+              variant="outline"
+              className="w-full bg-emerald-500/5 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 btn-hover-scale gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Quick Add All Profitable Tokens ({profitableTokens.length})
+            </Button>
+          )}
+
+          {/* Already in watchlist results */}
+          {search && alreadyWatchlisted.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-1">
+                Already in watchlist
+              </p>
+              <div className="max-h-36 overflow-y-auto space-y-1 custom-scrollbar">
+                {alreadyWatchlisted.slice(0, 5).map((token) => (
+                  <div
+                    key={token.address}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-800/30 opacity-60"
+                  >
+                    <div
+                      className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold flex-shrink-0",
+                        token.version === "V4"
+                          ? "bg-amber-500/10 text-amber-400"
+                          : "bg-emerald-500/10 text-emerald-400"
+                      )}
+                    >
+                      {token.symbol.charAt(0)}
+                    </div>
+                    <span className="text-sm text-gray-400 flex-1 truncate">
+                      {token.symbol}
+                    </span>
+                    <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    <span className="text-[10px] text-gray-500">
+                      Watching
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Available tokens list */}
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 px-1">
+              Available tokens ({availableTokens.length})
+            </p>
+            <div className="max-h-64 overflow-y-auto space-y-1 custom-scrollbar">
+              {availableTokens.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <Search className="h-8 w-8 text-gray-600 mb-2" />
+                  <p className="text-sm text-gray-500">
+                    {tokens.length === 0
+                      ? "No tracked tokens yet"
+                      : "No matching tokens found"}
+                  </p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {tokens.length === 0
+                      ? "Add tokens in V3 or V4 Minter first"
+                      : "Try a different search term"}
+                  </p>
+                </div>
+              ) : (
+                availableTokens.map((token) => (
+                  <div
+                    key={token.address}
+                    className="group flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-800/60 transition-all duration-200"
+                  >
+                    {/* Avatar */}
+                    <div
+                      className={cn(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0",
+                        token.version === "V4"
+                          ? "bg-amber-500/10 border border-amber-500/20 text-amber-400"
+                          : "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
+                      )}
+                    >
+                      {token.symbol.charAt(0)}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-white truncate">
+                          {token.symbol}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[9px] flex-shrink-0",
+                            token.version === "V4"
+                              ? "border-amber-500/30 text-amber-400"
+                              : "border-emerald-500/30 text-emerald-400"
+                          )}
+                        >
+                          {token.version}
+                        </Badge>
+                      </div>
+                      <span className="text-xs text-gray-500 font-mono truncate block">
+                        {token.name}
+                      </span>
+                    </div>
+
+                    {/* Price + Ratio */}
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs text-gray-400 font-mono">
+                        {formatUSD(token.priceUSD)}
+                      </p>
+                      <ProfitIndicator
+                        ratio={token.profitRatio}
+                        size="sm"
+                        showLabel={false}
+                      />
+                    </div>
+
+                    {/* Add button */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleToggle(token.address, token.symbol)}
+                      className="btn-hover-scale flex-shrink-0 h-7 px-2.5 gap-1 bg-emerald-500/5 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/15 hover:text-emerald-300"
+                    >
+                      <Plus className="h-3 w-3" />
+                      Add
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <Separator className="bg-gray-800" />
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <span>
+              {watchlist.length} token{watchlist.length !== 1 ? "s" : ""} in
+              watchlist
+            </span>
+            <span>{availableTokens.length} available to add</span>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ── Watchlist Summary ────────────────────────────────────────────────────────
+function WatchlistSummary({ tokens }: { tokens: TokenData[] }) {
+  const avgProfit =
+    tokens.length > 0
+      ? tokens.reduce((sum, t) => sum + t.profitRatio, 0) / tokens.length
+      : 0;
+
+  const bestToken = useMemo(() => {
+    if (tokens.length === 0) return null;
+    return tokens.reduce((best, t) =>
+      t.profitRatio > best.profitRatio ? t : best
+    );
+  }, [tokens]);
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gray-800/30 border border-gray-800">
+      <div className="flex items-center gap-1.5">
+        <Eye className="h-3.5 w-3.5 text-gray-500" />
+        <span className="text-xs text-gray-500">
+          <span className="text-white font-semibold">{tokens.length}</span> tokens
+        </span>
+      </div>
+
+      <div className="w-px h-4 bg-gray-700" />
+
+      <div className="flex items-center gap-1.5">
+        <Percent className="h-3.5 w-3.5 text-gray-500" />
+        <span className="text-xs text-gray-500">
+          Avg{" "}
+          <span
+            className={cn(
+              "font-semibold",
+              avgProfit > 1 ? "text-emerald-400" : "text-rose-400"
+            )}
+          >
+            {avgProfit.toFixed(2)}x
+          </span>
+        </span>
+      </div>
+
+      {bestToken && (
+        <>
+          <div className="w-px h-4 bg-gray-700" />
+          <div className="flex items-center gap-1.5">
+            <Crown className="h-3.5 w-3.5 text-amber-400" />
+            <span className="text-xs text-gray-500">
+              Best{" "}
+              <span className="text-amber-400 font-semibold">
+                {bestToken.symbol}
+              </span>{" "}
+              <span
+                className={cn(
+                  "font-semibold",
+                  bestToken.profitRatio > 1
+                    ? "text-emerald-400"
+                    : "text-rose-400"
+                )}
+              >
+                {bestToken.profitRatio.toFixed(2)}x
+              </span>
+            </span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Watchlist Button (used by V3/V4 minter tabs) ─────────────────────────────
+export function WatchlistButton({ tokenAddress }: { tokenAddress: string }) {
+  const { watchlist, toggleWatchlist } = useAppStore();
+  const isWatched = watchlist.includes(tokenAddress);
+
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        toggleWatchlist(tokenAddress);
+      }}
+      className={cn(
+        "p-1.5 rounded-lg transition-all duration-200 flex-shrink-0",
+        isWatched
+          ? "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20"
+          : "text-gray-600 hover:text-gray-400 hover:bg-gray-800"
+      )}
+      title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+    >
+      {isWatched ? (
+        <Star className="h-4 w-4 fill-amber-400" />
+      ) : (
+        <Star className="h-4 w-4" />
+      )}
+    </button>
+  );
+}
+
+// ── Main Component ───────────────────────────────────────────────────────────
+export function TokenWatchlist() {
+  const { tokens, watchlist, removeFromWatchlist } = useAppStore();
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [sortOption, setSortOption] = useState<SortOption>("profit");
+  const [viewMode, setViewMode] = useState<ViewMode>("full");
+
+  const watchlistTokens = useMemo(() => {
+    const watched = tokens.filter((t) => watchlist.includes(t.address));
+    const sorted = [...watched];
+
+    switch (sortOption) {
+      case "profit":
+        sorted.sort((a, b) => b.profitRatio - a.profitRatio);
+        break;
+      case "multiplier":
+        sorted.sort((a, b) => b.multiplier - a.multiplier);
+        break;
+      case "name":
+        sorted.sort((a, b) =>
+          a.symbol.localeCompare(b.symbol)
+        );
+        break;
+      case "recent":
+        // watchlist order is the add order, so we keep the array index order
+        sorted.sort(
+          (a, b) => watchlist.indexOf(a.address) - watchlist.indexOf(b.address)
+        );
+        break;
+    }
+
+    return sorted;
+  }, [tokens, watchlist, sortOption]);
+
+  const handleRemove = useCallback(
+    (address: string) => {
+      const token = tokens.find((t) => t.address === address);
+      removeFromWatchlist(address);
+      toast.success(
+        `${token?.symbol || "Token"} removed from watchlist`
+      );
+    },
+    [tokens, removeFromWatchlist]
+  );
+
+  const sortLabels: Record<SortOption, string> = {
+    profit: "By Profit Ratio",
+    multiplier: "By Multiplier",
+    name: "By Name",
+    recent: "By Recently Added",
+  };
+
+  return (
+    <div className="animate-fade-in-up">
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/20 to-amber-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <Eye className="h-4 w-4 text-emerald-400" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-white flex items-center gap-2">
+              Watchlist
+              {watchlist.length > 0 && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] border-emerald-500/30 text-emerald-400 bg-emerald-500/5"
+                >
+                  {watchlist.length}
+                </Badge>
+              )}
+            </h2>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Sort dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 bg-gray-800/60 border-gray-700 text-gray-400 hover:text-white hover:bg-gray-700 btn-hover-scale text-xs"
+              >
+                <ArrowUpDown className="h-3 w-3" />
+                <span className="hidden sm:inline">{sortLabels[sortOption]}</span>
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              align="end"
+              className="bg-gray-900 border-gray-700 text-gray-300"
+            >
+              {(Object.keys(sortLabels) as SortOption[]).map((option) => (
+                <DropdownMenuItem
+                  key={option}
+                  onClick={() => setSortOption(option)}
+                  className={cn(
+                    "text-xs cursor-pointer",
+                    sortOption === option &&
+                      "text-emerald-400 bg-emerald-500/5"
+                  )}
+                >
+                  {sortLabels[option]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* View toggle */}
+          <div className="flex items-center bg-gray-800/60 rounded-lg border border-gray-700 p-0.5">
+            <button
+              onClick={() => setViewMode("full")}
+              className={cn(
+                "p-1.5 rounded-md transition-all duration-200",
+                viewMode === "full"
+                  ? "bg-gray-700 text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-300"
+              )}
+              title="Full view"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode("compact")}
+              className={cn(
+                "p-1.5 rounded-md transition-all duration-200",
+                viewMode === "compact"
+                  ? "bg-gray-700 text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-300"
+              )}
+              title="Compact view"
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Add token button */}
+          <Button
+            size="sm"
+            onClick={() => setAddDialogOpen(true)}
+            className="h-8 gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white btn-hover-scale text-xs"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Add Token</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Content ─────────────────────────────────────────────────────── */}
+      {watchlistTokens.length === 0 ? (
+        <WatchlistEmptyState onOpenAdd={() => setAddDialogOpen(true)} />
+      ) : (
+        <div className="space-y-3">
+          {/* Watchlist items */}
+          <div
+            className={cn(
+              viewMode === "compact"
+                ? "space-y-0.5 max-h-96 overflow-y-auto custom-scrollbar rounded-xl bg-gray-800/20 border border-gray-800 p-2"
+                : "space-y-2 max-h-[480px] overflow-y-auto custom-scrollbar"
+            )}
+          >
+            {watchlistTokens.map((token, index) =>
+              viewMode === "compact" ? (
+                <CompactWatchlistItem
+                  key={token.address}
+                  token={token}
+                  onRemove={handleRemove}
+                />
+              ) : (
+                <FullWatchlistItem
+                  key={token.address}
+                  token={token}
+                  onRemove={handleRemove}
+                  index={index}
+                />
+              )
+            )}
+          </div>
+
+          {/* Summary */}
+          <WatchlistSummary tokens={watchlistTokens} />
+        </div>
+      )}
+
+      {/* ── Add to Watchlist Dialog ─────────────────────────────────────── */}
+      <AddToWatchlistDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+      />
     </div>
   );
 }

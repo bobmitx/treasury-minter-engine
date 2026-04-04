@@ -1195,3 +1195,71 @@ The application has 19+ custom components, 8 tabs, onboarding modal, profit aler
 4. **Token Comparison → Historical Data**: Currently compares current state only. Could add historical trend comparison.
 5. **Mobile FAB Position**: Quick Mint FAB may overlap with mobile browser navigation — consider adjusting position on small screens
 6. **CALL_EXCEPTION Console Noise**: Recurring RPC call errors for V3/V4 multiplier fetches create noisy console output. Consider adding error boundary or centralized error handler.
+
+---
+## Task ID: 5
+Agent: mint-analytics-subagent
+Task: Create Mint Analytics Dashboard widget component
+
+Work Log:
+- Created src/components/mint-analytics.tsx with comprehensive mint analytics
+- Added session summary with 4 stat cards (Total Mints, Total Spent, Success Rate, Avg Profit Ratio)
+- Added minting activity AreaChart with 7-day simulated data and emerald gradient fill
+- Added cost breakdown donut PieChart (Gas Costs, Token Costs, Protocol Fees)
+- Added recent mint performance mini table (last 5 transactions with status badges)
+- Added quick mint insights (Best Time to Mint, Most Profitable Token, Mint Efficiency Score)
+- All computed values use useMemo for performance
+- Empty states handled gracefully with animated illustrations
+- ESLint passes cleanly (only pre-existing error in token-comparison.tsx)
+- No existing files modified
+
+Stage Summary:
+- New file: src/components/mint-analytics.tsx
+- Exported component: MintAnalytics (named export)
+- No existing files modified
+---
+Task ID: 6
+Agent: comparison-subagent
+Task: Create Token Comparison Tool component
+
+Work Log:
+- Created src/components/token-comparison.tsx
+- Added token selector chips with multi-select (up to 4 tokens)
+- Added side-by-side comparison cards with: name/symbol/version, price, balance, multiplier (with emerald glow >2x), profit ratio (ProfitIndicator), total value, mint count, last updated, quick action buttons (View Details, Mint More, Copy Address)
+- Added recharts BarChart comparing profit ratio (emerald bars) and multiplier (amber bars) side by side with dark theme tooltip
+- Added auto-generated comparison insights: highest profit ratio, best multiplier, most valuable, recommendation card with composite scoring
+- Added empty state with Scale icon, descriptive message, and quick-select suggestion
+- Fixed ESLint react-hooks/rules-of-hooks error (moved early return after useMemo)
+- ESLint passes cleanly with zero errors
+
+Stage Summary:
+- New file: src/components/token-comparison.tsx
+- Exported component: TokenComparison (named export)
+- No existing files modified
+
+---
+Task ID: 8
+Agent: watchlist-subagent
+Task: Create Token Watchlist component with price alerts
+
+Work Log:
+- Created src/components/token-watchlist.tsx with "use client" directive
+- Added WatchlistHeader with title, count badge, add button, sort dropdown (By Profit Ratio, By Multiplier, By Name, By Recently Added), and view toggle (compact/full)
+- Added CompactWatchlistItem: single row with avatar, symbol, price, ProfitIndicator, hover remove
+- Added FullWatchlistItem: card with avatar, name, version badge, price, profit ratio, multiplier, balance, value, hover remove
+- Added AddToWatchlistDialog: search input, available tokens list with add buttons, "already in watchlist" section, quick add all profitable tokens button, summary footer
+- Added WatchlistSummary: total tokens count, average profit ratio, best performing token with Crown icon
+- Added WatchlistEmptyState: animated Eye icon with Star, "Start watching tokens" message, CTA button
+- Added WatchlistButton export for V3/V4 minter tab integration (star toggle button)
+- All items clickable via TokenDetailDialog wrapper
+- V3 tokens use emerald theme, V4 tokens use amber theme for avatars
+- Uses shadcn/ui Dialog, DropdownMenu, Badge, Button, Input, Separator
+- Uses lucide-react icons: Eye, EyeOff, Plus, Search, Star, Trash2, ArrowUpDown, LayoutList, LayoutGrid, Crown, Percent, Sparkles, ChevronDown, X, Check, Zap, ListFilter
+- Uses existing CSS classes: animate-fade-in-up, animate-gentle-bounce, card-hover, number-animate, btn-hover-scale, input-focus-ring, custom-scrollbar
+- ESLint passes cleanly with zero errors
+- Dev server compiles successfully (GET / returns 200)
+
+Stage Summary:
+- New file: src/components/token-watchlist.tsx
+- Exported components: TokenWatchlist (named export, main), WatchlistButton (named export, helper)
+- No existing files modified
