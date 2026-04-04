@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -49,6 +50,11 @@ import {
   Info,
   HelpCircle,
   Keyboard,
+  Cpu,
+  Blocks,
+  Timer,
+  ArrowUpRight,
+  ArrowDownRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getChainId, switchToPulseChain, isPulseChain } from "@/lib/ethereum";
@@ -134,6 +140,9 @@ function SettingsDialog() {
             <Settings className="h-4 w-4 text-emerald-400" />
             Settings
           </DialogTitle>
+          <DialogDescription className="text-gray-500 text-xs">
+            Configure your Treasury Minter Engine preferences, bot mode, and network settings.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-5 py-2">
           {/* Auto-Refresh */}
@@ -468,6 +477,135 @@ function NetworkStatus() {
   );
 }
 
+/* Enhanced Footer with live network stats, PLS price, and session info */
+function EnhancedFooter() {
+  const { botMode, botRunning, plsPriceUSD, tokens, transactions } = useAppStore();
+  const [networkInfo, setNetworkInfo] = useState<{
+    blockNumber: number;
+    latency: number;
+    syncStatus: boolean;
+  } | null>(null);
+  const [uptime, setUptime] = useState(0);
+
+  // Fetch network health for footer
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const res = await fetch("/api/network-health");
+        const data = await res.json();
+        if (data.blockNumber && data.blockNumber !== 0) {
+          setNetworkInfo(data);
+        }
+      } catch { /* use stale */ }
+    };
+    fetchHealth();
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Session uptime counter
+  useEffect(() => {
+    const timer = setInterval(() => setUptime((u) => u + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatUptime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+
+  const getLatencyColor = (latency: number) => {
+    if (latency < 0) return "text-gray-500";
+    if (latency < 200) return "text-emerald-400";
+    if (latency < 500) return "text-amber-400";
+    return "text-rose-400";
+  };
+
+  return (
+    <footer className="sticky bottom-0 z-30">
+      {/* Live Stats Bar */}
+      <div className="border-t border-gray-800/50 bg-gray-950/90 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-7 gap-3 overflow-hidden">
+            {/* Left: Branding */}
+            <div className="flex items-center gap-2.5 flex-shrink-0">
+              <div className="w-4 h-4 rounded bg-gradient-to-br from-emerald-500/30 to-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <Activity className="h-2.5 w-2.5 text-emerald-400" />
+              </div>
+              <span className="text-[10px] text-gray-500 font-medium whitespace-nowrap hidden sm:inline">
+                Treasury Minter Engine
+              </span>
+            </div>
+
+            {/* Center: Live Stats - visible on sm+ */}
+            <div className="hidden md:flex items-center gap-4 text-[10px] font-mono">
+              {/* Block Height */}
+              {networkInfo && (
+                <div className="flex items-center gap-1.5 text-gray-500">
+                  <Blocks className="h-2.5 w-2.5 text-gray-600" />
+                  <span className="hidden lg:inline">Block</span>
+                  <span className="text-gray-300">{networkInfo.blockNumber.toLocaleString()}</span>
+                </div>
+              )}
+
+              {/* Latency */}
+              {networkInfo && (
+                <div className="flex items-center gap-1.5">
+                  <Timer className="h-2.5 w-2.5 text-gray-600" />
+                  <span className={getLatencyColor(networkInfo.latency)}>
+                    {networkInfo.latency}ms
+                  </span>
+                </div>
+              )}
+
+              {/* PLS Price */}
+              {plsPriceUSD > 0 && (
+                <div className="flex items-center gap-1.5 text-gray-500">
+                  <Cpu className="h-2.5 w-2.5 text-gray-600" />
+                  <span>PLS</span>
+                  <span className="text-gray-300">${plsPriceUSD.toFixed(6)}</span>
+                </div>
+              )}
+
+              {/* Tokens Tracked */}
+              <div className="flex items-center gap-1.5 text-gray-500">
+                <Zap className="h-2.5 w-2.5 text-gray-600" />
+                <span>{tokens.length} tokens</span>
+              </div>
+
+              {/* Uptime */}
+              <div className="flex items-center gap-1.5 text-gray-500">
+                <Globe className="h-2.5 w-2.5 text-gray-600" />
+                <span>Session {formatUptime(uptime)}</span>
+              </div>
+            </div>
+
+            {/* Right: Badges */}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {botMode && botRunning && (
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[9px] text-emerald-400 font-medium">Bot Active</span>
+                </div>
+              )}
+              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-gray-800/50 border border-gray-800">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/60" />
+                <span className="text-[9px] text-gray-500 font-mono">
+                  #{PULSECHAIN_CONFIG.chainId}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 export default function Home() {
   const { activeTab, setActiveTab, setChainId, botMode, botRunning, onboardingOpen, hasSeenOnboarding, setOnboardingOpen, setSettingsOpen } = useAppStore();
 
@@ -630,6 +768,7 @@ export default function Home() {
                       size="icon"
                       className="h-8 w-8 text-gray-500 hover:text-white hover:bg-gray-800/50"
                       onClick={() => setSettingsOpen(true)}
+                      aria-label="Open Settings"
                     >
                       <Settings className="h-4 w-4" />
                     </Button>
@@ -645,6 +784,7 @@ export default function Home() {
                       size="icon"
                       className="h-8 w-8 text-gray-500 hover:text-white hover:bg-gray-800/50"
                       onClick={() => setOnboardingOpen(true)}
+                      aria-label="Open Getting Started Guide"
                     >
                       <HelpCircle className="h-4 w-4" />
                     </Button>
@@ -683,10 +823,10 @@ export default function Home() {
                         <tab.icon className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">{tab.label}</span>
                         {tab.badge && (
-                          <span className="sm:hidden text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none ml-0.5">{tab.badge}</span>
+                          <span className="sm:hidden text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none ml-0.5" aria-hidden="true">{tab.badge}</span>
                         )}
                         {tab.badge && (
-                          <span className="hidden sm:inline text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none ml-0.5">{tab.badge}</span>
+                          <span className="hidden sm:inline text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none ml-0.5" aria-hidden="true">{tab.badge}</span>
                         )}
                         {isActive && (
                           <motion.div
@@ -734,39 +874,8 @@ export default function Home() {
           </div>
         </main>
 
-        {/* Footer - Glassmorphism */}
-        <footer className="sticky bottom-0 glass-header border-t border-gray-800/70 z-30">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 whitespace-nowrap">
-                  Treasury Minter Engine
-                </span>
-                <Separator
-                  orientation="vertical"
-                  className="h-3 bg-gray-800 hidden sm:block"
-                />
-                <span className="text-xs text-gray-600 hidden sm:inline">
-                  PulseChain Mainnet
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                {botMode && botRunning && (
-                  <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] gap-1 animate-pulse">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    Bot Running
-                  </Badge>
-                )}
-                <Badge
-                  variant="outline"
-                  className="border-gray-800 text-gray-500 text-[10px] font-mono footer-badge-pulse"
-                >
-                  Chain {PULSECHAIN_CONFIG.chainId}
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </footer>
+        {/* Footer - Glassmorphism with Live Stats */}
+        <EnhancedFooter />
 
         {/* Settings Dialog */}
         <SettingsDialog />
