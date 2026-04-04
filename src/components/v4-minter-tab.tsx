@@ -11,6 +11,7 @@ import {
   getV4SystemInfo,
   getTokenPrice,
   getTokenBalance,
+  getTokenInfo,
   getMintCost,
   getExplorerTxUrl,
   shortenAddress,
@@ -20,6 +21,7 @@ import {
 import { CONTRACTS } from "@/lib/contracts";
 import { StatsCard } from "@/components/stats-card";
 import { ProfitIndicator } from "@/components/profit-indicator";
+import { TokenDetailDialog } from "@/components/token-detail-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +45,9 @@ import {
   Server,
   Shield,
   Sparkles,
+  Trash2,
+  Loader2,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -53,6 +58,7 @@ export function V4MinterTab() {
     mintCostUSD,
     tokens,
     addToken,
+    removeToken,
     addTransaction,
   } = useAppStore();
 
@@ -93,6 +99,11 @@ export function V4MinterTab() {
   // Token list refresh
   const [refreshing, setRefreshing] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
+
+  // Add custom token
+  const [addTokenAddress, setAddTokenAddress] = useState("");
+  const [addingToken, setAddingToken] = useState(false);
+  const [showAddToken, setShowAddToken] = useState(false);
 
   const fetchSystemData = useCallback(async () => {
     setLoadingMultiplier(true);
@@ -320,6 +331,57 @@ export function V4MinterTab() {
     }
   };
 
+  const handleAddToken = async () => {
+    if (!connected) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+    if (!addTokenAddress.trim()) {
+      toast.error("Please enter a token address");
+      return;
+    }
+    if (!addTokenAddress.startsWith("0x") || addTokenAddress.length !== 42) {
+      toast.error("Invalid token address format");
+      return;
+    }
+    if (tokens.find((t) => t.address.toLowerCase() === addTokenAddress.toLowerCase())) {
+      toast.error("Token is already being tracked");
+      return;
+    }
+
+    setAddingToken(true);
+    try {
+      const [info, price, balance, mult] = await Promise.all([
+        getTokenInfo(addTokenAddress),
+        getTokenPrice(addTokenAddress),
+        address ? getTokenBalance(addTokenAddress, address) : Promise.resolve("0"),
+        getV4Multiplier(addTokenAddress, 1),
+      ]);
+
+      addToken({
+        address: addTokenAddress,
+        name: info.name,
+        symbol: info.symbol,
+        decimals: info.decimals,
+        balance,
+        priceUSD: price.priceUSD,
+        pricePLS: price.pricePLS,
+        multiplier: mult,
+        profitRatio: mintCostUSD > 0 ? price.priceUSD / mintCostUSD : 0,
+        version: "V4",
+        lastUpdated: Date.now(),
+      });
+
+      setAddTokenAddress("");
+      setShowAddToken(false);
+      toast.success(`${info.symbol} added to tracking`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to fetch token info");
+    } finally {
+      setAddingToken(false);
+    }
+  };
+
   const refreshTokenList = async () => {
     if (!address) return;
     setRefreshing(true);
@@ -358,10 +420,17 @@ export function V4MinterTab() {
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
+  const handleRemoveToken = (tokenAddress: string) => {
+    const token = tokens.find((t) => t.address === tokenAddress);
+    removeToken(tokenAddress);
+    if (mintToken === tokenAddress) setMintToken("");
+    toast.success(`${token?.symbol || "Token"} removed from tracking`);
+  };
+
   const v4Tokens = tokens.filter((t) => t.version === "V4");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       {/* V4 System Info + Multiplier */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
@@ -370,7 +439,7 @@ export function V4MinterTab() {
           icon={Zap}
           subtitle="Current"
         />
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Server className="h-4 w-4 text-gray-400" />
@@ -381,7 +450,7 @@ export function V4MinterTab() {
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-gray-400" />
@@ -392,7 +461,7 @@ export function V4MinterTab() {
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
               <Gem className="h-4 w-4 text-gray-400" />
@@ -409,31 +478,31 @@ export function V4MinterTab() {
 
       {/* V4 Actions Tabs */}
       <Tabs defaultValue="create" className="space-y-4">
-        <TabsList className="bg-gray-900 border border-gray-800">
+        <TabsList className="bg-gray-900 border border-gray-800/70">
           <TabsTrigger
             value="create"
-            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400"
+            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
           >
             <Plus className="h-3 w-3 mr-1" />
             Create
           </TabsTrigger>
           <TabsTrigger
             value="gai"
-            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400"
+            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
           >
             <Gem className="h-3 w-3 mr-1" />
             GAI
           </TabsTrigger>
           <TabsTrigger
             value="mint"
-            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400"
+            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
           >
             <Coins className="h-3 w-3 mr-1" />
             Mint
           </TabsTrigger>
           <TabsTrigger
             value="claim"
-            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400"
+            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
           >
             <Gift className="h-3 w-3 mr-1" />
             Claim
@@ -442,7 +511,7 @@ export function V4MinterTab() {
 
         {/* Create Tab */}
         <TabsContent value="create">
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-gray-900 border-gray-800/70 card-hover">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-emerald-400" />
@@ -457,7 +526,7 @@ export function V4MinterTab() {
                     placeholder="My Token"
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-gray-800 border-gray-700 text-white input-focus-ring"
                     disabled={!connected}
                   />
                 </div>
@@ -469,7 +538,7 @@ export function V4MinterTab() {
                     onChange={(e) =>
                       setCreateSymbol(e.target.value.toUpperCase())
                     }
-                    className="bg-gray-800 border-gray-700 text-white font-mono"
+                    className="bg-gray-800 border-gray-700 text-white font-mono input-focus-ring"
                     maxLength={10}
                     disabled={!connected}
                   />
@@ -485,7 +554,7 @@ export function V4MinterTab() {
                     placeholder="1000"
                     value={createInitialMint}
                     onChange={(e) => setCreateInitialMint(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-gray-800 border-gray-700 text-white input-focus-ring"
                     disabled={!connected}
                   />
                 </div>
@@ -495,13 +564,13 @@ export function V4MinterTab() {
                     <Input
                       value={createParent}
                       onChange={(e) => setCreateParent(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1"
+                      className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring"
                       disabled={!connected}
                     />
                     <Button
                       variant="outline"
                       size="sm"
-                      className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs flex-shrink-0"
+                      className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs flex-shrink-0 btn-hover-scale"
                       onClick={() => setCreateParent(CONTRACTS.tbill)}
                     >
                       T-BILL
@@ -512,9 +581,13 @@ export function V4MinterTab() {
               <Button
                 onClick={handleCreateToken}
                 disabled={creating || !connected}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                {creating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Plus className="h-4 w-4 mr-2" />
+                )}
                 {creating ? "Creating..." : "Create V4 Token"}
               </Button>
             </CardContent>
@@ -523,7 +596,7 @@ export function V4MinterTab() {
 
         {/* GAI Tab */}
         <TabsContent value="gai">
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-gray-900 border-gray-800/70 card-hover">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
                 <Gem className="h-4 w-4 text-emerald-400" />
@@ -542,7 +615,7 @@ export function V4MinterTab() {
                     placeholder="My GAI"
                     value={gaiName}
                     onChange={(e) => setGaiName(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white"
+                    className="bg-gray-800 border-gray-700 text-white input-focus-ring"
                     disabled={!connected}
                   />
                 </div>
@@ -554,7 +627,7 @@ export function V4MinterTab() {
                     onChange={(e) =>
                       setGaiSymbol(e.target.value.toUpperCase())
                     }
-                    className="bg-gray-800 border-gray-700 text-white font-mono"
+                    className="bg-gray-800 border-gray-700 text-white font-mono input-focus-ring"
                     maxLength={10}
                     disabled={!connected}
                   />
@@ -563,9 +636,13 @@ export function V4MinterTab() {
               <Button
                 onClick={handleCreateGai}
                 disabled={creatingGai || !connected}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
               >
-                <Gem className="h-4 w-4 mr-2" />
+                {creatingGai ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Gem className="h-4 w-4 mr-2" />
+                )}
                 {creatingGai ? "Creating..." : "Create GAI Token"}
               </Button>
             </CardContent>
@@ -574,7 +651,7 @@ export function V4MinterTab() {
 
         {/* Mint Tab */}
         <TabsContent value="mint">
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-gray-900 border-gray-800/70 card-hover">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
                 <Coins className="h-4 w-4 text-emerald-400" />
@@ -587,7 +664,7 @@ export function V4MinterTab() {
                 <Input
                   value={mintToken}
                   onChange={(e) => setMintToken(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white font-mono text-xs"
+                  className="bg-gray-800 border-gray-700 text-white font-mono text-xs input-focus-ring"
                   placeholder="0x..."
                   disabled={!connected}
                 />
@@ -597,10 +674,10 @@ export function V4MinterTab() {
                       <button
                         key={t.address}
                         onClick={() => setMintToken(t.address)}
-                        className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                        className={`text-xs px-2 py-0.5 rounded border transition-all duration-200 btn-hover-scale ${
                           mintToken === t.address
                             ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
-                            : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                            : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
                         }`}
                       >
                         {t.symbol}
@@ -616,16 +693,20 @@ export function V4MinterTab() {
                   placeholder="1000"
                   value={mintAmount}
                   onChange={(e) => setMintAmount(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-gray-800 border-gray-700 text-white input-focus-ring"
                   disabled={!connected}
                 />
               </div>
               <Button
                 onClick={handleMint}
                 disabled={minting || !connected || !mintToken}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
               >
-                <Zap className="h-4 w-4 mr-2" />
+                {minting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4 mr-2" />
+                )}
                 {minting ? "Minting..." : "Mint V4 Tokens"}
               </Button>
             </CardContent>
@@ -634,7 +715,7 @@ export function V4MinterTab() {
 
         {/* Claim Tab */}
         <TabsContent value="claim">
-          <Card className="bg-gray-900 border-gray-800">
+          <Card className="bg-gray-900 border-gray-800/70 card-hover">
             <CardHeader className="pb-3">
               <CardTitle className="text-white text-base flex items-center gap-2">
                 <Gift className="h-4 w-4 text-emerald-400" />
@@ -653,16 +734,20 @@ export function V4MinterTab() {
                   placeholder="0"
                   value={claimAmount}
                   onChange={(e) => setClaimAmount(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white"
+                  className="bg-gray-800 border-gray-700 text-white input-focus-ring"
                   disabled={!connected}
                 />
               </div>
               <Button
                 onClick={handleClaim}
                 disabled={claiming || !connected}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
               >
-                <Gift className="h-4 w-4 mr-2" />
+                {claiming ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Gift className="h-4 w-4 mr-2" />
+                )}
                 {claiming ? "Claiming..." : "Claim Rewards"}
               </Button>
             </CardContent>
@@ -670,20 +755,72 @@ export function V4MinterTab() {
         </TabsContent>
       </Tabs>
 
+      {/* Add Custom Token */}
+      <Card className="bg-gray-900 border-gray-800/70">
+        <CardContent className="p-4">
+          {!showAddToken ? (
+            <Button
+              variant="outline"
+              className="w-full border-dashed border-gray-700 text-gray-400 hover:text-white hover:border-emerald-500/30 hover:bg-emerald-500/5 btn-hover-scale gap-2"
+              onClick={() => setShowAddToken(true)}
+            >
+              <Search className="h-4 w-4" />
+              Add Custom V4 Token by Address
+            </Button>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="Paste V4 token address (0x...)"
+                value={addTokenAddress}
+                onChange={(e) => setAddTokenAddress(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring"
+                disabled={addingToken}
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleAddToken}
+                  disabled={addingToken || !addTokenAddress.trim() || !connected}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-1.5"
+                >
+                  {addingToken ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                  Add Token
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-gray-700 text-gray-400 hover:bg-gray-800 btn-hover-scale"
+                  onClick={() => { setShowAddToken(false); setAddTokenAddress(""); }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Active V4 Tokens */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800/70">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-400" />
               Active V4 Tokens
+              {v4Tokens.length > 0 && (
+                <Badge variant="outline" className="border-gray-700 text-gray-400 text-xs ml-2">
+                  {v4Tokens.length}
+                </Badge>
+              )}
             </CardTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={refreshTokenList}
               disabled={refreshing || !connected}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs"
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs btn-hover-scale"
             >
               <RefreshCw
                 className={`h-3 w-3 mr-1 ${refreshing ? "animate-spin" : ""}`}
@@ -694,11 +831,11 @@ export function V4MinterTab() {
         </CardHeader>
         <CardContent>
           {v4Tokens.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No V4 tokens tracked yet</p>
-              <p className="text-xs mt-1">
-                Create a V4 token to start tracking
+            <div className="text-center py-8">
+              <Zap className="h-8 w-8 mx-auto mb-2 text-gray-600" />
+              <p className="text-sm text-gray-500">No V4 tokens tracked yet</p>
+              <p className="text-xs mt-1 text-gray-600">
+                Create a V4 token above or add a custom address to start tracking
               </p>
             </div>
           ) : (
@@ -707,64 +844,74 @@ export function V4MinterTab() {
                 {v4Tokens
                   .sort((a, b) => b.profitRatio - a.profitRatio)
                   .map((token) => (
-                    <div
-                      key={token.address}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors group"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">
-                          {token.symbol.slice(0, 2)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
-                            {token.name || token.symbol}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400 font-mono">
-                              {token.symbol}
-                            </span>
-                            <span className="text-xs text-gray-600">·</span>
-                            <span className="text-xs text-gray-500 font-mono">
-                              {shortenAddress(token.address)}
-                            </span>
+                    <TokenDetailDialog key={token.address} tokenAddress={token.address}>
+                      <div
+                        className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all duration-200 cursor-pointer group border border-transparent hover:border-gray-700/50"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-500/5 border border-amber-500/20 flex items-center justify-center text-xs font-bold text-amber-400 flex-shrink-0">
+                            {token.symbol.slice(0, 2)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-white truncate group-hover:text-amber-300 transition-colors">
+                              {token.name || token.symbol}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400 font-mono">
+                                {token.symbol}
+                              </span>
+                              <span className="text-xs text-gray-600">·</span>
+                              <span className="text-xs text-gray-500 font-mono">
+                                {shortenAddress(token.address)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4 flex-shrink-0">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-sm font-medium text-white">
-                            {formatUSD(token.priceUSD)}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {formatLargeNumber(token.multiplier)}x mult.
-                          </p>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-sm font-medium text-white">
+                              {formatUSD(token.priceUSD)}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {formatLargeNumber(token.multiplier)}x mult.
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-rose-400"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveToken(token.address); }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); copyAddress(token.address); }}
+                          >
+                            {copiedAddress === token.address ? (
+                              <Check className="h-3 w-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-gray-400" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-amber-400 hover:bg-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity btn-hover-scale"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMintToken(token.address);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            Mint <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+                          <ProfitIndicator ratio={token.profitRatio} size="sm" animated={token.profitRatio > 1.5} />
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => copyAddress(token.address)}
-                        >
-                          {copiedAddress === token.address ? (
-                            <Check className="h-3 w-3 text-emerald-400" />
-                          ) : (
-                            <Copy className="h-3 w-3 text-gray-400" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs text-emerald-400 hover:bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            setMintToken(token.address);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }}
-                        >
-                          Mint <ArrowRight className="h-3 w-3 ml-1" />
-                        </Button>
-                        <ProfitIndicator ratio={token.profitRatio} size="sm" />
                       </div>
-                    </div>
+                    </TokenDetailDialog>
                   ))}
               </div>
             </ScrollArea>

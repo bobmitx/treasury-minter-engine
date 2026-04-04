@@ -131,3 +131,232 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* === NEW ANIMATIONS & EFFECTS === */
+
+/* Shimmer loading animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.22 0 0) 25%,
+    oklch(0.28 0 0) 50%,
+    oklch(0.22 0 0) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Glow effects */
+@keyframes glow-emerald {
+  0%, 100% { box-shadow: 0 0 8px oklch(0.7 0.17 162 / 20%), 0 0 16px oklch(0.7 0.17 162 / 10%); }
+  50% { box-shadow: 0 0 12px oklch(0.7 0.17 162 / 30%), 0 0 24px oklch(0.7 0.17 162 / 15%); }
+}
+
+@keyframes glow-rose {
+  0%, 100% { box-shadow: 0 0 8px oklch(0.65 0.2 25 / 20%), 0 0 16px oklch(0.65 0.2 25 / 10%); }
+  50% { box-shadow: 0 0 12px oklch(0.65 0.2 25 / 30%), 0 0 24px oklch(0.65 0.2 25 / 15%); }
+}
+
+@keyframes glow-amber {
+  0%, 100% { box-shadow: 0 0 8px oklch(0.65 0.2 40 / 20%), 0 0 16px oklch(0.65 0.2 40 / 10%); }
+  50% { box-shadow: 0 0 12px oklch(0.65 0.2 40 / 30%), 0 0 24px oklch(0.65 0.2 40 / 15%); }
+}
+
+.glow-emerald {
+  box-shadow: 0 0 8px oklch(0.7 0.17 162 / 20%), 0 0 16px oklch(0.7 0.17 162 / 10%);
+}
+
+.glow-emerald-animated {
+  animation: glow-emerald 3s ease-in-out infinite;
+}
+
+.glow-rose {
+  box-shadow: 0 0 8px oklch(0.65 0.2 25 / 20%), 0 0 16px oklch(0.65 0.2 25 / 10%);
+}
+
+.glow-rose-animated {
+  animation: glow-rose 3s ease-in-out infinite;
+}
+
+.glow-amber {
+  box-shadow: 0 0 8px oklch(0.65 0.2 40 / 20%), 0 0 16px oklch(0.65 0.2 40 / 10%);
+}
+
+.glow-amber-animated {
+  animation: glow-amber 3s ease-in-out infinite;
+}
+
+/* Text glow for multiplier */
+@keyframes text-glow-emerald {
+  0%, 100% { text-shadow: 0 0 8px oklch(0.7 0.17 162 / 40%); }
+  50% { text-shadow: 0 0 16px oklch(0.7 0.17 162 / 60%), 0 0 32px oklch(0.7 0.17 162 / 30%); }
+}
+
+.text-glow-emerald {
+  text-shadow: 0 0 8px oklch(0.7 0.17 162 / 40%);
+}
+
+.text-glow-emerald-animated {
+  animation: text-glow-emerald 2.5s ease-in-out infinite;
+}
+
+/* Gradient border animation */
+@keyframes gradient-border {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-border {
+  position: relative;
+}
+
+.gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, oklch(0.7 0.17 162), oklch(0.65 0.2 40), oklch(0.7 0.17 162));
+  background-size: 300% 300%;
+  animation: gradient-border 4s ease infinite;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* Animated gradient border always on */
+.gradient-border-active::before {
+  opacity: 1;
+}
+
+/* Glassmorphism header */
+.glass-header {
+  background: oklch(0.145 0 0 / 70%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -5px oklch(0 0 0 / 30%);
+}
+
+/* Mesh gradient background */
+@keyframes mesh-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(10px, -20px) scale(1.05); }
+  50% { transform: translate(-10px, 10px) scale(0.95); }
+  75% { transform: translate(20px, 20px) scale(1.02); }
+}
+
+.mesh-gradient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.mesh-gradient-bg::before,
+.mesh-gradient-bg::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.07;
+}
+
+.mesh-gradient-bg::before {
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  right: -100px;
+  background: oklch(0.7 0.17 162);
+  animation: mesh-float 20s ease-in-out infinite;
+}
+
+.mesh-gradient-bg::after {
+  width: 500px;
+  height: 500px;
+  bottom: -200px;
+  left: -100px;
+  background: oklch(0.65 0.2 25);
+  animation: mesh-float 25s ease-in-out infinite reverse;
+}
+
+/* Tab indicator animation */
+@keyframes tab-slide {
+  from { transform: scaleX(0); opacity: 0; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+.tab-indicator {
+  animation: tab-slide 0.3s ease-out;
+  transform-origin: left;
+}
+
+/* Count-up number transition */
+.number-animate {
+  transition: all 0.5s ease-out;
+}
+
+/* Focus ring for inputs */
+.input-focus-ring:focus {
+  box-shadow: 0 0 0 2px oklch(0.7 0.17 162 / 30%);
+}
+
+/* Bot mode badge pulse */
+@keyframes bot-pulse {
+  0%, 100% { box-shadow: 0 0 4px oklch(0.65 0.2 40 / 30%); }
+  50% { box-shadow: 0 0 12px oklch(0.65 0.2 40 / 50%), 0 0 24px oklch(0.65 0.2 40 / 20%); }
+}
+
+.bot-mode-pulse {
+  animation: bot-pulse 2s ease-in-out infinite;
+}
+
+/* Fade in animation for tab content */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out;
+}
+
+/* Scale on hover for buttons */
+.btn-hover-scale {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.btn-hover-scale:active {
+  transform: scale(0.98);
+}
+
+/* Chart gradient area */
+.recharts-area {
+  filter: drop-shadow(0 0 6px oklch(0.7 0.17 162 / 30%));
+}

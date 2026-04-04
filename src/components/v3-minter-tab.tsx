@@ -18,6 +18,7 @@ import {
 import { CONTRACTS } from "@/lib/contracts";
 import { StatsCard } from "@/components/stats-card";
 import { ProfitIndicator } from "@/components/profit-indicator";
+import { TokenDetailDialog } from "@/components/token-detail-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,9 @@ import {
   Check,
   ArrowRight,
   Sparkles,
+  Trash2,
+  Loader2,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,6 +51,7 @@ export function V3MinterTab() {
     mintCostUSD,
     tokens,
     addToken,
+    removeToken,
     addTransaction,
   } = useAppStore();
 
@@ -76,10 +81,14 @@ export function V3MinterTab() {
   const [refreshing, setRefreshing] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
+  // Add custom token
+  const [addTokenAddress, setAddTokenAddress] = useState("");
+  const [addingToken, setAddingToken] = useState(false);
+  const [showAddToken, setShowAddToken] = useState(false);
+
   const fetchMultiplier = useCallback(async () => {
     setLoadingMultiplier(true);
     try {
-      // Fetch V3 Index Minter multiplier
       const mult = await getMultiplier(CONTRACTS.v3IndexMinter, 1);
       setCurrentMultiplier(mult);
     } catch (error) {
@@ -166,12 +175,9 @@ export function V3MinterTab() {
         timestamp: Date.now(),
       });
 
-      // Reset form
       setCreateName("");
       setCreateSymbol("");
       setCreateInitialMint("1000");
-
-      // Refresh multiplier
       fetchMultiplier();
     } catch (error: any) {
       toast.error(error.message || "Failed to create token");
@@ -225,12 +231,66 @@ export function V3MinterTab() {
         timestamp: Date.now(),
       });
 
-      // Refresh multiplier
       fetchMultiplier();
     } catch (error: any) {
       toast.error(error.message || "Failed to mint tokens");
     } finally {
       setMinting(false);
+    }
+  };
+
+  const handleAddToken = async () => {
+    if (!connected) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+    if (!addTokenAddress.trim()) {
+      toast.error("Please enter a token address");
+      return;
+    }
+
+    // Basic address validation
+    if (!addTokenAddress.startsWith("0x") || addTokenAddress.length !== 42) {
+      toast.error("Invalid token address format");
+      return;
+    }
+
+    // Check if already tracked
+    if (tokens.find((t) => t.address.toLowerCase() === addTokenAddress.toLowerCase())) {
+      toast.error("Token is already being tracked");
+      return;
+    }
+
+    setAddingToken(true);
+    try {
+      const [info, price, balance, mult] = await Promise.all([
+        getTokenInfo(addTokenAddress),
+        getTokenPrice(addTokenAddress),
+        address ? getTokenBalance(addTokenAddress, address) : Promise.resolve("0"),
+        getMultiplier(addTokenAddress, 1),
+      ]);
+
+      addToken({
+        address: addTokenAddress,
+        name: info.name,
+        symbol: info.symbol,
+        decimals: info.decimals,
+        balance,
+        priceUSD: price.priceUSD,
+        pricePLS: price.pricePLS,
+        multiplier: mult,
+        profitRatio: mintCostUSD > 0 ? price.priceUSD / mintCostUSD : 0,
+        version: "V3",
+        lastUpdated: Date.now(),
+      });
+
+      setAddTokenAddress("");
+      setShowAddToken(false);
+      toast.success(`${info.symbol} added to tracking`);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to fetch token info");
+    } finally {
+      setAddingToken(false);
     }
   };
 
@@ -274,27 +334,36 @@ export function V3MinterTab() {
     setTimeout(() => setCopiedAddress(null), 2000);
   };
 
+  const handleRemoveToken = (tokenAddress: string) => {
+    const token = tokens.find((t) => t.address === tokenAddress);
+    removeToken(tokenAddress);
+    if (mintToken === tokenAddress) setMintToken("");
+    toast.success(`${token?.symbol || "Token"} removed from tracking`);
+  };
+
   const v3Tokens = tokens.filter((t) => t.version === "V3");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in-up">
       {/* Multiplier Display */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800/70 card-hover">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div>
               <p className="text-sm text-gray-400 mb-1">V3 Index Multiplier</p>
               <div className="flex items-center gap-3">
                 {loadingMultiplier ? (
-                  <Skeleton className="h-12 w-32" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-12 w-32 shimmer" />
+                  </div>
                 ) : (
-                  <span className="text-4xl font-bold font-mono text-white">
+                  <span className="text-4xl font-bold font-mono text-white text-glow-emerald-animated">
                     {formatLargeNumber(currentMultiplier)}x
                   </span>
                 )}
                 <Badge
                   variant="outline"
-                  className="border-emerald-500/30 text-emerald-400"
+                  className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
                 >
                   Live
                 </Badge>
@@ -308,7 +377,7 @@ export function V3MinterTab() {
               size="sm"
               onClick={fetchMultiplier}
               disabled={loadingMultiplier}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 btn-hover-scale"
             >
               <RefreshCw
                 className={`h-3 w-3 mr-1 ${loadingMultiplier ? "animate-spin" : ""}`}
@@ -321,7 +390,7 @@ export function V3MinterTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Create New Token */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-400" />
@@ -335,7 +404,7 @@ export function V3MinterTab() {
                 placeholder="My Token"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-gray-800 border-gray-700 text-white input-focus-ring"
                 disabled={!connected}
               />
             </div>
@@ -345,7 +414,7 @@ export function V3MinterTab() {
                 placeholder="MTK"
                 value={createSymbol}
                 onChange={(e) => setCreateSymbol(e.target.value.toUpperCase())}
-                className="bg-gray-800 border-gray-700 text-white font-mono"
+                className="bg-gray-800 border-gray-700 text-white font-mono input-focus-ring"
                 maxLength={10}
                 disabled={!connected}
               />
@@ -357,7 +426,7 @@ export function V3MinterTab() {
                 placeholder="1000"
                 value={createInitialMint}
                 onChange={(e) => setCreateInitialMint(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-gray-800 border-gray-700 text-white input-focus-ring"
                 disabled={!connected}
               />
             </div>
@@ -367,14 +436,14 @@ export function V3MinterTab() {
                 <Input
                   value={createParent}
                   onChange={(e) => setCreateParent(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1"
+                  className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring"
                   placeholder="0x..."
                   disabled={!connected}
                 />
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs flex-shrink-0"
+                  className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs flex-shrink-0 btn-hover-scale"
                   onClick={() => setCreateParent(CONTRACTS.tbill)}
                 >
                   T-BILL
@@ -384,9 +453,13 @@ export function V3MinterTab() {
             <Button
               onClick={handleCreateToken}
               disabled={creating || !connected}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              {creating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
               {creating ? "Creating..." : "Create Token"}
             </Button>
             {!connected && (
@@ -398,7 +471,7 @@ export function V3MinterTab() {
         </Card>
 
         {/* Mint Panel */}
-        <Card className="bg-gray-900 border-gray-800">
+        <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardHeader className="pb-3">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <Coins className="h-4 w-4 text-emerald-400" />
@@ -411,7 +484,7 @@ export function V3MinterTab() {
               <Input
                 value={mintToken}
                 onChange={(e) => setMintToken(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white font-mono text-xs"
+                className="bg-gray-800 border-gray-700 text-white font-mono text-xs input-focus-ring"
                 placeholder="0x..."
                 disabled={!connected}
               />
@@ -421,10 +494,10 @@ export function V3MinterTab() {
                     <button
                       key={t.address}
                       onClick={() => setMintToken(t.address)}
-                      className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                      className={`text-xs px-2 py-0.5 rounded border transition-all duration-200 btn-hover-scale ${
                         mintToken === t.address
                           ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
-                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600"
+                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
                       }`}
                     >
                       {t.symbol}
@@ -440,14 +513,14 @@ export function V3MinterTab() {
                 placeholder="1000"
                 value={mintAmount}
                 onChange={(e) => setMintAmount(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white"
+                className="bg-gray-800 border-gray-700 text-white input-focus-ring"
                 disabled={!connected}
               />
             </div>
 
             {/* Mint Preview */}
             {mintPreview && (
-              <div className="bg-gray-800 rounded-lg p-3 space-y-2">
+              <div className="bg-gray-800/50 rounded-lg p-3 space-y-2 border border-gray-800">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Mint Cost</span>
                   <span className="text-white">
@@ -456,7 +529,7 @@ export function V3MinterTab() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Profit Ratio</span>
-                  <ProfitIndicator ratio={mintPreview.ratio} size="sm" />
+                  <ProfitIndicator ratio={mintPreview.ratio} size="sm" animated={mintPreview.ratio > 1.5} />
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Action</span>
@@ -478,29 +551,85 @@ export function V3MinterTab() {
             <Button
               onClick={handleMint}
               disabled={minting || !connected || !mintToken}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
             >
-              <Zap className="h-4 w-4 mr-2" />
+              {minting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Zap className="h-4 w-4 mr-2" />
+              )}
               {minting ? "Minting..." : "Mint Tokens"}
             </Button>
           </CardContent>
         </Card>
       </div>
 
+      {/* Add Custom Token */}
+      <Card className="bg-gray-900 border-gray-800/70">
+        <CardContent className="p-4">
+          {!showAddToken ? (
+            <Button
+              variant="outline"
+              className="w-full border-dashed border-gray-700 text-gray-400 hover:text-white hover:border-emerald-500/30 hover:bg-emerald-500/5 btn-hover-scale gap-2"
+              onClick={() => setShowAddToken(true)}
+            >
+              <Search className="h-4 w-4" />
+              Add Custom Token by Address
+            </Button>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Input
+                placeholder="Paste token address (0x...)"
+                value={addTokenAddress}
+                onChange={(e) => setAddTokenAddress(e.target.value)}
+                className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring"
+                disabled={addingToken}
+              />
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleAddToken}
+                  disabled={addingToken || !addTokenAddress.trim() || !connected}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-1.5"
+                >
+                  {addingToken ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                  Add Token
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-gray-700 text-gray-400 hover:bg-gray-800 btn-hover-scale"
+                  onClick={() => { setShowAddToken(false); setAddTokenAddress(""); }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Active V3 Tokens List */}
-      <Card className="bg-gray-900 border-gray-800">
+      <Card className="bg-gray-900 border-gray-800/70">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-white text-base flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-400" />
               Active V3 Tokens
+              {v3Tokens.length > 0 && (
+                <Badge variant="outline" className="border-gray-700 text-gray-400 text-xs ml-2">
+                  {v3Tokens.length}
+                </Badge>
+              )}
             </CardTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={refreshTokenList}
               disabled={refreshing || !connected}
-              className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs"
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 text-xs btn-hover-scale"
             >
               <RefreshCw
                 className={`h-3 w-3 mr-1 ${refreshing ? "animate-spin" : ""}`}
@@ -511,11 +640,11 @@ export function V3MinterTab() {
         </CardHeader>
         <CardContent>
           {v3Tokens.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Zap className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No V3 tokens tracked yet</p>
-              <p className="text-xs mt-1">
-                Create or add a token to start tracking
+            <div className="text-center py-8">
+              <Zap className="h-8 w-8 mx-auto mb-2 text-gray-600" />
+              <p className="text-sm text-gray-500">No V3 tokens tracked yet</p>
+              <p className="text-xs mt-1 text-gray-600">
+                Create a token above or add a custom address to start tracking
               </p>
             </div>
           ) : (
@@ -524,82 +653,79 @@ export function V3MinterTab() {
                 {v3Tokens
                   .sort((a, b) => b.profitRatio - a.profitRatio)
                   .map((token) => (
-                    <div
-                      key={token.address}
-                      className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors group"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">
-                          {token.symbol.slice(0, 2)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-white truncate">
-                            {token.name || token.symbol}
-                          </p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-400 font-mono">
-                              {token.symbol}
-                            </span>
-                            <span className="text-xs text-gray-600">·</span>
-                            <span className="text-xs text-gray-500 font-mono">
-                              {shortenAddress(token.address)}
-                            </span>
+                    <TokenDetailDialog key={token.address} tokenAddress={token.address}>
+                      <div
+                        className="flex items-center justify-between p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-all duration-200 cursor-pointer group border border-transparent hover:border-gray-700/50"
+                      >
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 flex-shrink-0">
+                            {token.symbol.slice(0, 2)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-white truncate group-hover:text-emerald-300 transition-colors">
+                              {token.name || token.symbol}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400 font-mono">
+                                {token.symbol}
+                              </span>
+                              <span className="text-xs text-gray-600">·</span>
+                              <span className="text-xs text-gray-500 font-mono">
+                                {shortenAddress(token.address)}
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center gap-4 flex-shrink-0">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-sm font-medium text-white">
-                            {formatUSD(token.priceUSD)}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {formatLargeNumber(token.multiplier)}x mult.
-                          </p>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="text-right hidden sm:block">
+                            <p className="text-sm font-medium text-white">
+                              {formatUSD(token.priceUSD)}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {formatLargeNumber(token.multiplier)}x mult.
+                            </p>
+                          </div>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-rose-400"
+                            onClick={(e) => { e.stopPropagation(); handleRemoveToken(token.address); }}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); copyAddress(token.address); }}
+                          >
+                            {copiedAddress === token.address ? (
+                              <Check className="h-3 w-3 text-emerald-400" />
+                            ) : (
+                              <Copy className="h-3 w-3 text-gray-400" />
+                            )}
+                          </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs text-emerald-400 hover:bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity btn-hover-scale"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMintToken(token.address);
+                              window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                          >
+                            Mint <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+
+                          <ProfitIndicator ratio={token.profitRatio} size="sm" animated={token.profitRatio > 1.5} />
                         </div>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => copyAddress(token.address)}
-                        >
-                          {copiedAddress === token.address ? (
-                            <Check className="h-3 w-3 text-emerald-400" />
-                          ) : (
-                            <Copy className="h-3 w-3 text-gray-400" />
-                          )}
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() =>
-                            window.open(
-                              getExplorerAddressUrl(token.address),
-                              "_blank"
-                            )
-                          }
-                        >
-                          <ExternalLink className="h-3 w-3 text-gray-400" />
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs text-emerald-400 hover:bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            setMintToken(token.address);
-                            window.scrollTo({ top: 0, behavior: "smooth" });
-                          }}
-                        >
-                          Mint <ArrowRight className="h-3 w-3 ml-1" />
-                        </Button>
-
-                        <ProfitIndicator ratio={token.profitRatio} size="sm" />
                       </div>
-                    </div>
+                    </TokenDetailDialog>
                   ))}
               </div>
             </ScrollArea>

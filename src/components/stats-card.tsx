@@ -26,7 +26,7 @@ export function StatsCard({
   return (
     <Card
       className={cn(
-        "bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors",
+        "bg-gray-900 border-gray-800/70 card-hover gradient-border",
         className
       )}
     >
@@ -34,7 +34,7 @@ export function StatsCard({
         <div className="flex items-start justify-between">
           <div className="space-y-1 flex-1 min-w-0">
             <p className="text-sm text-gray-400 truncate">{title}</p>
-            <p className="text-xl font-bold text-white truncate">{value}</p>
+            <p className="text-xl font-bold text-white truncate number-animate">{value}</p>
             {(subtitle || trendValue) && (
               <div className="flex items-center gap-1">
                 {trend && trend !== "neutral" && (
@@ -61,7 +61,7 @@ export function StatsCard({
             )}
           </div>
           {Icon && (
-            <div className="bg-gray-800 p-2 rounded-lg flex-shrink-0">
+            <div className="bg-gradient-to-br from-emerald-500/15 to-emerald-500/5 p-2.5 rounded-xl flex-shrink-0 border border-emerald-500/10">
               <Icon className="h-4 w-4 text-emerald-400" />
             </div>
           )}

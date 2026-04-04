@@ -49,6 +49,13 @@ export interface MultiHopPreview {
   }>;
 }
 
+export interface GasData {
+  fast: number;
+  standard: number;
+  slow: number;
+  lastUpdated: number;
+}
+
 interface AppState {
   // Wallet state
   address: string | null;
@@ -70,6 +77,10 @@ interface AppState {
   tokens: TokenData[];
   selectedToken: TokenData | null;
 
+  // Token detail dialog
+  tokenDetailOpen: boolean;
+  tokenDetailAddress: string | null;
+
   // MultiHop
   multihopPreview: MultiHopPreview | null;
   multihopLoading: boolean;
@@ -81,8 +92,12 @@ interface AppState {
   totalPortfolioValue: number;
   totalPnL: number;
 
+  // Gas tracker
+  gasData: GasData | null;
+
   // Settings
   autoRefreshInterval: number;
+  botMode: boolean;
 
   // Actions
   setAddress: (address: string | null) => void;
@@ -107,6 +122,10 @@ interface AppState {
   setTotalPortfolioValue: (value: number) => void;
   setTotalPnL: (pnl: number) => void;
   setAutoRefreshInterval: (interval: number) => void;
+  setBotMode: (enabled: boolean) => void;
+  setTokenDetailOpen: (open: boolean) => void;
+  setTokenDetailAddress: (address: string | null) => void;
+  setGasData: (data: GasData | null) => void;
   clearAll: () => void;
 }
 
@@ -131,6 +150,10 @@ const initialState = {
   tokens: [],
   selectedToken: null,
 
+  // Token detail dialog
+  tokenDetailOpen: false,
+  tokenDetailAddress: null,
+
   // MultiHop
   multihopPreview: null,
   multihopLoading: false,
@@ -142,8 +165,12 @@ const initialState = {
   totalPortfolioValue: 0,
   totalPnL: 0,
 
+  // Gas tracker
+  gasData: null,
+
   // Settings
   autoRefreshInterval: 15000,
+  botMode: false,
 };
 
 export const useAppStore = create<AppState>((set) => ({
@@ -186,6 +213,10 @@ export const useAppStore = create<AppState>((set) => ({
     })),
   setSelectedToken: (selectedToken) => set({ selectedToken }),
 
+  // Token detail dialog actions
+  setTokenDetailOpen: (tokenDetailOpen) => set({ tokenDetailOpen }),
+  setTokenDetailAddress: (tokenDetailAddress) => set({ tokenDetailAddress }),
+
   // MultiHop actions
   setMultihopPreview: (multihopPreview) => set({ multihopPreview }),
   setMultihopLoading: (multihopLoading) => set({ multihopLoading }),
@@ -207,9 +238,13 @@ export const useAppStore = create<AppState>((set) => ({
     set({ totalPortfolioValue }),
   setTotalPnL: (totalPnL) => set({ totalPnL }),
 
+  // Gas data
+  setGasData: (gasData) => set({ gasData }),
+
   // Settings
   setAutoRefreshInterval: (autoRefreshInterval) =>
     set({ autoRefreshInterval }),
+  setBotMode: (botMode) => set({ botMode }),
 
   // Clear
   clearAll: () => set(initialState),
