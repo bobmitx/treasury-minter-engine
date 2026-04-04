@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExportDialog } from "@/components/export-dialog";
+import { TokenWatchlist } from "@/components/token-watchlist";
 import {
   DollarSign,
   Coins,
@@ -43,6 +44,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+
+function formatCompactGasPrice(gwei: number): string {
+  // PulseChain gas is technically very high Gwei but costs nearly zero PLS
+  if (gwei >= 1_000_000) return `${(gwei / 1_000_000).toFixed(1)}M Gwei (minimal PLS cost)`;
+  if (gwei >= 1_000) return `${(gwei / 1_000).toFixed(1)}K Gwei`;
+  return `${gwei.toFixed(0)} Gwei`;
+}
 
 function formatCompactNumber(value: number): string {
   if (value <= 0) return "$0";
@@ -288,7 +296,7 @@ function GasTrackerCard() {
               <div className="flex items-center justify-between mt-0.5">
                 <span className="text-[10px] text-gray-500">Raw gas price</span>
                 <span className="text-[10px] font-mono text-gray-600">
-                  {gasInfo.gasPriceGwei?.toLocaleString() || "?"} Gwei
+                  {gasInfo.gasPriceGwei ? formatCompactGasPrice(gasInfo.gasPriceGwei) : "?"}
                 </span>
               </div>
             </div>
@@ -678,13 +686,13 @@ export function DashboardTab() {
           value={tokens.filter((t) => t.version === "V3").length.toString()}
           icon={Zap}
           subtitle="Active"
-        /><span className="badge-pop inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-400 -mt-6 ml-2 relative z-10">{tokens.filter((t) => t.version === "V3").length}</span></div>
+        />{tokens.filter((t) => t.version === "V3").length > 0 && <span className="badge-pop inline-flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500/15 text-[10px] font-bold text-emerald-400 -mt-6 ml-2 relative z-10" aria-hidden="true">{tokens.filter((t) => t.version === "V3").length}</span>}</div>
         <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="V4 Tokens"
           value={tokens.filter((t) => t.version === "V4").length.toString()}
           icon={Activity}
           subtitle="Active"
-        /><span className="badge-pop inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/15 text-[10px] font-bold text-amber-400 -mt-6 ml-2 relative z-10">{tokens.filter((t) => t.version === "V4").length}</span></div>
+        />{tokens.filter((t) => t.version === "V4").length > 0 && <span className="badge-pop inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/15 text-[10px] font-bold text-amber-400 -mt-6 ml-2 relative z-10" aria-hidden="true">{tokens.filter((t) => t.version === "V4").length}</span>}</div>
         <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="Profitable"
           value={profitableTokens.length.toString()}
@@ -892,6 +900,9 @@ export function DashboardTab() {
 
       {/* Profitability Chart */}
       {tokens.length > 0 && <ProfitabilityChart tokens={tokens} />}
+
+      {/* Token Watchlist */}
+      {tokens.length > 0 && <TokenWatchlist />}
 
       {/* Quick Stats Bottom Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

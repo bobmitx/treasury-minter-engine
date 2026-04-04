@@ -88,6 +88,18 @@ export interface ProfitAlert {
   createdAt: number;
 }
 
+export interface NotificationItem {
+  id: string;
+  type: 'profit_alert' | 'tx_success' | 'tx_failed' | 'bot_event' | 'system' | 'price_change';
+  title: string;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  icon?: string;
+  color?: 'emerald' | 'amber' | 'rose' | 'cyan' | 'violet';
+  link?: string;
+}
+
 interface AppState {
   // Wallet state
   address: string | null;
@@ -143,6 +155,13 @@ interface AppState {
   // Profit alerts
   profitAlerts: ProfitAlert[];
 
+  // Notifications
+  notifications: NotificationItem[];
+  unreadCount: number;
+
+  // Watchlist
+  watchlist: string[];
+
   // Actions
   setAddress: (address: string | null) => void;
   setBalance: (balance: string) => void;
@@ -182,6 +201,13 @@ interface AppState {
   addProfitAlert: (alert: ProfitAlert) => void;
   removeProfitAlert: (id: string) => void;
   updateProfitAlert: (id: string, data: Partial<ProfitAlert>) => void;
+  addNotification: (notification: Omit<NotificationItem, 'id' | 'timestamp' | 'read'>) => void;
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  clearNotifications: () => void;
+  addToWatchlist: (address: string) => void;
+  removeFromWatchlist: (address: string) => void;
+  toggleWatchlist: (address: string) => void;
   clearAll: () => void;
 }
 
@@ -249,6 +275,13 @@ const initialState = {
 
   // Profit alerts
   profitAlerts: [],
+
+  // Notifications
+  notifications: [],
+  unreadCount: 0,
+
+  // Watchlist
+  watchlist: [],
 };
 
 export const useAppStore = create<AppState>()(
@@ -359,6 +392,56 @@ export const useAppStore = create<AppState>()(
           ),
         })),
 
+      // Notifications
+      addNotification: (notification) =>
+        set((state) => {
+          const newItem: NotificationItem = {
+            ...notification,
+            id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            timestamp: Date.now(),
+            read: false,
+          };
+          const notifications = [newItem, ...state.notifications].slice(0, 100);
+          return {
+            notifications,
+            unreadCount: notifications.filter((n) => !n.read).length,
+          };
+        }),
+      markNotificationRead: (id) =>
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.id === id ? { ...n, read: true } : n
+          ),
+          unreadCount: state.notifications.filter(
+            (n) => n.id !== id && !n.read
+          ).length,
+        })),
+      markAllNotificationsRead: () =>
+        set((state) => ({
+          notifications: state.notifications.map((n) => ({ ...n, read: true })),
+          unreadCount: 0,
+        })),
+      clearNotifications: () =>
+        set({ notifications: [], unreadCount: 0 }),
+
+      // Watchlist
+      addToWatchlist: (address) =>
+        set((state) => ({
+          watchlist: state.watchlist.includes(address)
+            ? state.watchlist
+            : [...state.watchlist, address],
+        })),
+      removeFromWatchlist: (address) =>
+        set((state) => ({
+          watchlist: state.watchlist.filter((a) => a !== address),
+        })),
+      toggleWatchlist: (address) =>
+        set((state) => ({
+          watchlist: state.watchlist.includes(address)
+            ? state.watchlist.filter((a) => a !== address)
+            : [...state.watchlist, address],
+        })),
+
       // Clear
       clearAll: () => set(initialState),
     }),
@@ -376,6 +459,7 @@ export const useAppStore = create<AppState>()(
         botConfig: state.botConfig,
         profitAlerts: state.profitAlerts,
         hasSeenOnboarding: state.hasSeenOnboarding,
+        watchlist: state.watchlist,
       }),
     }
   )

@@ -838,3 +838,172 @@ The application is highly stable after 5 rounds of development. 17 custom compon
 6. **Mint More via State**: Currently uses DOM manipulation → Zustand state passing.
 
 ---
+---
+## Task ID: 7 - Token Watchlist Component
+### Work Task
+Create a watchlist/favorites component (`token-watchlist.tsx`) for tracking specific tokens, including a WatchlistButton (star toggle) and a full TokenWatchlist panel. Extend the Zustand store with watchlist state and actions, persisted via localStorage.
+
+### Completed Modifications
+
+**1. `src/lib/store.ts` - Watchlist State & Actions**
+- Added `watchlist: string[]` to AppState interface and initialState
+- Added 3 actions: `addToWatchlist(address)` (no duplicates), `removeFromWatchlist(address)`, `toggleWatchlist(address)`
+- Added `watchlist` to `partialize` for localStorage persistence
+- No existing store functionality was broken
+
+**2. `src/components/token-watchlist.tsx` - NEW FILE**
+- **WatchlistButton** (named export): Star toggle button for individual tokens
+  - Props: `tokenAddress: string`, `size?: 'sm' | 'md'` (default 'md')
+  - Filled amber star when watched, outline gray star when not
+  - Click toggles watchlist via `toggleWatchlist`
+  - Tooltip: "Add to watchlist" / "Remove from watchlist"
+  - Scale transition animation, `btn-hover-scale`
+- **TokenWatchlist** (named export): Full watchlist panel/card
+  - Header: Star icon + "Watchlist" title + count badge (amber) + "Clear All" button
+  - Sort options bar: Name, Profit, Multiplier, Recent (desktop buttons + mobile toggle)
+  - Scrollable token list (`max-h-96 overflow-y-auto`) with dividers
+  - Each row: Star icon (remove), colored version avatar (2-char symbol), name + symbol + V3/V4 badge, price + balance, multiplier with glow, ProfitIndicator, hover actions (Mint More, Explorer, Remove)
+  - Empty state: Animated bouncing star, "No tokens in watchlist", guidance text
+  - Card uses `glass-card-depth`, `gradient-border`, `animate-fade-in-up`
+  - `WatchlistRow` extracted to module level (avoids React hooks ESLint issue)
+- Dark theme throughout (bg-gray-900, border-gray-800), amber/yellow accent for stars
+- Imports: Star, StarOff, TrendingUp, Trash2, Zap, ExternalLink, Eye, ArrowUpDown, Clock from lucide-react
+- Uses: Button, Badge from shadcn/ui; Tooltip for all action hints; ProfitIndicator component; formatUSD/shortenAddress from ethereum utils
+
+### Verification Results
+- **ESLint**: `npm run lint` passes with zero errors
+- **Dev Server**: Compiles successfully, all routes return 200
+- **Files created**: `src/components/token-watchlist.tsx` (1 new file)
+- **Files modified**: `src/lib/store.ts` (watchlist state + 3 actions + partialize)
+
+---
+## Task ID: 6 - Notification Center Component
+### Work Task
+Create a notification center component (`/src/components/notification-center.tsx`) for the Treasury Minter Engine with real-time alerts, filter tabs, demo notifications, and Zustand store integration. Add notification state and actions to the existing Zustand store.
+
+### Completed Modifications
+
+**1. `src/lib/store.ts` - Added Notification State & Actions**
+- `NotificationItem` interface was already present (added by a prior agent)
+- Added 4 action types to `AppState` interface: `addNotification`, `markNotificationRead`, `markAllNotificationsRead`, `clearNotifications`
+- Added `notifications: []` and `unreadCount: 0` to `initialState`
+- Implemented `addNotification`: Creates a new notification with auto-generated `id`, `timestamp`, and `read: false`. Caps list at 100 items. Recalculates `unreadCount`.
+- Implemented `markNotificationRead`: Marks single notification as read, decrements `unreadCount`.
+- Implemented `markAllNotificationsRead`: Marks all notifications as read, sets `unreadCount` to 0.
+- Implemented `clearNotifications`: Empties notifications array, resets `unreadCount`.
+
+**2. `src/components/notification-center.tsx` - NEW COMPONENT (2 named exports)**
+
+**`NotificationBell`** — Bell icon button for header integration:
+- Bell icon from lucide-react with unread count badge (rose-500 pill with `pulse-ring` animation)
+- Click toggles dropdown panel with `open` state
+- Badge re-mounts on count change via `key={unreadCount}` to trigger pulse animation
+- Outside click detection via `mousedown` event listener
+- Escape key closes panel
+- Accessible `aria-label` with unread count
+
+**`NotificationCenter`** — The dropdown panel:
+- **Header**: "Notifications" title, emerald unread count Badge, "Mark All Read" button with CheckCheck icon
+- **Filter Tabs**: 5 horizontal pill buttons (All, Alerts, Transactions, Bot, System) with per-filter count badges and Filter icon
+- **Notification List**: `max-h-96 overflow-y-auto` scrollable container with `divide-y` separators
+- **NotificationRow**: Each row has colored icon circle (type-based), title (bold), message (2-line clamp), relative timestamp, unread blue dot, dismiss X button (hover-visible)
+- **Empty State**: BellOff icon with "No notifications yet" message
+- **Footer**: "Clear All Notifications" button with Trash2 icon
+- **Demo Notifications**: 4 mock items generated on first load (Profit Alert, Transaction Confirmed, Bot Mode skip, Market Data Refreshed) with staggered relative timestamps
+
+**Type-to-Color Mapping**:
+- `profit_alert` → emerald (TrendingUp icon)
+- `tx_success` → emerald (CheckCircle2 icon)
+- `tx_failed` → rose (XCircle icon)
+- `bot_event` → violet (Bot icon)
+- `system` → cyan (Info icon)
+- `price_change` → amber (DollarSign icon)
+
+**`NotificationIcon`** — Static sub-component that resolves icon name to lucide component (avoids ESLint `react-hooks/static-components` error)
+
+**Helper functions**: `getRelativeTime()` for human-readable timestamps, `matchFilter()` for notification type filtering.
+
+**Styling**: Uses `glass-card-depth`, `animate-fade-in-up`, `animate-slide-in-right`. Dark theme (bg-gray-900, border-gray-800, text-white). Emerald/amber/rose/cyan/violet color system. All hover transitions.
+
+### Verification Results
+- **ESLint**: `npm run lint` passes with **zero errors**
+- **Dev Server**: Compiles successfully, all routes return 200
+- **No existing files modified** except `src/lib/store.ts` (notification state additions only)
+- **Files created**: `src/components/notification-center.tsx`
+
+---
+## Task ID: ROUND-4 - QA Fixes, Notification Center, Watchlist, CSS Polish
+
+### Current Project Status
+The application is fully functional with 16+ custom components, 8 tabs, onboarding modal, profit alerts panel, calculator, bot panel, activity ticker, market stats, network health widget, mini sparklines, export dialog, and comprehensive styling. This round focused on QA-driven bug fixes, two new major features (Notification Center + Token Watchlist), and extensive CSS micro-interaction additions.
+
+### Bug Fixes (from QA)
+
+**1. Stray "0" Text Nodes After V3/V4 Token Cards**
+- **`src/components/dashboard-tab.tsx`**: Token count badge `<span>` elements were always rendering even when count was 0, creating stray "0" text nodes in the accessibility tree
+- Fix: Wrapped badge spans in conditional `{count > 0 && <span>...</span>}` and added `aria-hidden="true"` to prevent screen reader noise
+
+**2. "Bot ModeNew" Badge Concatenation on Mobile**
+- **`src/app/page.tsx`**: On mobile, the tab label was hidden (`hidden sm:inline`) but the badge was always visible, causing text concatenation in accessibility tree
+- Fix: Split badge rendering into two elements — one for mobile-only (`sm:hidden`) and one for desktop (`hidden sm:inline`), both with `ml-0.5` spacing. Added `aria-label={tab.label}` to the button for proper accessibility
+
+**3. Gas Price Display Showing Unrealistic Values (744K+ Gwei)**
+- **`src/components/dashboard-tab.tsx`**: Raw gas price from PulseChain RPC is technically very high Gwei but costs nearly zero PLS due to PulseChain's unusual gas pricing
+- Fix: Added `formatCompactGasPrice()` helper that displays `844.7K Gwei (minimal PLS cost)` for values >1M, providing context about PulseChain's unique economics
+
+### New Features
+
+**4. Notification Center** (NEW: `src/components/notification-center.tsx`)
+- **NotificationBell**: Bell icon button integrated into header (between HelpCircle and Network Status), rose-colored unread count badge with pulse animation, click-to-open dropdown
+- **NotificationCenter**: Full dropdown panel with:
+  - Header: "Notifications" title + unread count + "Mark All Read" button
+  - 5 filter tabs: All | Alerts | Transactions | Bot | System (with per-filter counts)
+  - Scrollable notification list (max-h-96) with colored type icons, title/message, relative timestamps, unread indicators, dismiss buttons
+  - Empty state with BellOff icon
+  - "Clear All Notifications" footer button
+- **4 Demo Notifications** auto-generated on first load: Profit Alert (MV Token crossed 2.0x), Transaction Confirmed (Minted 1000 USDMV), Bot Mode Skip (Gas too high), Market Data Refreshed
+- **Store Integration**: Added `NotificationItem` interface, `notifications: NotificationItem[]`, `unreadCount: number` state, and 4 actions (`addNotification`, `markNotificationRead`, `markAllNotificationsRead`, `clearNotifications`) to Zustand store
+
+**5. Token Watchlist** (NEW: `src/components/token-watchlist.tsx`)
+- **WatchlistButton**: Star toggle button (props: `tokenAddress`, `size?: 'sm'|'md'`), filled amber star when watched, outline gray when not, animated transition, tooltip support
+- **TokenWatchlist**: Full panel/card integrated into Dashboard between Profitability Chart and Quick Stats, with:
+  - Header: "Watchlist" title + amber count badge + sort buttons (Name/Profit/Multiplier/Recent) + Clear All
+  - Scrollable token list showing: star icon, colored version avatar, name+symbol+V3/V4 badge, price+balance, multiplier with glow text, ProfitIndicator, hover action buttons (Mint More, Explorer, Remove)
+  - Sortable by 4 criteria with desktop buttons and mobile toggle
+  - Empty state with amber star icon + guidance text
+- **Store Integration**: Added `watchlist: string[]` state and 3 actions (`addToWatchlist`, `removeFromWatchlist`, `toggleWatchlist`) to Zustand store, persisted via localStorage
+
+### Styling Improvements
+
+**6. `src/app/globals.css` — Round 6: Premium Micro-Interactions (~235 lines)**
+- **Ambient Light** (`.ambient-light`): Soft rotating emerald glow at viewport edges
+- **Typing Animation** (`.typing-text`): Blinking cursor for status text
+- **Card Inner Glow** (`.card-inner-glow`): Subtle radial light gradient via ::after pseudo-element
+- **Gradient Text Variants**: `.text-gradient-cyan`, `.text-gradient-rose` for cyan and rose gradient text
+- **Ripple Effect** (`.ripple-effect`): Click ripple expand animation for buttons
+- **Card Entrance Variants**: `.animate-scale-in`, `.animate-slide-in-left`, `.animate-slide-in-bottom` with spring easing
+- **Interactive Hover Effects**: `.magnetic-hover`, `.glass-card-subtle`, `.border-glow-focus`
+- **Skeleton Wave** (`.skeleton-wave`): Emerald-tinted wave shimmer loading skeleton
+- **Notification Animations**: `.animate-notification-enter`, `.notification-badge-bounce`
+- **Star Toggle Animations**: `.animate-star-fill`, `.animate-star-unfill` for playful favorite toggling
+- **Reduced Motion**: All Round 6 animations disabled via `@media (prefers-reduced-motion: reduce)`
+
+### Integration Notes
+- NotificationBell integrated into page.tsx header (between HelpCircle and NetworkStatus)
+- TokenWatchlist integrated into dashboard-tab.tsx (between ProfitabilityChart and Quick Stats)
+- Both new components use existing CSS classes and design system
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with **zero errors**
+- **Dev Server**: Compiles successfully, all routes return 200, all API endpoints responding
+- **Browser QA**: Notification bell renders in header, dropdown opens with 4 demo notifications, filter tabs work, dismiss/clear functional, zero console errors, no layout issues
+- **No files modified in `src/components/ui/`**
+
+### Unresolved Issues & Next Phase Recommendations
+1. **Notification Integration**: Notification center generates demo notifications but doesn't yet auto-generate real-time notifications from actual events (transactions, profit changes, bot actions). Need to integrate with the transaction flow.
+2. **Watchlist ↔ Minter Tabs**: WatchlistButton could be added to V3/V4 minter tab token rows for easy star toggling from any view.
+3. **Real-time Updates**: WebSocket subscription for truly real-time price/multiplier updates instead of 15s polling.
+4. **Bot Mode → Real Blockchain**: Bot simulation works but actual on-chain minting requires wallet session persistence.
+5. **Mobile Optimization**: Token Watchlist and Notification Center could use further mobile-specific layouts.
+6. **Data Export**: Watchlist tokens could be included in the export dialog data.
+

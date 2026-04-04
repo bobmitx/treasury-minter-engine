@@ -13,6 +13,7 @@ import { BotPanel } from "@/components/bot-panel";
 import { CalculatorTab } from "@/components/calculator-tab";
 import { OnboardingModal } from "@/components/onboarding-modal";
 import { ActivityTicker } from "@/components/activity-ticker";
+import { NotificationBell } from "@/components/notification-center";
 import { useProfitAlertChecker } from "@/hooks/use-profit-alert-checker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -636,6 +637,7 @@ export default function Home() {
                     Getting Started Guide
                   </TooltipContent>
                 </Tooltip>
+                <NotificationBell />
                 <NetworkStatus />
                 <WalletButton />
               </div>
@@ -660,13 +662,15 @@ export default function Home() {
                             ? "text-emerald-400 bg-emerald-500/10"
                             : "text-gray-400 hover:text-gray-200 hover:bg-gray-800/50"
                         )}
+                        aria-label={tab.label}
                       >
                         <tab.icon className="h-3.5 w-3.5" />
                         <span className="hidden sm:inline">{tab.label}</span>
                         {tab.badge && (
-                          <span className="text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none">
-                            {tab.badge}
-                          </span>
+                          <span className="sm:hidden text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none ml-0.5">{tab.badge}</span>
+                        )}
+                        {tab.badge && (
+                          <span className="hidden sm:inline text-[8px] px-1 py-0 rounded bg-emerald-500/20 text-emerald-400 font-bold leading-none ml-0.5">{tab.badge}</span>
                         )}
                         {isActive && (
                           <motion.div

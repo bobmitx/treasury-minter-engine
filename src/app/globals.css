@@ -1679,3 +1679,239 @@ input[type="number"]:hover::-webkit-outer-spin-button {
     transform: none;
   }
 }
+
+/* === ROUND 6 - PREMIUM MICRO-INTERACTIONS === */
+
+/* 1. Ambient light: soft colored glow that follows the viewport edges */
+@keyframes ambient-shift {
+  0%, 100% { opacity: 0.03; transform: rotate(0deg) scale(1); }
+  50% { opacity: 0.06; transform: rotate(180deg) scale(1.1); }
+}
+
+.ambient-light {
+  position: fixed;
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(0.7 0.17 162 / 10%), transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: -2;
+  animation: ambient-shift 15s ease-in-out infinite;
+}
+
+/* 2. Typing cursor for status text */
+@keyframes typing-cursor {
+  0%, 100% { border-color: oklch(0.7 0.17 162); }
+  50% { border-color: transparent; }
+}
+
+.typing-text {
+  border-right: 2px solid oklch(0.7 0.17 162);
+  animation: typing-cursor 1s step-end infinite;
+  padding-right: 2px;
+}
+
+/* 3. Card inner glow: subtle inner light effect */
+.card-inner-glow {
+  position: relative;
+}
+
+.card-inner-glow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse at 30% 20%,
+    oklch(1 0 0 / 3%) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+}
+
+/* 4. Gradient text variants */
+
+/* Cyan gradient text */
+.text-gradient-cyan {
+  background: linear-gradient(135deg, oklch(0.75 0.15 200), oklch(0.7 0.17 170));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Rose gradient text */
+.text-gradient-rose {
+  background: linear-gradient(135deg, oklch(0.65 0.2 25), oklch(0.6 0.18 350));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 5. Ripple effect on click for buttons */
+@keyframes ripple-expand {
+  0% { transform: scale(0); opacity: 0.4; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::after {
+  content: "";
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: oklch(1 0 0 / 20%);
+  transform: scale(0);
+  pointer-events: none;
+}
+
+/* 6. Smooth card entrance variants */
+
+/* Scale-in-fade entrance */
+@keyframes scale-in-fade {
+  0% { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-scale-in {
+  animation: scale-in-fade 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Slide-in-left entrance */
+@keyframes slide-in-left {
+  0% { transform: translateX(-20px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Slide-in-bottom entrance */
+@keyframes slide-in-bottom {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 7. Interactive hover effects */
+
+/* Magnetic hover: element subtly moves toward cursor */
+.magnetic-hover {
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Glass morphism card variant */
+.glass-card-subtle {
+  background: oklch(0.16 0 0 / 40%);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  border: 1px solid oklch(1 0 0 / 6%);
+}
+
+/* Glowing border on focus */
+.border-glow-focus:focus-within {
+  border-color: oklch(0.7 0.17 162 / 40%);
+  box-shadow: 0 0 0 3px oklch(0.7 0.17 162 / 10%);
+  transition: all 0.2s ease;
+}
+
+/* 8. Skeleton variants */
+
+/* Skeleton with wave effect */
+@keyframes skeleton-wave {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-wave {
+  background: linear-gradient(
+    90deg,
+    oklch(0.22 0 0) 0%,
+    oklch(0.24 0 0) 25%,
+    oklch(0.28 0.01 162 / 35%) 50%,
+    oklch(0.24 0 0) 75%,
+    oklch(0.22 0 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-wave 1.8s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* 9. Notification animations */
+
+/* Notification slide-in */
+@keyframes notification-enter {
+  0% { transform: translateX(100%) scale(0.9); opacity: 0; }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+.animate-notification-enter {
+  animation: notification-enter 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Notification badge bounce */
+@keyframes notification-badge-bounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.4); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.notification-badge-bounce {
+  animation: notification-badge-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 10. Star/Favorite toggle animation */
+
+/* Star fill animation */
+@keyframes star-fill {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(0.8) rotate(-15deg); }
+  50% { transform: scale(1.2) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.animate-star-fill {
+  animation: star-fill 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Star unfill animation */
+@keyframes star-unfill {
+  0% { transform: scale(1.2) rotate(5deg); }
+  50% { transform: scale(0.9) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.animate-star-unfill {
+  animation: star-unfill 0.3s ease-out;
+}
+
+/* 11. Reduced motion support */
+
+/* All animations respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .ambient-light,
+  .animate-scale-in,
+  .animate-slide-in-left,
+  .animate-slide-in-bottom,
+  .animate-notification-enter,
+  .animate-star-fill,
+  .animate-star-unfill,
+  .notification-badge-bounce {
+    animation: none !important;
+  }
+  
+  .typing-text {
+    animation: none !important;
+    border-right-color: transparent;
+  }
+}
