@@ -2932,3 +2932,140 @@ The preview page was showing a "This site can't be reached" / Z.ai loader page i
 
 ### Recommendation
 If the preview stops loading again, run: `cd /home/z/my-project && bash .zscripts/dev.sh` to restart the dev server properly.
+
+---
+## Task ID: 5 - Rewrite V3 Minter Tab (Remove T-BILL Hardcoding, Fix Math, Dynamic Parent Data)
+
+### Work Task
+Rewrite `src/components/v3-minter-tab.tsx` to remove all T-BILL-specific hardcoding, fix the USD cost calculation math, and fetch parent token data on-chain via `/api/token-data`.
+
+### Work Summary
+
+**1. Removed T-BILL-specific hardcoding:**
+- Removed `T_BILL_ADDRESS` constant (`0x463413c579D29c26D59a65312657DFCe30D545A1`)
+- Removed `ESTIMATED_TOTAL_SUPPLY` constant (`1_100_000_000`)
+- Renamed `TBillInfo` interface → `ParentTokenInfo` with new fields: `totalSupply` (number), `totalSupplyFormatted`, `priceUSD`, `pricePLS`, `plsPriceUSD`, `isLive`, `source`, `symbol`, `name`
+- Renamed `tbillInfo` state → `parentInfo` (initialized with zero defaults)
+- Renamed `loadingTbill` → `loadingParent`
+- Removed `loadingCalcParent` / `setLoadingCalcParent` state (no longer needed)
+- Removed `knownSupplies` hardcoded map for FED/eDAI/WPLS/MV
+- Removed `getV3MinterInfo` from ethereum imports (uses `/api/token-data` instead)
+- Removed `getExplorerAddressUrl` unused import
+- Updated all T-BILL-specific labels to generic "Parent Token" language
+- Removed T-BILL contract reference from Contract References section
+- Updated pro tip: "Choose any ERC20 token as the backing asset"
+- Updated example: "Example: Minting 10,000 tokens..." (no T-BILL/supply mention)
+- Updated description: "any ERC20 token on PulseChain" instead of "T-BILL, FED, eDAI, WPLS, or any ERC20 token"
+- Updated "Per token (default parent: T-BILL)" → "Per minted token"
+- Updated "Parent Token Supply (T-BILL)" → "Parent Token Supply" with dynamic symbol badge
+- Updated "Current Mint Cost" → "Parent Token Price" (shows selected parent's price)
+- Updated "⚠ Fallback" badge → "⚠ No Price"
+
+**2. Fixed V3 Math:**
+- Old: `costUSD = costTBILL * tbillInfo.tbillPriceUSD` (always used T-BILL price regardless of selected parent)
+- New: `costUSD = costInParent * parentInfo.priceUSD` (uses the selected parent token's price from `/api/token-data`)
+- Renamed `calcResult.costTBILL` → `calcResult.costInParent`
+- Calculator shows "—" for USD cost when no price data available
+- Calculator shows "No price data for parent token" warning when price is 0
+- Calculator shows warning when total supply is 0 (cannot compute multiplier)
+- Key insight now shows parent tokens per token instead of USD average when no price data
+
+**3. Fetch Parent Token Data On-Chain:**
+- New `fetchParentInfo(tokenAddress)` function calls `/api/token-data?address=...`
+- Sets `parentInfo` with all returned fields (supply, price, symbol, name, etc.)
+- Sets `calcParentSupply` from the API response
+- Triggered on `calcParentToken` change via useEffect
+- Periodic refresh every 60s
+- Loading skeleton shown while fetching
+- Loading indicator text: "Fetching {parentSymbol} on-chain data..."
+
+**4. Dynamic Info Section:**
+- "Parent Token Supply" card: shows supply + symbol badge of the selected calculator parent token
+- "Parent Token Price" card: shows price of selected parent with Live/No Price badge
+- "PLS Price" card: unchanged (general)
+- All stats update when calculator parent token changes
+
+**5. Preserved:**
+- All styling (dark theme, emerald accent, glow effects, animations, card-hover, gradient-border, etc.)
+- All UI structure (collapsible info, calculator card, accordion guides, multiplier ring, create form, mint form, add custom token, token list)
+- All existing functionality (create token, mint, add token, remove token, copy address, refresh, detail dialog, watchlist)
+- Parent token selector buttons (PARENT_TOKEN_OPTIONS) - kept as-is (they're preset options, not T-BILL-only)
+- Formula display (Multiplier = TotalSupply / (TotalSupply + Addition))
+- Responsive grid layout (lg:grid-cols-2 for create/mint)
+
+### Verification Results
+- **ESLint**: Zero errors, zero warnings in `v3-minter-tab.tsx`
+- **Dev Server**: Compiles successfully (200 responses, no errors in dev.log)
+
+---
+## Task ID: V3-MATH-FIX - Fix V3 Multiplier Math & Remove T-BILL Hardcoding
+
+### Current Project Status
+The V3 minter tab had two critical issues: (1) the multiplier calculator's USD cost was always calculated using T-BILL price even when a different parent token was selected, making all non-T-BILL cost calculations wrong; (2) T-BILL was referenced everywhere as the default/only parent token option, with hardcoded supply estimates and T-BILL-specific variable names throughout.
+
+### Root Cause Analysis
+1. **Math Bug (Line 227 old code)**: `costUSD = costTBILL * tbillInfo.tbillPriceUSD` — the variable name `costTBILL` was misleading (it meant "cost in parent tokens") and `tbillInfo.tbillPriceUSD` was always T-BILL's price regardless of which parent token was selected in the calculator. When a user selected FED as parent and calculated mint cost, the USD value shown was wrong because it used T-BILL's price instead of FED's price.
+2. **T-BILL Hardcoding**: Variable names (`tbillInfo`, `TBillInfo`, `T_BILL_ADDRESS`), constant `ESTIMATED_TOTAL_SUPPLY = 1_100_000_000`, hardcoded `knownSupplies` map, info section labels ("Parent Token Supply (T-BILL)"), pro tip text ("T-BILL is the most common choice"), and example text all assumed T-BILL was the only/default parent.
+
+### Completed Modifications
+
+**1. `src/app/api/token-data/route.ts` — NEW API ROUTE**
+- Generic endpoint: `GET /api/token-data?address=0x...`
+- Fetches on-chain data for ANY ERC20 token: totalSupply, name, symbol, decimals
+- Fetches price from DexScreener (primary) and PulseX LP (secondary)
+- Returns PLS price alongside token price
+- In-memory cache with 30-second TTL
+- Known supply fallback for T-BILL (1.1B), FED (1B), eDAI (100M), WPLS (32M) when on-chain fetch fails
+- Response includes: `{ success, address, name, symbol, decimals, totalSupply, totalSupplyFormatted, priceUSD, pricePLS, plsPriceUSD, isLive, source }`
+
+**2. `src/components/v3-minter-tab.tsx` — COMPLETE REWRITE**
+- Removed `T_BILL_ADDRESS` constant
+- Removed `ESTIMATED_TOTAL_SUPPLY` constant (1.1B T-BILL hardcode)
+- Renamed `TBillInfo` → `ParentTokenInfo` with new fields: `symbol`, `name`, numeric `totalSupply`
+- Renamed `tbillInfo` → `parentInfo`, `loadingTbill` → `loadingParent`
+- Removed `getV3MinterInfo` import (replaced with `/api/token-data` API call)
+- Removed hardcoded `knownSupplies` map from frontend (moved to API route)
+
+**3. Math Fix (Critical)**
+- OLD: `costUSD = costTBILL * tbillInfo.tbillPriceUSD` (always T-BILL price)
+- NEW: `costUSD = costInParent * parentInfo.priceUSD` (uses selected parent's price)
+- Shows "—" and "No price data" warning when parent token price is unavailable
+- Cost per token display uses `costInParent / amount` (parent tokens per minted token)
+
+**4. Dynamic Parent Token Fetching**
+- `fetchParentInfo(tokenAddress)` calls `/api/token-data` for any ERC20 token
+- Auto-fires when calculator parent token changes
+- Auto-refreshes every 60 seconds
+- Loading skeleton while fetching
+- Info section now shows: selected parent's supply, price (with live/fallback badge), PLS price
+
+**5. All T-BILL-Specific Text Removed**
+- "Parent Token Supply (T-BILL)" → "Parent Token Supply" (with dynamic symbol badge)
+- "Per token (default parent: T-BILL)" → "Per minted token"
+- "T-BILL:" contract reference removed from info section
+- "T-BILL is the most common choice" → "Choose any ERC20 token as the backing asset"
+- "Example (T-BILL parent, ~1.1B supply)" → "Example: Minting 10,000 tokens..."
+- Variable `costTBILL` → `costInParent`
+- Guide text: "T-BILL, FED, eDAI, WPLS" → listed as available options, not defaults
+
+**6. Responsive Layouts**
+- All forms use `w-full` on mobile, `grid-cols-1 lg:grid-cols-2` for create+mint side-by-side on desktop
+- Calculator preset buttons wrap on mobile with `flex-wrap`
+- All styling preserved (dark theme, emerald accents, glow effects, animations)
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with 0 errors (220 pre-existing warnings in store.ts)
+- **Dev Server**: Compiles successfully, all routes return 200
+- **API**: `/api/token-data?address=0x...` returns correct data:
+  - T-BILL: Supply 1.10B, Price $0.0000671, Source: DexScreener
+  - FED: Supply 1.00B, Price $0.00001069, Source: DexScreener
+- **Homepage**: GET / returns 200
+- **No runtime errors** in dev.log
+
+### Files Modified
+- `src/app/api/token-data/route.ts` (NEW)
+- `src/components/v3-minter-tab.tsx` (REWRITTEN)
+
+### Unresolved Issues
+1. On-chain `totalSupply()` call fails for T-BILL from the new API (non-standard ERC20?), using known supply fallback. Works correctly from the existing tbill-info route.
+2. Cron job limit reached (30/30), could not create webDevReview job.
