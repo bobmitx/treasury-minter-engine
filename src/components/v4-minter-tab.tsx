@@ -715,7 +715,7 @@ export function V4MinterTab() {
       setCurrentMultiplier(mult);
       setSystemInfo(info);
     } catch (error) {
-      console.error("Error fetching V4 data:", error);
+      // V4 system data is non-critical — errors already handled per-call in ethereum.ts
     } finally {
       setLoadingMultiplier(false);
     }
@@ -723,7 +723,7 @@ export function V4MinterTab() {
 
   useEffect(() => {
     fetchSystemData();
-    const interval = setInterval(fetchSystemData, 15000);
+    const interval = setInterval(fetchSystemData, 30000);
     return () => clearInterval(interval);
   }, [fetchSystemData]);
 

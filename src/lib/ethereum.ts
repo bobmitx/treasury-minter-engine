@@ -39,7 +39,9 @@ let readOnlyProvider: ethers.providers.JsonRpcProvider | null = null;
 export function getProvider(): ethers.providers.JsonRpcProvider {
   if (!readOnlyProvider) {
     readOnlyProvider = new ethers.providers.JsonRpcProvider(
-      PULSECHAIN_CONFIG.rpcUrl
+      PULSECHAIN_CONFIG.rpcUrl,
+      undefined,
+      { staticNetwork: true, pollingInterval: 15000 }
     );
   }
   return readOnlyProvider;
@@ -426,10 +428,15 @@ export async function getV4Multiplier(
   try {
     const provider = getProvider();
     const contract = new Contract(tokenAddress, dedupedV4(), provider);
-    const multiplier = await contract.Multiplier(amount);
+    const multiplier = await Promise.race([
+      contract.Multiplier(amount),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Multiplier() timed out")), 30000)
+      ),
+    ]);
     return parseFloat(ethers.utils.formatUnits(multiplier, 0));
   } catch {
-    // Silently return 0
+    // Silently return 0 — contract may not support this method or RPC may be slow
     return 0;
   }
 }
@@ -795,6 +802,30 @@ export async function executeMultiHopMint(
 }
 
 // Get V4 system info
+const ZERO = ethers.constants.AddressZero;
+
+// Helper: call a contract read with a timeout guard
+async function safeContractRead<T>(
+  fn: () => Promise<T>,
+  fallback: T,
+  label: string,
+  timeoutMs = 30000
+): Promise<T> {
+  try {
+    const result = await Promise.race([
+      fn(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs)
+      ),
+    ]);
+    return result;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[V4 SystemInfo] ${label} failed: ${msg.split("(")[0].trim()}`);
+    return fallback;
+  }
+}
+
 export async function getV4SystemInfo(
   minterAddress: string
 ): Promise<{
@@ -804,39 +835,23 @@ export async function getV4SystemInfo(
   nots: string;
   skills: string;
 }> {
-  try {
-    const provider = getProvider();
-    const contract = new Contract(
-      minterAddress,
-      ABIS.V4MinterABI,
-      provider
-    );
+  const provider = getProvider();
+  const contract = new Contract(
+    minterAddress,
+    ABIS.V4MinterABI,
+    provider
+  );
 
-    const [bbc, indexMinter, nine, nots, skills] = await Promise.all([
-      contract.BBC(),
-      contract.IndexMinter(),
-      contract.NINE(),
-      contract.NOTS(),
-      contract.SKILLS(),
-    ]);
+  // Use individual calls with per-call timeout so one failure doesn't kill all
+  const [bbc, indexMinter, nine, nots, skills] = await Promise.all([
+    safeContractRead(() => contract.BBC(), ZERO, "BBC()"),
+    safeContractRead(() => contract.IndexMinter(), ZERO, "IndexMinter()"),
+    safeContractRead(() => contract.NINE(), ZERO, "NINE()"),
+    safeContractRead(() => contract.NOTS(), ZERO, "NOTS()"),
+    safeContractRead(() => contract.SKILLS(), ZERO, "SKILLS()"),
+  ]);
 
-    return {
-      bbc,
-      indexMinter,
-      nine,
-      nots,
-      skills,
-    };
-  } catch (error) {
-    console.error("Error getting V4 system info:", error);
-    return {
-      bbc: ethers.constants.AddressZero,
-      indexMinter: ethers.constants.AddressZero,
-      nine: ethers.constants.AddressZero,
-      nots: ethers.constants.AddressZero,
-      skills: ethers.constants.AddressZero,
-    };
-  }
+  return { bbc, indexMinter, nine, nots, skills };
 }
 
 // In-memory cache for token decimals to avoid repeated RPC calls
