@@ -151,11 +151,21 @@ export function V3MinterTab() {
   const [createParent, setCreateParent] = useState(CONTRACTS.tbill);
   const [creating, setCreating] = useState(false);
   const [createdTokenKey, setCreatedTokenKey] = useState(0);
+  // Custom parent token validation for create form
+  const [createParentMode, setCreateParentMode] = useState<"preset" | "custom">("preset");
+  const [customParentAddr, setCustomParentAddr] = useState("");
+  const [customParentInfo, setCustomParentInfo] = useState<{ name: string; symbol: string; decimals: number; totalSupply: string } | null>(null);
+  const [customParentChecking, setCustomParentChecking] = useState(false);
+  const [customParentValid, setCustomParentValid] = useState(false);
 
   // ── Mint form ───────────────────────────────────────────────────────────
   const [mintToken, setMintToken] = useState("");
   const [mintAmount, setMintAmount] = useState("1000");
   const [minting, setMinting] = useState(false);
+  // Mint token info preview
+  const [mintTokenInfo, setMintTokenInfo] = useState<{ name: string; symbol: string } | null>(null);
+  const [mintTokenChecking, setMintTokenChecking] = useState(false);
+  // Mint token parent info (fetched dynamically when needed)
 
   // ── Multiplier display ──────────────────────────────────────────────────
   const [currentMultiplier, setCurrentMultiplier] = useState<number>(0);
@@ -580,6 +590,103 @@ export function V3MinterTab() {
   };
 
   const v3Tokens = tokens.filter((t) => t.version === "V3");
+
+  // ── Validate custom parent token address (create form) ───────────────
+  useEffect(() => {
+    if (createParentMode !== "custom") {
+      setCustomParentInfo(null);
+      setCustomParentValid(false);
+      return;
+    }
+    const addr = customParentAddr.trim();
+    if (!addr || !addr.startsWith("0x") || addr.length !== 42) {
+      setCustomParentInfo(null);
+      setCustomParentValid(false);
+      return;
+    }
+    let cancelled = false;
+    setCustomParentChecking(true);
+    const validate = async () => {
+      try {
+        const info = await getTokenInfo(addr);
+        if (cancelled) return;
+        if (info.symbol === "???" && info.name === "Unknown") {
+          setCustomParentInfo(null);
+          setCustomParentValid(false);
+        } else {
+          setCustomParentInfo({ name: info.name, symbol: info.symbol, decimals: info.decimals, totalSupply: "" });
+          setCustomParentValid(true);
+          setCreateParent(addr);
+        }
+      } catch {
+        if (!cancelled) {
+          setCustomParentInfo(null);
+          setCustomParentValid(false);
+        }
+      } finally {
+        if (!cancelled) setCustomParentChecking(false);
+      }
+    };
+    const timer = setTimeout(validate, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [customParentAddr, createParentMode]);
+
+  // ── When preset parent is selected, sync to createParent ─────────────
+  useEffect(() => {
+    if (createParentMode === "preset") {
+      setCreateParent(PARENT_TOKEN_OPTIONS.find(o => o.address === createParent)?.address || CONTRACTS.tbill);
+    }
+  }, [createParentMode, createParent]);
+
+  // ── Validate mint token address (mint form) ──────────────────────────
+  useEffect(() => {
+    const addr = mintToken.trim();
+    if (!addr || !addr.startsWith("0x") || addr.length !== 42) {
+      setMintTokenInfo(null);
+      return;
+    }
+    let cancelled = false;
+    setMintTokenChecking(true);
+    const validate = async () => {
+      try {
+        const info = await getTokenInfo(addr);
+        if (cancelled) return;
+        if (info.symbol !== "???" && info.name !== "Unknown") {
+          setMintTokenInfo({ name: info.name, symbol: info.symbol });
+        } else {
+          setMintTokenInfo(null);
+        }
+      } catch {
+        if (!cancelled) setMintTokenInfo(null);
+      } finally {
+        if (!cancelled) setMintTokenChecking(false);
+      }
+    };
+    const timer = setTimeout(validate, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [mintToken]);
+
+  // ── Compute create form cost preview ─────────────────────────────────
+  const createCostPreview = useMemo(() => {
+    const amount = parseFloat(createInitialMint);
+    if (!amount || amount <= 0) return null;
+    const supply = calcParentSupply > 0 ? calcParentSupply : 0;
+    if (supply <= 0) return null;
+    const mult = supply / (supply + amount);
+    const cost = mult * amount;
+    const costUSD = cost * parentInfo.priceUSD;
+    return { multiplier: mult, cost, costUSD };
+  }, [createInitialMint, calcParentSupply, parentInfo.priceUSD]);
+
+  // ── Create form parent label ──────────────────────────────────────────
+  const createParentLabel = useMemo(() => {
+    if (createParentMode === "custom" && customParentInfo) {
+      return `${customParentInfo.name} (${customParentInfo.symbol})`;
+    }
+    const opt = PARENT_TOKEN_OPTIONS.find(o => o.address === createParent);
+    if (opt) return `${opt.name} (${opt.symbol})`;
+    return createParent ? `${createParent.slice(0, 6)}...${createParent.slice(-4)}` : "Select parent token";
+  }, [createParent, createParentMode, customParentInfo]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   return (
@@ -1194,20 +1301,23 @@ export function V3MinterTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-gray-300 text-sm">Token Name</Label>
+            {/* Token Name */}
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-xs">Token Name</Label>
               <Input
-                placeholder="My Token"
+                placeholder="e.g. My Treasury Token"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 className="bg-gray-800 border-gray-700 text-white w-full input-focus-ring"
                 disabled={!connected}
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300 text-sm">Symbol</Label>
+
+            {/* Symbol */}
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-xs">Symbol</Label>
               <Input
-                placeholder="MTK"
+                placeholder="e.g. MTK"
                 value={createSymbol}
                 onChange={(e) => setCreateSymbol(e.target.value.toUpperCase())}
                 className="bg-gray-800 border-gray-700 text-white font-mono w-full input-focus-ring"
@@ -1215,60 +1325,166 @@ export function V3MinterTab() {
                 disabled={!connected}
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300 text-sm">Initial Mint Amount</Label>
-              <Input
-                type="number"
-                placeholder="1000"
-                value={createInitialMint}
-                onChange={(e) => setCreateInitialMint(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white w-full input-focus-ring"
-                disabled={!connected}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300 text-sm">Parent Token (backing asset)</Label>
-              <div className="space-y-2">
-                {/* Quick-select dropdown buttons */}
-                <div className="flex flex-wrap gap-1.5">
-                  {PARENT_TOKEN_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.address}
-                      onClick={() => setCreateParent(opt.address)}
-                      disabled={!connected}
-                      className={cn(
-                        "text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 btn-hover-scale flex items-center gap-1.5",
-                        createParent === opt.address
-                          ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-[0_0_8px_oklch(0.7_0.17_162/15%)]"
-                          : "bg-gray-800/70 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 hover:bg-gray-800"
-                      )}
-                    >
-                      <span>{opt.icon}</span>
-                      <span className="font-medium">{opt.symbol}</span>
-                    </button>
-                  ))}
-                </div>
-                {/* Custom address input */}
-                <div className="relative">
-                  <Input
-                    value={createParent}
-                    onChange={(e) => setCreateParent(e.target.value)}
-                    className="bg-gray-800 border-gray-700 text-white font-mono text-xs w-full input-focus-ring pr-8"
-                    placeholder="Or paste any ERC20 token address..."
+
+            {/* Initial Mint Amount with presets */}
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-xs">Initial Mint Amount</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder="1000"
+                  value={createInitialMint}
+                  onChange={(e) => setCreateInitialMint(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white font-mono w-full input-focus-ring"
+                  disabled={!connected}
+                />
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {[100, 1000, 10000, 100000, 1000000].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => setCreateInitialMint(preset.toString())}
                     disabled={!connected}
-                  />
-                  {createParent && PARENT_TOKEN_OPTIONS.some((o) => o.address === createParent) && (
-                    <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-emerald-400" />
+                    className={cn(
+                      "text-[10px] px-2 py-1 rounded border transition-all duration-200 btn-hover-scale",
+                      createInitialMint === preset.toString()
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                        : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400 disabled:opacity-50"
+                    )}
+                  >
+                    {preset >= 1e6 ? `${preset / 1e6}M` : `${preset >= 1e3 ? preset / 1e3 + "K" : preset}`}
+                  </button>
+                ))}
+              </div>
+              {/* Cost preview for create */}
+              {createCostPreview && (
+                <div className="bg-gray-800/40 rounded-md p-2.5 border border-gray-800 text-[10px] space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Multiplier</span>
+                    <span className="text-emerald-400 font-mono">{createCostPreview.multiplier.toFixed(6)}x</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Est. Cost ({PARENT_TOKEN_OPTIONS.find(o => o.address === createParent)?.symbol || "parent"})</span>
+                    <span className="text-amber-400 font-mono">{formatLargeNumber(createCostPreview.cost)}</span>
+                  </div>
+                  {parentInfo.priceUSD > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Est. Cost (USD)</span>
+                      <span className="text-white font-mono">{formatUSD(createCostPreview.costUSD)}</span>
+                    </div>
                   )}
                 </div>
-                <p className="text-[10px] text-gray-600 leading-relaxed">
-                  The parent token determines what asset backs your new token and affects the multiplier curve. Choose any ERC20 token as the backing asset.
-                </p>
-              </div>
+              )}
             </div>
+
+            {/* Parent Token — preset vs custom mode toggle */}
+            <div className="space-y-2">
+              <Label className="text-gray-300 text-xs">Parent Token (backing asset)</Label>
+
+              {/* Mode toggle: Preset or Custom */}
+              <div className="flex gap-1.5 mb-2">
+                <button
+                  onClick={() => { setCreateParentMode("preset"); setCustomParentAddr(""); setCustomParentInfo(null); }}
+                  className={cn(
+                    "text-xs px-3 py-1.5 rounded-md border transition-all duration-200",
+                    createParentMode === "preset"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                      : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400"
+                  )}
+                >
+                  Quick Select
+                </button>
+                <button
+                  onClick={() => setCreateParentMode("custom")}
+                  className={cn(
+                    "text-xs px-3 py-1.5 rounded-md border transition-all duration-200",
+                    createParentMode === "custom"
+                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                      : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400"
+                  )}
+                >
+                  Custom ERC20 Address
+                </button>
+              </div>
+
+              {createParentMode === "preset" ? (
+                <>
+                  {/* Preset token buttons */}
+                  <div className="flex flex-wrap gap-1.5">
+                    {PARENT_TOKEN_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.address}
+                        onClick={() => { setCreateParent(opt.address); setCreateParentMode("preset"); }}
+                        disabled={!connected}
+                        className={cn(
+                          "text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 btn-hover-scale flex items-center gap-1.5",
+                          createParent === opt.address && createParentMode === "preset"
+                            ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-[0_0_8px_oklch(0.7_0.17_162/15%)]"
+                            : "bg-gray-800/70 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-50"
+                        )}
+                      >
+                        <span>{opt.icon}</span>
+                        <span className="font-medium">{opt.symbol}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-600">
+                    Selected: <span className="text-gray-400 font-medium">{createParentLabel}</span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  {/* Custom ERC20 address input */}
+                  <div className="relative">
+                    <Input
+                      value={customParentAddr}
+                      onChange={(e) => setCustomParentAddr(e.target.value)}
+                      className={cn(
+                        "bg-gray-800 border-gray-700 text-white font-mono text-xs w-full input-focus-ring pr-8",
+                        customParentValid && "border-emerald-500/40",
+                        customParentAddr && !customParentValid && !customParentChecking && "border-rose-500/40"
+                      )}
+                      placeholder="Paste any ERC20 token address (0x...)"
+                      disabled={!connected}
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                      {customParentChecking && <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />}
+                      {customParentValid && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}
+                      {customParentAddr && !customParentValid && !customParentChecking && <AlertCircle className="h-3.5 w-3.5 text-rose-400" />}
+                    </div>
+                  </div>
+                  {/* Custom token info preview */}
+                  {customParentInfo && customParentValid && (
+                    <div className="bg-emerald-500/5 rounded-md p-2.5 border border-emerald-500/10 animate-fade-in-up">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                        <div>
+                          <p className="text-xs font-medium text-emerald-400">
+                            {customParentInfo.name} ({customParentInfo.symbol})
+                          </p>
+                          <p className="text-[10px] text-gray-500 font-mono mt-0.5">
+                            {customParentAddr}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {customParentAddr && !customParentValid && !customParentChecking && (
+                    <p className="text-[10px] text-rose-400">
+                      {customParentAddr.length !== 42 ? "Address must be 42 characters" : "Could not read ERC20 data. Ensure this is a valid PulseChain token."}
+                    </p>
+                  )}
+                </>
+              )}
+
+              <p className="text-[10px] text-gray-600 leading-relaxed">
+                The parent token is the backing asset. Any ERC20 token on PulseChain can be used. It determines the multiplier curve for minting.
+              </p>
+            </div>
+
             <Button
               onClick={handleCreateToken}
-              disabled={creating || !connected}
+              disabled={creating || !connected || (createParentMode === "custom" && !customParentValid)}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
             >
               {creating ? (
@@ -1295,44 +1511,98 @@ export function V3MinterTab() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-gray-300 text-sm">Token Address</Label>
-              <Input
-                value={mintToken}
-                onChange={(e) => setMintToken(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white font-mono text-xs w-full input-focus-ring"
-                placeholder="0x..."
-                disabled={!connected}
-              />
+            {/* Token Address with validation */}
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-xs">V3 Token Address</Label>
+              <div className="relative">
+                <Input
+                  value={mintToken}
+                  onChange={(e) => setMintToken(e.target.value)}
+                  className={cn(
+                    "bg-gray-800 border-gray-700 text-white font-mono text-xs w-full input-focus-ring pr-8",
+                    mintTokenInfo && "border-emerald-500/40"
+                  )}
+                  placeholder="Paste V3 token contract address (0x...)"
+                  disabled={!connected}
+                />
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                  {mintTokenChecking && <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />}
+                  {mintTokenInfo && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}
+                </div>
+              </div>
+              {/* Token info preview */}
+              {mintTokenInfo && (
+                <div className="flex items-center gap-1.5 bg-emerald-500/5 rounded-md px-2.5 py-1.5 border border-emerald-500/10 animate-fade-in-up">
+                  <CheckCircle2 className="h-3 w-3 text-emerald-400 flex-shrink-0" />
+                  <span className="text-xs text-emerald-400 font-medium">{mintTokenInfo.name} ({mintTokenInfo.symbol})</span>
+                </div>
+              )}
+              {/* Quick select from tracked tokens */}
               {v3Tokens.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {v3Tokens.slice(0, 5).map((t) => (
-                    <button
-                      key={t.address}
-                      onClick={() => setMintToken(t.address)}
-                      className={`text-xs px-2 py-0.5 rounded border transition-all duration-200 btn-hover-scale ${
-                        mintToken === t.address
-                          ? "bg-gray-800 border-gray-700 text-gray-400 selected-amber-glow"
-                          : "bg-gray-800 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300"
-                      }`}
-                    >
-                      {t.symbol}
-                    </button>
-                  ))}
+                <div>
+                  <p className="text-[10px] text-gray-500 mb-1.5">Quick select from tracked tokens:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {v3Tokens.slice(0, 8).map((t) => (
+                      <button
+                        key={t.address}
+                        onClick={() => setMintToken(t.address)}
+                        className={cn(
+                          "text-xs px-2.5 py-1 rounded-lg border transition-all duration-200 btn-hover-scale flex items-center gap-1",
+                          mintToken === t.address
+                            ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-[0_0_8px_oklch(0.7_0.17_162/15%)]"
+                            : "bg-gray-800/70 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 hover:bg-gray-800"
+                        )}
+                      >
+                        <span className="w-4 h-4 rounded bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 flex items-center justify-center text-[8px] font-bold text-emerald-400">
+                          {t.symbol.slice(0, 2)}
+                        </span>
+                        <span className="font-medium">{t.symbol}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
-            <div className="space-y-2">
-              <Label className="text-gray-300 text-sm">Mint Amount</Label>
+
+            {/* Mint Amount with presets */}
+            <div className="space-y-1.5">
+              <Label className="text-gray-300 text-xs">Mint Amount</Label>
               <Input
                 type="number"
                 placeholder="1000"
                 value={mintAmount}
                 onChange={(e) => setMintAmount(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white w-full input-focus-ring"
+                className="bg-gray-800 border-gray-700 text-white font-mono w-full input-focus-ring"
                 disabled={!connected}
               />
+              <div className="flex flex-wrap gap-1.5">
+                {[100, 1000, 5000, 10000, 50000, 100000].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => setMintAmount(preset.toString())}
+                    disabled={!connected}
+                    className={cn(
+                      "text-[10px] px-2 py-1 rounded border transition-all duration-200 btn-hover-scale",
+                      mintAmount === preset.toString()
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                        : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400 disabled:opacity-50"
+                    )}
+                  >
+                    {preset >= 1e6 ? `${preset / 1e6}M` : `${preset >= 1e3 ? preset / 1e3 + "K" : preset}`}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Multiplier display for selected mint token */}
+            {mintToken && currentMultiplier > 0 && (
+              <div className="bg-gray-800/40 rounded-md p-2.5 border border-gray-800">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">Current Multiplier</span>
+                  <span className="text-emerald-400 font-mono font-medium">{formatLargeNumber(currentMultiplier)}x</span>
+                </div>
+              </div>
+            )}
 
             {/* Mint Preview */}
             {mintPreview && (
