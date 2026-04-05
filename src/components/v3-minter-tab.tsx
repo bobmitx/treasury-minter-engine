@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import {
   createV3Token,
@@ -14,9 +14,9 @@ import {
   shortenAddress,
   formatUSD,
   formatLargeNumber,
+  getV3MinterInfo,
 } from "@/lib/ethereum";
 import { CONTRACTS } from "@/lib/contracts";
-import { StatsCard } from "@/components/stats-card";
 import { ProfitIndicator } from "@/components/profit-indicator";
 import { TokenDetailDialog } from "@/components/token-detail-dialog";
 import { WatchlistButton } from "@/components/token-watchlist";
@@ -27,6 +27,17 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 import {
   Zap,
@@ -37,15 +48,53 @@ import {
   RefreshCw,
   Copy,
   Check,
-  ArrowRight,
   Sparkles,
   Trash2,
   Loader2,
   Search,
   Eye,
+  ChevronDown,
+  Info,
+  BookOpen,
+  Calculator,
+  HelpCircle,
+  AlertCircle,
+  Shield,
+  FileCode,
+  Wallet,
+  CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 
+// ── Constants ────────────────────────────────────────────────────────────────
+const V3_INDEX_MINTER = "0x0c4F73328dFCECfbecf235C9F78A4494a7EC5ddC";
+const T_BILL_ADDRESS = "0x463413c579D29c26D59a65312657DFCe30D545A1";
+const ESTIMATED_TOTAL_SUPPLY = 1_100_000_000; // ~1.1 billion T-BILL
+
+// ── T-BILL On-Chain Info Types ──────────────────────────────────────────────
+interface TBillInfo {
+  totalSupply: string;
+  totalSupplyFormatted: string;
+  tbillPriceUSD: number;
+  tbillPricePLS: number;
+  plsPriceUSD: number;
+}
+
+// ── Token Validation States ─────────────────────────────────────────────────
+type ValidationState = "idle" | "checking" | "valid" | "invalid";
+
+// ── Added Token Success Info ────────────────────────────────────────────────
+interface AddedTokenInfo {
+  address: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  priceUSD: number;
+  multiplier: number;
+  balance: string;
+}
+
+// ── Main Component ──────────────────────────────────────────────────────────
 export function V3MinterTab() {
   const {
     connected,
@@ -57,44 +106,110 @@ export function V3MinterTab() {
     addTransaction,
   } = useAppStore();
 
-  // Create token form
+  // ── Info collapsible state ──────────────────────────────────────────────
+  const [infoOpen, setInfoOpen] = useState(true);
+
+  // ── T-BILL on-chain data ────────────────────────────────────────────────
+  const [tbillInfo, setTbillInfo] = useState<TBillInfo>({
+    totalSupply: "0",
+    totalSupplyFormatted: "0",
+    tbillPriceUSD: 0,
+    tbillPricePLS: 0,
+    plsPriceUSD: 0,
+  });
+  const [loadingTbill, setLoadingTbill] = useState(false);
+
+  // ── Multiplier calculator state ─────────────────────────────────────────
+  const [calcMintAmount, setCalcMintAmount] = useState("10000");
+  const [calcResult, setCalcResult] = useState<{
+    multiplier: number;
+    costTBILL: number;
+    costUSD: number;
+    percentageOfSupply: number;
+  } | null>(null);
+
+  // ── Create token form ───────────────────────────────────────────────────
   const [createName, setCreateName] = useState("");
   const [createSymbol, setCreateSymbol] = useState("");
   const [createInitialMint, setCreateInitialMint] = useState("1000");
   const [createParent, setCreateParent] = useState(CONTRACTS.tbill);
   const [creating, setCreating] = useState(false);
+  const [createdTokenKey, setCreatedTokenKey] = useState(0);
 
-  // Mint form
+  // ── Mint form ───────────────────────────────────────────────────────────
   const [mintToken, setMintToken] = useState("");
   const [mintAmount, setMintAmount] = useState("1000");
   const [minting, setMinting] = useState(false);
 
-  // Multiplier display
+  // ── Multiplier display ──────────────────────────────────────────────────
   const [currentMultiplier, setCurrentMultiplier] = useState<number>(0);
   const [loadingMultiplier, setLoadingMultiplier] = useState(false);
 
-  // Token preview
+  // ── Token preview ───────────────────────────────────────────────────────
   const [mintPreview, setMintPreview] = useState<{
     cost: number;
     ratio: number;
   } | null>(null);
 
-  // Token list refresh
+  // ── Token list refresh ──────────────────────────────────────────────────
   const [refreshing, setRefreshing] = useState(false);
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null);
 
-  // Token creation animation state
-  const [createdTokenKey, setCreatedTokenKey] = useState(0);
-
-  // Add custom token
+  // ── Add custom token (improved) ─────────────────────────────────────────
   const [addTokenAddress, setAddTokenAddress] = useState("");
   const [addingToken, setAddingToken] = useState(false);
   const [showAddToken, setShowAddToken] = useState(false);
+  const [validationState, setValidationState] = useState<ValidationState>("idle");
+  const [validationMessage, setValidationMessage] = useState("");
+  const [addedTokenInfo, setAddedTokenInfo] = useState<AddedTokenInfo | null>(null);
 
+  // ── Compute multiplier calculator result ────────────────────────────────
+  useEffect(() => {
+    const amount = parseFloat(calcMintAmount);
+    if (!amount || amount <= 0) {
+      setCalcResult(null);
+      return;
+    }
+
+    const totalSupply =
+      parseFloat(tbillInfo.totalSupplyFormatted.replace(/[^0-9.]/g, "")) ||
+      ESTIMATED_TOTAL_SUPPLY;
+
+    // Multiplier formula: totalSupply / (totalSupply + addition)
+    const multiplier = totalSupply / (totalSupply + amount);
+    const costTBILL = multiplier * amount;
+    const costUSD = costTBILL * (tbillInfo.tbillPriceUSD || 0.00006972);
+    const percentageOfSupply = (amount / totalSupply) * 100;
+
+    setCalcResult({
+      multiplier,
+      costTBILL,
+      costUSD,
+      percentageOfSupply,
+    });
+  }, [calcMintAmount, tbillInfo]);
+
+  // ── Fetch T-BILL info ───────────────────────────────────────────────────
+  const fetchTbillInfo = useCallback(async () => {
+    setLoadingTbill(true);
+    try {
+      const info = await getV3MinterInfo();
+      setTbillInfo(info);
+    } catch (_e) {
+      // Silently fail, use defaults
+    } finally {
+      setLoadingTbill(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTbillInfo();
+    const interval = setInterval(fetchTbillInfo, 60000); // refresh every 60s
+    return () => clearInterval(interval);
+  }, [fetchTbillInfo]);
+
+  // ── Fetch multiplier for selected mint token ────────────────────────────
   const fetchMultiplier = useCallback(async () => {
-    // V3 Index Minter is a factory contract — it does NOT have a Multiplier() function.
-    // Only individual token contracts created by the factory have Multiplier().
-    // So we fetch the multiplier of the currently selected mint token.
     if (!mintToken) {
       setCurrentMultiplier(0);
       setLoadingMultiplier(false);
@@ -105,13 +220,13 @@ export function V3MinterTab() {
       const mult = await getMultiplier(mintToken, 1);
       setCurrentMultiplier(mult);
     } catch {
-      // Multiplier call failed (e.g. contract doesn't support it) — silently reset
       setCurrentMultiplier(0);
     } finally {
       setLoadingMultiplier(false);
     }
   }, [mintToken]);
 
+  // ── Fetch mint preview ──────────────────────────────────────────────────
   const fetchMintPreview = useCallback(async () => {
     if (!mintToken || !mintAmount) {
       setMintPreview(null);
@@ -124,7 +239,7 @@ export function V3MinterTab() {
       ]);
       const ratio = cost > 0 ? price.priceUSD / cost : 0;
       setMintPreview({ cost, ratio });
-    } catch (error) {
+    } catch {
       setMintPreview(null);
     }
   }, [mintToken, mintAmount]);
@@ -144,6 +259,14 @@ export function V3MinterTab() {
     return () => clearTimeout(timer);
   }, [fetchMintPreview]);
 
+  // ── Determine the actual total supply number ────────────────────────────
+  const displayTotalSupply = useMemo(() => {
+    const raw = parseFloat(tbillInfo.totalSupplyFormatted.replace(/[^0-9.]/g, ""));
+    if (raw > 0) return raw;
+    return ESTIMATED_TOTAL_SUPPLY;
+  }, [tbillInfo.totalSupplyFormatted]);
+
+  // ── Handle create token ─────────────────────────────────────────────────
   const handleCreateToken = async () => {
     if (!connected) {
       toast.error("Please connect your wallet first");
@@ -205,6 +328,7 @@ export function V3MinterTab() {
     }
   };
 
+  // ── Handle mint ─────────────────────────────────────────────────────────
   const handleMint = async () => {
     if (!connected) {
       toast.error("Please connect your wallet first");
@@ -258,6 +382,58 @@ export function V3MinterTab() {
     }
   };
 
+  // ── Handle add custom token (improved with validation) ──────────────────
+  const handleValidateAddress = async (addr: string) => {
+    if (!addr.trim()) {
+      setValidationState("idle");
+      setValidationMessage("");
+      return;
+    }
+
+    // Basic format check
+    if (!addr.startsWith("0x") || addr.length !== 42) {
+      setValidationState("invalid");
+      setValidationMessage("Invalid address format. Must be 0x... (42 characters).");
+      return;
+    }
+
+    // Duplicate check
+    if (
+      tokens.find((t) => t.address.toLowerCase() === addr.toLowerCase())
+    ) {
+      setValidationState("invalid");
+      setValidationMessage("This token is already being tracked.");
+      return;
+    }
+
+    setValidationState("checking");
+    setValidationMessage("Checking contract...");
+
+    try {
+      const info = await getTokenInfo(addr);
+      if (info.symbol === "???" && info.name === "Unknown") {
+        setValidationState("invalid");
+        setValidationMessage("Could not read contract data. This may not be a valid ERC20 token.");
+        return;
+      }
+      setValidationState("valid");
+      setValidationMessage(`Found: ${info.name} (${info.symbol}) — Ready to add.`);
+    } catch {
+      setValidationState("invalid");
+      setValidationMessage("Failed to read contract. Ensure this is a valid PulseChain address.");
+    }
+  };
+
+  // Debounced validation
+  useEffect(() => {
+    if (!showAddToken) return;
+    const timer = setTimeout(() => {
+      handleValidateAddress(addTokenAddress);
+    }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addTokenAddress, showAddToken]);
+
   const handleAddToken = async () => {
     if (!connected) {
       toast.error("Please connect your wallet first");
@@ -265,18 +441,6 @@ export function V3MinterTab() {
     }
     if (!addTokenAddress.trim()) {
       toast.error("Please enter a token address");
-      return;
-    }
-
-    // Basic address validation
-    if (!addTokenAddress.startsWith("0x") || addTokenAddress.length !== 42) {
-      toast.error("Invalid token address format");
-      return;
-    }
-
-    // Check if already tracked
-    if (tokens.find((t) => t.address.toLowerCase() === addTokenAddress.toLowerCase())) {
-      toast.error("Token is already being tracked");
       return;
     }
 
@@ -289,7 +453,7 @@ export function V3MinterTab() {
         getMultiplier(addTokenAddress, 1),
       ]);
 
-      addToken({
+      const tokenData = {
         address: addTokenAddress,
         name: info.name,
         symbol: info.symbol,
@@ -299,12 +463,15 @@ export function V3MinterTab() {
         pricePLS: price.pricePLS,
         multiplier: mult,
         profitRatio: mintCostUSD > 0 ? price.priceUSD / mintCostUSD : 0,
-        version: "V3",
+        version: "V3" as const,
         lastUpdated: Date.now(),
-      });
+      };
 
+      addToken(tokenData);
+      setAddedTokenInfo({ ...tokenData });
       setAddTokenAddress("");
-      setShowAddToken(false);
+      setValidationState("idle");
+      setValidationMessage("");
       toast.success(`${info.symbol} added to tracking`);
     } catch (error: any) {
       toast.error(error.message || "Failed to fetch token info");
@@ -313,6 +480,7 @@ export function V3MinterTab() {
     }
   };
 
+  // ── Refresh token list ──────────────────────────────────────────────────
   const refreshTokenList = async () => {
     if (!address) return;
     setRefreshing(true);
@@ -346,6 +514,7 @@ export function V3MinterTab() {
     }
   };
 
+  // ── Utility handlers ────────────────────────────────────────────────────
   const copyAddress = (addr: string) => {
     navigator.clipboard.writeText(addr);
     setCopiedAddress(addr);
@@ -362,9 +531,456 @@ export function V3MinterTab() {
 
   const v3Tokens = tokens.filter((t) => t.version === "V3");
 
+  // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="space-y-6 animate-fade-in-up">
-      {/* Multiplier Display with Progress Ring */}
+      {/* ================================================================
+          SECTION 1: Minter Purpose Info Card (Collapsible)
+          ================================================================ */}
+      <Collapsible open={infoOpen} onOpenChange={setInfoOpen}>
+        <Card className="bg-gray-900 border-gray-800/70 overflow-hidden">
+          <CollapsibleTrigger asChild>
+            <button className="w-full text-left">
+              <CardContent className="p-4 pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center">
+                      <Info className="h-4 w-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                        What is the V3 Index Minter?
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px]"
+                        >
+                          Guide
+                        </Badge>
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Learn how the V3 treasury-backed token factory works
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-gray-400 transition-transform duration-300",
+                      infoOpen && "rotate-180"
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </button>
+          </CollapsibleTrigger>
+
+          <CollapsibleContent>
+            <div className="px-4 pb-4 space-y-4">
+              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-800">
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  The <span className="text-emerald-400 font-semibold">V3 Index Minter</span> is a factory contract
+                  on PulseChain that creates treasury-backed tokens. Each token created is backed by{" "}
+                  <span className="text-emerald-400 font-semibold">T-BILL</span> (the parent token). When you mint,
+                  you pay in T-BILL tokens and receive the new token. The{" "}
+                  <span className="text-emerald-400 font-semibold">multiplier</span> increases as more tokens are
+                  minted, rewarding early adopters with lower mint costs.
+                </p>
+              </div>
+
+              {/* Key Stats */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total T-BILL Supply</p>
+                  {loadingTbill ? (
+                    <Skeleton className="h-5 w-20 shimmer rounded" />
+                  ) : (
+                    <p className="text-sm font-bold font-mono text-white number-animate">
+                      {tbillInfo.totalSupplyFormatted || "~1.10B"}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-gray-600 mt-0.5">
+                    {V3_INDEX_MINTER.slice(0, 6)}...{V3_INDEX_MINTER.slice(-4)}
+                  </p>
+                </div>
+
+                <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Current Mint Cost</p>
+                  {loadingTbill ? (
+                    <Skeleton className="h-5 w-20 shimmer rounded" />
+                  ) : (
+                    <p className="text-sm font-bold font-mono text-emerald-400 number-animate">
+                      {formatUSD(tbillInfo.tbillPriceUSD || 0.00006972)}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-gray-600 mt-0.5">Per token (T-BILL parent)</p>
+                </div>
+
+                <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">PLS Price</p>
+                  {loadingTbill ? (
+                    <Skeleton className="h-5 w-20 shimmer rounded" />
+                  ) : (
+                    <p className="text-sm font-bold font-mono text-white number-animate">
+                      {formatUSD(tbillInfo.plsPriceUSD || 0.000028)}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-gray-600 mt-0.5">PulseChain native token</p>
+                </div>
+              </div>
+
+              {/* Contract References */}
+              <div className="flex flex-wrap gap-2 text-[10px]">
+                <div className="flex items-center gap-1.5 bg-gray-800/40 rounded-md px-2.5 py-1.5 border border-gray-800">
+                  <FileCode className="h-3 w-3 text-gray-500" />
+                  <span className="text-gray-500">V3 Minter:</span>
+                  <span className="text-gray-300 font-mono">{V3_INDEX_MINTER.slice(0, 6)}...{V3_INDEX_MINTER.slice(-4)}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-gray-800/40 rounded-md px-2.5 py-1.5 border border-gray-800">
+                  <FileCode className="h-3 w-3 text-gray-500" />
+                  <span className="text-gray-500">T-BILL:</span>
+                  <span className="text-gray-300 font-mono">{T_BILL_ADDRESS.slice(0, 6)}...{T_BILL_ADDRESS.slice(-4)}</span>
+                </div>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* ================================================================
+          SECTION 2: Multiplier Math Visualization Card
+          ================================================================ */}
+      <Card className="bg-gradient-to-br from-gray-900 via-gray-900 to-emerald-950/20 border-gray-800/70 border-emerald-500/10 card-hover overflow-hidden relative">
+        {/* Subtle glow overlay */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+        <CardContent className="p-5 relative">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-emerald-500/20 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center">
+              <Calculator className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                Multiplier Math Calculator
+                <Badge
+                  variant="outline"
+                  className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px]"
+                >
+                  1.1B Supply
+                </Badge>
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Understand how the multiplier formula works with real on-chain data
+              </p>
+            </div>
+          </div>
+
+          {/* Formula Display */}
+          <div className="bg-gray-800/60 rounded-lg p-3 border border-emerald-500/10 mb-4">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Multiplier Formula</p>
+            <div className="flex items-center gap-2 font-mono text-sm">
+              <span className="text-emerald-400 font-semibold">Multiplier</span>
+              <span className="text-gray-500">=</span>
+              <span className="text-amber-400">TotalSupply</span>
+              <span className="text-gray-500">/</span>
+              <span className="text-gray-300">(</span>
+              <span className="text-amber-400">TotalSupply</span>
+              <span className="text-gray-500">+</span>
+              <span className="text-cyan-400">Addition</span>
+              <span className="text-gray-300">)</span>
+            </div>
+            <p className="text-[10px] text-gray-600 mt-1.5">
+              The multiplier approaches 0 as the addition grows relative to total supply.
+              Early mints get a multiplier close to 1.0x (cheaper), while large mints reduce it.
+            </p>
+          </div>
+
+          {/* Interactive Calculator */}
+          <div className="space-y-3">
+            <div className="flex items-end gap-3">
+              <div className="flex-1 space-y-1.5">
+                <Label className="text-gray-400 text-xs">
+                  How many tokens do you want to mint?
+                </Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 10000"
+                  value={calcMintAmount}
+                  onChange={(e) => setCalcMintAmount(e.target.value)}
+                  className="bg-gray-800 border-gray-700 text-white font-mono input-focus-ring"
+                />
+              </div>
+              <div className="flex gap-1.5 pb-0.5">
+                {[1000, 10000, 100000, 1000000].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => setCalcMintAmount(preset.toString())}
+                    className={cn(
+                      "text-[10px] px-2 py-1.5 rounded border transition-all duration-200 btn-hover-scale",
+                      calcMintAmount === preset.toString()
+                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+                        : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400"
+                    )}
+                  >
+                    {preset >= 1e6 ? `${preset / 1e6}M` : `${preset / 1e3}K`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Calculator Result */}
+            {calcResult && (
+              <div className="bg-gray-800/40 rounded-lg p-4 border border-gray-800 space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Multiplier */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Multiplier</p>
+                    <p className="text-lg font-bold font-mono text-emerald-400 text-glow-emerald-animated number-animate">
+                      {calcResult.multiplier.toFixed(6)}x
+                    </p>
+                  </div>
+
+                  {/* Cost in T-BILL */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Cost (T-BILL)</p>
+                    <p className="text-lg font-bold font-mono text-amber-400 number-animate">
+                      {formatLargeNumber(calcResult.costTBILL)}
+                    </p>
+                  </div>
+
+                  {/* Cost in USD */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Cost (USD)</p>
+                    <p className="text-lg font-bold font-mono text-white number-animate">
+                      {formatUSD(calcResult.costUSD)}
+                    </p>
+                  </div>
+
+                  {/* % of Total Supply */}
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">% of Supply</p>
+                    <p className="text-lg font-bold font-mono text-cyan-400 number-animate">
+                      {calcResult.percentageOfSupply < 0.01
+                        ? "<0.01"
+                        : calcResult.percentageOfSupply.toFixed(4)}
+                      %
+                    </p>
+                  </div>
+                </div>
+
+                {/* Progress Bar Visualization */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[10px] text-gray-500">
+                    <span>Mint amount relative to total supply ({formatLargeNumber(displayTotalSupply)})</span>
+                    <span className="font-mono text-gray-400">
+                      {calcResult.percentageOfSupply < 0.01
+                        ? "<0.01"
+                        : calcResult.percentageOfSupply.toFixed(3)}
+                      %
+                    </span>
+                  </div>
+                  <div className="w-full h-2.5 bg-gray-800 rounded-full overflow-hidden border border-gray-700/50">
+                    <div
+                      className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-emerald-500 to-emerald-400"
+                      style={{
+                        width: `${Math.min(Math.max(calcResult.percentageOfSupply * 100, 0.5), 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[9px] text-gray-600 font-mono">
+                    <span>0</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                    <span>75%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
+                {/* Key Insight */}
+                <div className="bg-emerald-500/5 rounded-lg p-3 border border-emerald-500/10">
+                  <div className="flex items-start gap-2">
+                    <TrendingUp className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      If you mint <span className="text-white font-semibold">{parseFloat(calcMintAmount).toLocaleString()}</span> tokens,
+                      you need <span className="text-amber-400 font-semibold">{formatLargeNumber(calcResult.costTBILL)} T-BILL</span> tokens
+                      (cost: <span className="text-white font-semibold">{formatUSD(calcResult.costUSD)}</span>).
+                      The multiplier of <span className="text-emerald-400 font-semibold">{calcResult.multiplier.toFixed(6)}x</span> means
+                      each minted token costs approximately{" "}
+                      <span className="text-white font-semibold">{formatUSD(calcResult.costUSD / parseFloat(calcMintAmount))}</span> on average.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ================================================================
+          SECTION 3: How-To Dropdown Guides (Accordion)
+          ================================================================ */}
+      <Card className="bg-gray-900 border-gray-800/70">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-white text-base flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-emerald-400" />
+            How-To Guides
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Accordion type="single" collapsible className="w-full">
+            {/* Guide 1: How to Create a Token */}
+            <AccordionItem value="create-token" className="border-gray-800">
+              <AccordionTrigger className="text-sm text-gray-300 hover:text-white hover:no-underline py-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                    <Sparkles className="h-3 w-3 text-emerald-400" />
+                  </div>
+                  <span>How to Create a Token</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-400 text-sm pb-3">
+                <div className="bg-gray-800/40 rounded-lg p-4 border border-gray-800 space-y-3">
+                  {[
+                    { step: 1, text: "Enter a name and symbol for your token" },
+                    { step: 2, text: "Set initial mint amount (how many tokens to create)" },
+                    { step: 3, text: 'Select parent token (defaults to T-BILL)' },
+                    { step: 4, text: 'Click "Create Token" — this deploys a new contract' },
+                    { step: 5, text: "Wait for transaction confirmation on PulseChain" },
+                  ].map((item) => (
+                    <div key={item.step} className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-emerald-400">{item.step}</span>
+                      </div>
+                      <p className="text-sm text-gray-400 leading-relaxed">{item.text}</p>
+                    </div>
+                  ))}
+                  <div className="flex items-start gap-2 pt-1">
+                    <HelpCircle className="h-3.5 w-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-500">
+                      <span className="text-amber-400 font-medium">Pro Tip:</span> The initial mint amount determines the starting
+                      supply of your token. A larger initial mint means a higher multiplier for subsequent mints.
+                    </p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Guide 2: How to Mint */}
+            <AccordionItem value="how-to-mint" className="border-gray-800">
+              <AccordionTrigger className="text-sm text-gray-300 hover:text-white hover:no-underline py-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                    <Coins className="h-3 w-3 text-emerald-400" />
+                  </div>
+                  <span>How to Mint</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-400 text-sm pb-3">
+                <div className="bg-gray-800/40 rounded-lg p-4 border border-gray-800 space-y-3">
+                  {[
+                    { step: 1, text: "Select a token from your tracked list or paste an address" },
+                    { step: 2, text: "Enter the amount you want to mint" },
+                    { step: 3, text: "Review the multiplier and cost preview" },
+                    { step: 4, text: 'Click "Mint Tokens" — this calls the mint() function on-chain' },
+                    { step: 5, text: "Tokens are transferred to your wallet after confirmation" },
+                  ].map((item) => (
+                    <div key={item.step} className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-[10px] font-bold text-emerald-400">{item.step}</span>
+                      </div>
+                      <p className="text-sm text-gray-400 leading-relaxed">{item.text}</p>
+                    </div>
+                  ))}
+                  <div className="flex items-start gap-2 pt-1">
+                    <Wallet className="h-3.5 w-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-gray-500">
+                      <span className="text-amber-400 font-medium">Important:</span> You need T-BILL tokens in your wallet to pay
+                      for the mint. The cost depends on the current multiplier at the time of minting.
+                    </p>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Guide 3: How Multipliers Work */}
+            <AccordionItem value="multipliers" className="border-gray-800">
+              <AccordionTrigger className="text-sm text-gray-300 hover:text-white hover:no-underline py-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                    <TrendingUp className="h-3 w-3 text-emerald-400" />
+                  </div>
+                  <span>How Multipliers Work</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="text-gray-400 text-sm pb-3">
+                <div className="bg-gray-800/40 rounded-lg p-4 border border-gray-800 space-y-4">
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-300 leading-relaxed">
+                      The multiplier determines how many T-BILL tokens you pay per minted token. It&apos;s a
+                      core mechanism of the treasury system that rewards early adopters.
+                    </p>
+
+                    {/* Formula Card */}
+                    <div className="bg-gray-900/60 rounded-lg p-3 border border-emerald-500/10">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Cost Formula</p>
+                      <p className="font-mono text-sm text-emerald-400">
+                        Cost = Multiplier(addition) &times; addition / 1e18
+                      </p>
+                    </div>
+
+                    {/* Explanation Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="bg-emerald-500/5 rounded-lg p-3 border border-emerald-500/10">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                          <p className="text-xs font-semibold text-emerald-400">Early Mints</p>
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          Lower multiplier = cheaper minting. When total supply is large relative
+                          to your addition, the multiplier is close to 1.0x, meaning you pay
+                          approximately 1 T-BILL per token.
+                        </p>
+                      </div>
+
+                      <div className="bg-rose-500/5 rounded-lg p-3 border border-rose-500/10">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
+                          <p className="text-xs font-semibold text-rose-400">Late Mints</p>
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          Higher multiplier = more expensive. As the token&apos;s supply grows,
+                          new mints become proportionally more expensive, rewarding those
+                          who minted early.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Profit Formula */}
+                    <div className="bg-gray-900/60 rounded-lg p-3 border border-gray-800">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Profit Calculation</p>
+                      <p className="font-mono text-sm text-gray-300">
+                        Profit = (Token DEX Price &minus; Mint Cost) &times; Amount
+                      </p>
+                    </div>
+
+                    {/* Real Example */}
+                    <div className="flex items-start gap-2">
+                      <Shield className="h-3.5 w-3.5 text-cyan-400 mt-0.5 flex-shrink-0" />
+                      <p className="text-xs text-gray-500">
+                        <span className="text-cyan-400 font-medium">With ~1.1B T-BILL supply:</span> Minting
+                        10,000 tokens yields a multiplier of ~0.999991x (nearly free).
+                        Minting 100M tokens yields ~0.917x. This is why early mints are
+                        extremely profitable when the token appreciates on DEXes.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </CardContent>
+      </Card>
+
+      {/* ================================================================
+          SECTION 4: Multiplier Display with Progress Ring
+          ================================================================ */}
       <Card className="bg-gray-900 border-gray-800/70 card-hover">
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -438,8 +1054,11 @@ export function V3MinterTab() {
         </CardContent>
       </Card>
 
+      {/* ================================================================
+          SECTION 5: Create Token + Mint Panel (side by side)
+          ================================================================ */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Create New Token - with expand animation on success */}
+        {/* Create New Token */}
         <Card key={createdTokenKey} className={cn(
           "bg-gray-900 border-gray-800/70 card-hover",
           createdTokenKey > 0 && "animate-expand-in"
@@ -617,54 +1236,139 @@ export function V3MinterTab() {
         </Card>
       </div>
 
-      {/* Add Custom Token */}
+      {/* ================================================================
+          SECTION 6: Add Custom Token (Improved with Validation)
+          ================================================================ */}
       <Card className="bg-gray-900 border-gray-800/70">
         <CardContent className="p-4">
+          {/* Info banner */}
+          <div className="flex items-center gap-2 mb-3">
+            <Search className="h-3.5 w-3.5 text-gray-500" />
+            <p className="text-xs text-gray-500">
+              Paste any V3 token contract address to fetch its on-chain data, multiplier, and start tracking it.
+            </p>
+          </div>
+
           {!showAddToken ? (
             <Button
               variant="outline"
               className="w-full border-dashed border-gray-700 text-gray-400 hover:text-white hover:border-emerald-500/30 hover:bg-emerald-500/5 btn-hover-scale gap-2"
               onClick={() => setShowAddToken(true)}
             >
-              <Search className="h-4 w-4" />
+              <Plus className="h-4 w-4" />
               Add Custom Token by Address
             </Button>
           ) : (
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                placeholder="Paste token address (0x...)"
-                value={addTokenAddress}
-                onChange={(e) => setAddTokenAddress(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring"
-                disabled={addingToken}
-              />
+            <div className="space-y-3">
+              {/* Address Input with validation feedback */}
+              <div className="relative">
+                <Input
+                  placeholder="Paste token contract address (0x...)"
+                  value={addTokenAddress}
+                  onChange={(e) => setAddTokenAddress(e.target.value)}
+                  className={cn(
+                    "bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring pr-10",
+                    validationState === "valid" && "border-emerald-500/40",
+                    validationState === "invalid" && "border-rose-500/40",
+                    validationState === "checking" && "border-amber-500/40"
+                  )}
+                  disabled={addingToken}
+                />
+                {/* Validation indicator */}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {validationState === "checking" && (
+                    <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />
+                  )}
+                  {validationState === "valid" && (
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  )}
+                  {validationState === "invalid" && (
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-400" />
+                  )}
+                </div>
+              </div>
+
+              {/* Validation message */}
+              {validationMessage && validationState !== "idle" && (
+                <div className={cn(
+                  "flex items-center gap-2 text-xs rounded-md px-3 py-2 border",
+                  validationState === "valid" && "bg-emerald-500/5 border-emerald-500/10 text-emerald-400",
+                  validationState === "invalid" && "bg-rose-500/5 border-rose-500/10 text-rose-400",
+                  validationState === "checking" && "bg-amber-500/5 border-amber-500/10 text-amber-400"
+                )}>
+                  {validationState === "checking" && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {validationState === "valid" && <CheckCircle2 className="h-3 w-3" />}
+                  {validationState === "invalid" && <AlertCircle className="h-3 w-3" />}
+                  <span>{validationMessage}</span>
+                </div>
+              )}
+
+              {/* Action buttons */}
               <div className="flex gap-2">
                 <Button
                   onClick={handleAddToken}
-                  disabled={addingToken || !addTokenAddress.trim() || !connected}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-1.5"
+                  disabled={addingToken || !addTokenAddress.trim() || !connected || validationState === "checking" || validationState === "invalid"}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-1.5 flex-1"
                 >
                   {addingToken ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <Plus className="h-3.5 w-3.5" />
                   )}
-                  Add Token
+                  {addingToken ? "Adding..." : "Add Token"}
                 </Button>
                 <Button
                   variant="outline"
                   className="border-gray-700 text-gray-400 hover:bg-gray-800 btn-hover-scale"
-                  onClick={() => { setShowAddToken(false); setAddTokenAddress(""); }}
+                  onClick={() => {
+                    setShowAddToken(false);
+                    setAddTokenAddress("");
+                    setValidationState("idle");
+                    setValidationMessage("");
+                    setAddedTokenInfo(null);
+                  }}
                 >
                   Cancel
                 </Button>
               </div>
+
+              {/* Success card after adding */}
+              {addedTokenInfo && (
+                <div className="bg-emerald-500/5 rounded-lg p-3 border border-emerald-500/15 animate-fade-in-up">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-emerald-400">
+                        {addedTokenInfo.name} ({addedTokenInfo.symbol})
+                      </p>
+                      <p className="text-xs text-gray-500 font-mono mt-0.5">
+                        {addedTokenInfo.address}
+                      </p>
+                      <div className="flex flex-wrap gap-3 mt-2 text-[10px]">
+                        <span className="text-gray-500">
+                          Price: <span className="text-white">{formatUSD(addedTokenInfo.priceUSD)}</span>
+                        </span>
+                        <span className="text-gray-500">
+                          Multiplier: <span className="text-emerald-400">{formatLargeNumber(addedTokenInfo.multiplier)}x</span>
+                        </span>
+                        <span className="text-gray-500">
+                          Balance: <span className="text-white">{addedTokenInfo.balance}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Active V3 Tokens List */}
+      {/* ================================================================
+          SECTION 7: Active V3 Tokens List
+          ================================================================ */}
       <Card className="bg-gray-900 border-gray-800/70">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

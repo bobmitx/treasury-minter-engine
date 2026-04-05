@@ -92,6 +92,40 @@ export async function getTokenBalance(
   return ethers.utils.formatUnits(balance, decimals);
 }
 
+// Get V3 Index Minter on-chain data (total supply, multiplier info)
+export async function getV3MinterInfo(): Promise<{
+  totalSupply: string;
+  totalSupplyFormatted: string;
+  tbillPriceUSD: number;
+  tbillPricePLS: number;
+  plsPriceUSD: number;
+}> {
+  try {
+    if (typeof window !== "undefined") {
+      const res = await fetch("/api/tbill-info");
+      if (res.ok) {
+        const data = await res.json();
+        return {
+          totalSupply: data.totalSupply?.toString() || "0",
+          totalSupplyFormatted: data.totalSupplyFormatted || "0",
+          tbillPriceUSD: data.tbillPriceUSD || 0,
+          tbillPricePLS: data.tbillPricePLS || 0,
+          plsPriceUSD: data.plsPriceUSD || 0,
+        };
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return {
+    totalSupply: "0",
+    totalSupplyFormatted: "0",
+    tbillPriceUSD: 0,
+    tbillPricePLS: 0,
+    plsPriceUSD: 0,
+  };
+}
+
 // Get token info (name, symbol, decimals)
 export async function getTokenInfo(tokenAddress: string): Promise<{
   name: string;
@@ -332,9 +366,21 @@ export async function findPairAddress(
   }
 }
 
-// Get mint cost in USD
+// Get mint cost in USD — fetches real-time from T-BILL/PulseX price
 export async function getMintCost(): Promise<number> {
-  // Mint cost is pegged to ~$0.00006972 (tied to eDAI peg)
+  try {
+    if (typeof window !== "undefined") {
+      const res = await fetch("/api/tbill-info");
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.mintCostEstimateUSD && data.mintCostEstimateUSD > 0) {
+          return data.mintCostEstimateUSD;
+        }
+      }
+    }
+  } catch {
+    // API route failed, fall through to default
+  }
   return 0.00006972;
 }
 
