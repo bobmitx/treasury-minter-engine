@@ -66,8 +66,19 @@ import {
   BookOpen,
   Calculator,
   HelpCircle,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+
+// ── Parent Token Presets ───────────────────────────────────────────────────────
+const PARENT_TOKEN_OPTIONS = [
+  { address: CONTRACTS.tbill, symbol: "T-BILL", name: "Treasury Bill", icon: "🏛️" },
+  { address: CONTRACTS.fed, symbol: "FED", name: "Federal Reserve Note", icon: "🏦" },
+  { address: CONTRACTS.eDAI, symbol: "eDAI", name: "Electronic DAI", icon: "💵" },
+  { address: CONTRACTS.wPLS, symbol: "WPLS", name: "Wrapped PLS", icon: "⛓️" },
+  { address: CONTRACTS.mvToken, symbol: "MV", name: "Market Vault", icon: "📊" },
+] as const;
 
 // ── Multiplier Calculator Helper ─────────────────────────────────────────────
 function calculateV4Multiplier(
@@ -451,7 +462,7 @@ function HowToGuides() {
                 {[
                   "Enter a name and symbol for your personal token",
                   "Set initial mint amount (how many tokens to create initially)",
-                  "Select parent token (defaults to T-BILL)",
+                  "Select parent token (any ERC20 on PulseChain)",
                   'Click "Create V4 Token" — deploys a new personal treasury token',
                   "Wait for transaction confirmation on PulseChain",
                 ].map((step, i) => (
@@ -554,7 +565,7 @@ function HowToGuides() {
                   {[
                     "Each V4 token has its own independent multiplier curve",
                     "GAI tokens may have different multiplier behavior",
-                    "The cost is denominated in the parent token (T-BILL)",
+                    "The cost is denominated in the parent token",
                     "Larger additions result in lower multipliers (more expensive)",
                     "As supply grows, minting becomes proportionally more costly",
                   ].map((item, i) => (
@@ -593,6 +604,11 @@ export function V4MinterTab() {
   const [createSymbol, setCreateSymbol] = useState("");
   const [createInitialMint, setCreateInitialMint] = useState("1000");
   const [createParent, setCreateParent] = useState(CONTRACTS.tbill);
+  const [createParentMode, setCreateParentMode] = useState<"preset" | "custom">("preset");
+  const [customParentAddr, setCustomParentAddr] = useState("");
+  const [customParentInfo, setCustomParentInfo] = useState<{ name: string; symbol: string; decimals: number } | null>(null);
+  const [customParentChecking, setCustomParentChecking] = useState(false);
+  const [customParentValid, setCustomParentValid] = useState(false);
   const [creating, setCreating] = useState(false);
 
   // GAI form
@@ -636,6 +652,57 @@ export function V4MinterTab() {
 
   // Token creation animation state
   const [createdTokenKey, setCreatedTokenKey] = useState(0);
+
+  // ── Validate custom parent token address (create form) ───────────────
+  useEffect(() => {
+    if (createParentMode !== "custom") {
+      setCustomParentInfo(null);
+      setCustomParentValid(false);
+      return;
+    }
+    const addr = customParentAddr.trim();
+    if (!addr || !addr.startsWith("0x") || addr.length !== 42) {
+      setCustomParentInfo(null);
+      setCustomParentValid(false);
+      return;
+    }
+    let cancelled = false;
+    setCustomParentChecking(true);
+    const validate = async () => {
+      try {
+        const info = await getTokenInfo(addr);
+        if (cancelled) return;
+        if (info.symbol === "???" && info.name === "Unknown") {
+          setCustomParentInfo(null);
+          setCustomParentValid(false);
+        } else {
+          setCustomParentInfo({ name: info.name, symbol: info.symbol, decimals: info.decimals });
+          setCustomParentValid(true);
+          setCreateParent(addr);
+        }
+      } catch {
+        if (!cancelled) {
+          setCustomParentInfo(null);
+          setCustomParentValid(false);
+        }
+      } finally {
+        if (!cancelled) setCustomParentChecking(false);
+      }
+    };
+    const timer = setTimeout(validate, 500);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [customParentAddr, createParentMode]);
+
+  // ── Create form parent label ──────────────────────────────────────────
+  const createParentLabel = useMemo(() => {
+    if (createParentMode === "custom" && customParentInfo) {
+      return `${customParentInfo.name} (${customParentInfo.symbol})`;
+    }
+    const opt = PARENT_TOKEN_OPTIONS.find(o => o.address === createParent);
+    if (opt) return `${opt.name} (${opt.symbol})`;
+    return createParent ? `${createParent.slice(0, 6)}...${createParent.slice(-4)}` : "Select parent token";
+  }, [createParent, createParentMode, customParentInfo]);
+
   const [createdGaiKey, setCreatedGaiKey] = useState(0);
 
   const fetchSystemData = useCallback(async () => {
@@ -1162,23 +1229,102 @@ export function V4MinterTab() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-gray-300 text-sm">
-                    Parent Token
+                    Parent Token (backing asset)
                   </Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={createParent}
-                      onChange={(e) => setCreateParent(e.target.value)}
-                      className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring"
-                    />
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs flex-shrink-0 btn-hover-scale"
-                      onClick={() => setCreateParent(CONTRACTS.tbill)}
+
+                  {/* Mode toggle: Preset or Custom */}
+                  <div className="flex gap-1.5 mb-2">
+                    <button
+                      onClick={() => { setCreateParentMode("preset"); setCustomParentAddr(""); setCustomParentInfo(null); setCreateParent(CONTRACTS.tbill); }}
+                      className={cn(
+                        "text-xs px-3 py-1.5 rounded-md border transition-all duration-200",
+                        createParentMode === "preset"
+                          ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                          : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400"
+                      )}
                     >
-                      T-BILL
-                    </Button>
+                      Quick Select
+                    </button>
+                    <button
+                      onClick={() => setCreateParentMode("custom")}
+                      className={cn(
+                        "text-xs px-3 py-1.5 rounded-md border transition-all duration-200",
+                        createParentMode === "custom"
+                          ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
+                          : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400"
+                      )}
+                    >
+                      Custom ERC20 Address
+                    </button>
                   </div>
+
+                  {createParentMode === "preset" ? (
+                    <>
+                      {/* Preset token buttons */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {PARENT_TOKEN_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.address}
+                            onClick={() => { setCreateParent(opt.address); setCreateParentMode("preset"); }}
+                            className={cn(
+                              "text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 btn-hover-scale flex items-center gap-1.5",
+                              createParent === opt.address && createParentMode === "preset"
+                                ? "bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_8px_oklch(0.7_0.17_85/15%)]"
+                                : "bg-gray-800/70 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 hover:bg-gray-800"
+                            )}
+                          >
+                            <span>{opt.icon}</span>
+                            <span className="font-medium">{opt.symbol}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-gray-600">
+                        Selected: <span className="text-gray-400 font-medium">{createParentLabel}</span>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      {/* Custom ERC20 address input */}
+                      <div className="relative">
+                        <Input
+                          value={customParentAddr}
+                          onChange={(e) => setCustomParentAddr(e.target.value)}
+                          className={cn(
+                            "bg-gray-800 border-gray-700 text-white font-mono text-xs w-full input-focus-ring pr-8",
+                            customParentValid && "border-emerald-500/40",
+                            customParentAddr && !customParentValid && !customParentChecking && "border-rose-500/40"
+                          )}
+                          placeholder="Paste any ERC20 token address (0x...)"
+                        />
+                        <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                          {customParentChecking && <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />}
+                          {customParentValid && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />}
+                          {customParentAddr && !customParentValid && !customParentChecking && <AlertCircle className="h-3.5 w-3.5 text-rose-400" />}
+                        </div>
+                      </div>
+                      {/* Custom token info preview */}
+                      {customParentInfo && customParentValid && (
+                        <div className="bg-emerald-500/5 rounded-md p-2.5 border border-emerald-500/10 animate-fade-in-up">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium text-emerald-400">
+                                {customParentInfo.name} ({customParentInfo.symbol})
+                              </p>
+                              <p className="text-[10px] text-gray-500 font-mono mt-0.5">
+                                {customParentAddr}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {customParentAddr && !customParentValid && !customParentChecking && (
+                        <p className="text-[10px] text-rose-400">
+                          {customParentAddr.length !== 42 ? "Address must be 42 characters" : "Could not read ERC20 data. Ensure this is a valid PulseChain token."}
+                        </p>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
               <Button

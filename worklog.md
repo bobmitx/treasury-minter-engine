@@ -123,3 +123,27 @@ Stage Summary:
 - Users can explore all 4 tabs (Create, GAI, Mint, Claim), type in fields, select tokens before connecting wallet
 - Action buttons remain properly disabled when wallet not connected, with enhanced field validation
 - Both V3 and V4 minter tabs now have consistent interactive behavior
+
+---
+Task ID: 6
+Agent: Main
+Task: V4 Minter Tab - Enable custom ERC20 parent token selection
+
+Work Log:
+- Added `CheckCircle2`, `AlertCircle` to lucide-react imports
+- Added `PARENT_TOKEN_OPTIONS` constant array (T-BILL, FED, eDAI, WPLS, MV) matching V3
+- Added state variables: createParentMode ("preset" | "custom"), customParentAddr, customParentInfo, customParentChecking, customParentValid
+- Added useEffect: Custom parent token validation with 500ms debounce - validates ERC20 contract, shows name/symbol
+- Added useMemo: createParentLabel for dynamic parent token display
+- Replaced hardcoded T-BILL text input + button with full Quick Select / Custom ERC20 Address toggle UI:
+  - Quick Select: 5 preset token buttons with amber glow on selection, selected token label
+  - Custom ERC20: Address input with validation indicators (loading spinner, green check, red alert), token info preview card on valid, error message on invalid
+- Updated 2 hardcoded T-BILL references in guide text to be generic ("any ERC20 on PulseChain", "parent token")
+- Ran lint: 0 errors, 220 warnings (all pre-existing)
+- Dev server HTTP 200 confirmed
+
+Stage Summary:
+- V4 Create form now supports any ERC20 token as parent (not just T-BILL)
+- Parent token selection UI matches V3 pattern: preset quick-select buttons + custom ERC20 address input with live validation
+- All T-BILL hardcoded references in V4 guide text generalized
+- V3 and V4 minter tabs have consistent parent token selection UX
