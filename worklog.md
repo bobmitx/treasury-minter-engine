@@ -2835,3 +2835,66 @@ User reported: (1) V3 minter page appeared hardcoded to T-BILL only, (2) input w
 - ESLint: 0 errors
 - All on-chain data fetching unchanged
 - Parent token selector functional in both calculator and create form sections
+
+---
+## Task ID: SKILLS-CREATION - Create 5 New Development Skills
+
+### Work Task
+Create 5 custom skills to enhance development capabilities: Enhanced Browser, Frontend Dev, Frontend Crash Diagnosis, Version Control/Memory Preservation, and Sandbox Environment Understanding.
+
+### Work Summary
+
+**1. `skills/enhanced-browser/SKILL.md` — Enhanced Browser Abilities**
+- Intelligent navigation strategies: SPA hydration wait, form interaction, pagination/infinite scroll, auth flows
+- Content extraction patterns: articles, tables, product pages, documentation
+- Error recovery framework: timeout, 404/500, JS errors, redirect loops, CAPTCHA
+- Web application testing workflow: baseline → action → comparison → report
+- Performance observation, screenshot best practices, accessibility checks
+- Wraps agent-browser CLI with structured multi-step workflows
+
+**2. `skills/frontend-dev/SKILL.md` — Frontend Development**
+- Complete technology stack reference: Next.js 16, React 19, TypeScript 5, Tailwind CSS 4, shadcn/ui, Zustand, TanStack Query, Framer Motion, Recharts
+- Component architecture rules: server vs client, composition, props interfaces
+- shadcn/ui component reference: Dialog, Sheet, Card, Button, Input, Select, Tabs, Table, Badge, Tooltip, Toast, Skeleton
+- Styling standards: color system, responsive design, layout patterns, dark mode, framer-motion animations
+- State management patterns: Zustand with persist, TanStack Query data fetching
+- Form handling with React Hook Form + Zod
+- Performance optimization, accessibility, error handling, API integration
+
+**3. `skills/frontend-crash-diagnosis/SKILL.md` — Frontend Crash Diagnosis**
+- 2-phase diagnostic framework: gather info → categorize error
+- 8 crash categories with symptoms, causes, diagnosis steps, and fix patterns:
+  1. Build/compilation errors
+  2. Runtime errors (client-side null/undefined, data shape mismatch)
+  3. Hydration mismatches
+  4. Infinite re-render loops
+  5. CSS/layout breaking
+  6. API/data fetching failures
+  7. Memory leaks
+  8. Next.js-specific issues
+- Quick diagnostic commands
+- Error resolution priority order
+- Communication template for reporting diagnoses
+
+**4. `skills/version-control-memory/SKILL.md` — Version Control & Memory Preservation**
+- Worklog structure and update rules (the `/home/z/my-project/worklog.md` system)
+- Session handoff patterns: end-of-session wrap-up and start-of-session recovery
+- Progress tracking with TodoWrite: parallel-aware IDs, one in_progress rule
+- Context preservation techniques: code comments, architecture decisions, file organization
+- Recovery after failures procedure
+- Anti-patterns to avoid
+
+**5. `skills/sandbox-environment/SKILL.md` — Sandbox Environment Understanding**
+- Architecture overview: single-port gateway via Caddy reverse proxy
+- Critical constraints: port 3000 for Next.js, relative API paths, XTransformPort routing
+- Mini-service architecture: independent projects with specific ports, auto-restart via bun --hot
+- WebSocket/Socket.io: backend mini-service + frontend `io('/?XTransformPort=PORT')`
+- Development workflow: starting/stopping servers, checking logs, avoiding duplicates
+- Common pitfalls: absolute URLs, hardcoded ports, PORT env variable
+- Preview panel and database (Prisma/SQLite) reference
+
+### Verification
+- All 5 skills validated via `quick_validate.py` — all pass
+- Dev server running on port 3000, all routes return 200
+- ESLint: 0 errors
+- No existing project files modified
