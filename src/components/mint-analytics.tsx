@@ -318,7 +318,7 @@ function MintCostBreakdown() {
       (s, t) => s + parseFloat(t.gasCost || "0"),
       0
     );
-    const tokenCosts = mintTxs.length * 0.00006972; // avg mint cost USD
+    const tokenCosts = mintTxs.length * 0; // Use 0 — actual cost comes from real transactions
     const protocolFees = totalGas * 0.1; // ~10% of gas as protocol fees
 
     const total = totalGas + tokenCosts + protocolFees;

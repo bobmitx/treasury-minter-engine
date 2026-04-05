@@ -121,6 +121,8 @@ interface AppState {
   // Market data
   plsPriceUSD: number;
   mintCostUSD: number;
+  mintCostIsLive: boolean;
+  mintCostSource: string;
   lastPriceUpdate: number;
 
   // Token data
@@ -181,6 +183,8 @@ interface AppState {
   setHasSeenOnboarding: (seen: boolean) => void;
   setPlsPriceUSD: (price: number) => void;
   setMintCostUSD: (cost: number) => void;
+  setMintCostIsLive: (isLive: boolean) => void;
+  setMintCostSource: (source: string) => void;
   setLastPriceUpdate: (timestamp: number) => void;
   setTokens: (tokens: TokenData[]) => void;
   addToken: (token: TokenData) => void;
@@ -244,8 +248,10 @@ const initialState = {
   hasSeenOnboarding: false,
 
   // Market
-  plsPriceUSD: 0.000028,
-  mintCostUSD: 0.00006972,
+  plsPriceUSD: 0,
+  mintCostUSD: 0,
+  mintCostIsLive: false,
+  mintCostSource: "",
   lastPriceUpdate: 0,
 
   // Tokens
@@ -316,6 +322,8 @@ export const useAppStore = create<AppState>()(
       // Market actions
       setPlsPriceUSD: (plsPriceUSD) => set({ plsPriceUSD }),
       setMintCostUSD: (mintCostUSD) => set({ mintCostUSD }),
+      setMintCostIsLive: (mintCostIsLive) => set({ mintCostIsLive }),
+      setMintCostSource: (mintCostSource) => set({ mintCostSource }),
       setLastPriceUpdate: (lastPriceUpdate) => set({ lastPriceUpdate }),
 
       // Token actions

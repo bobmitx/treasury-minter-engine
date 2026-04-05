@@ -500,6 +500,90 @@ The application has 14+ custom components, 8 tabs, onboarding modal, profit aler
 6. **Token Detail "Mint More"**: Currently uses DOM manipulation. Should use Zustand state for cleaner tab-to-tab token passing.
 
 ---
+## Task ID: T-BILL-PRICE-FIX - Fix Hardcoded T-BILL Price / Add Live Indicators
+
+### Problem
+The T-BILL price shown as "mint cost" was hardcoded/fallback (`$0.00006972`) across multiple files. When external APIs (DexScreener, GeckoTerminal) were unreachable or slow, the app silently displayed the hardcoded fallback value without any indication it was stale. The live T-BILL price from DexScreener was `$0.00006781` (different from the hardcoded `$0.00006972`).
+
+### Root Cause Analysis
+**Confirmed**: DexScreener and GeckoTerminal APIs are reachable from the sandbox (HTTP 200 responses with valid data). The issue was entirely in the codebase — hardcoded fallback values were being used as "real" prices throughout the application without any visual indicator.
+
+### Hardcoded Values Found (All Removed)
+| Value | File(s) | Context |
+|-------|---------|---------|
+| `0.00006972` | `route.ts`, `ethereum.ts`, `store.ts`, `v3-minter-tab.tsx`, `calculator-tab.tsx`, `mint-analytics.tsx`, `app-guide.tsx` | Hardcoded T-BILL mint cost |
+| `0.000028` | `route.ts`, `pls-price/route.ts`, `ethereum.ts`, `store.ts`, `v3-minter-tab.tsx`, `bot-panel.tsx` | Hardcoded PLS price |
+
+### Changes Made (10 files modified)
+
+**1. `src/app/api/tbill-info/route.ts` — API route (critical fix)**
+- Added `isLive: boolean` to API response — `true` when price comes from DexScreener/GeckoTerminal/on-chain LP, `false` otherwise
+- Removed hardcoded `0.00006972` fallback → returns `0` with `isLive: false` when no live data available
+- Error response no longer fakes prices — returns `0` with `source: "error"` and `isLive: false`
+- PLS price fallback changed from `0.000028` to `0`
+
+**2. `src/lib/ethereum.ts` — Client-side library**
+- `getMintCost()` return type changed: `number` → `{ price: number; isLive: boolean; source: string }`
+- Returns `{ price: 0, isLive: false, source: "unavailable" }` on failure (never hardcoded)
+- `getV3MinterInfo()` extended with `isLive: boolean` and `source: string` fields
+- `getPLSPriceInUSD()` — all 3 hardcoded `0.000028` fallbacks → return `0`
+
+**3. `src/lib/store.ts` — State management**
+- `mintCostUSD` initial value: `0.00006972` → `0`
+- `plsPriceUSD` initial value: `0.000028` → `0`
+- Added `mintCostIsLive: boolean` state field + `setMintCostIsLive` action
+- Added `mintCostSource: string` state field + `setMintCostSource` action
+
+**4. `src/components/v3-minter-tab.tsx` — V3 minter (critical fix)**
+- `TBillInfo` interface extended with `isLive` and `source` fields
+- Removed `|| 0.00006972` inline fallback in multiplier calculator
+- Removed `|| 0.00006972` inline fallback in "Current Mint Cost" display
+- Removed `|| 0.000028` inline fallback in PLS price display
+- Added **Live/Fallback indicator badge** next to mint cost:
+  - Green `● Live` badge when `isLive === true` (shows source: "via DexScreener (...)")
+  - Amber `⚠ Fallback` badge when `isLive === false`
+  - Gray "Loading..." text when price is 0
+- Updated `fetchMintPreview` to destructure `{ price, isLive, source }` from `getMintCost()`
+
+**5. `src/components/dashboard-tab.tsx` — Dashboard**
+- Destructures new store fields: `mintCostIsLive`, `mintCostSource`
+- Updated `fetchMarketData` to destructure `getMintCost()` result and call `setMintCostIsLive`/`setMintCostSource`
+- Mint Cost StatsCard now shows:
+  - `—` when price is 0 (instead of `$0.00006972`)
+  - Subtitle `Per token · Live` when live
+  - Subtitle `Per token · <source>` when stale
+  - Subtitle `Loading...` when no data
+
+**6. `src/components/calculator-tab.tsx` — Calculator**
+- Replaced `const MINT_COST_PER_TOKEN = 0.00006972` with live price fetching via `getMintCost()`
+- Added `useEffect` to refresh mint cost every 30 seconds
+- All 7 references to `MINT_COST_PER_TOKEN` updated to use `mintCostUSD || getLiveMintCost()`
+
+**7. `src/components/mint-analytics.tsx` — Analytics**
+- Changed hardcoded `mintTxs.length * 0.00006972` to `mintTxs.length * 0` (no fake estimate)
+
+**8. `src/components/bot-panel.tsx` — Bot simulation**
+- Changed hardcoded `0.000028` PLS price to `useAppStore.getState().mintCostUSD || 0`
+
+**9. `src/components/app-guide.tsx` — Documentation/guide text**
+- Updated 4 hardcoded price references to say "dynamic (live from DexScreener)" instead of "$0.00006972"
+- Updated PLS source description from "Hardcoded $0.000028" to "Live PLS price from DexScreener/CoinGecko"
+
+**10. `src/app/api/pls-price/route.ts` — PLS price API**
+- `FALLBACK_PRICE` changed from `0.000028` to `0`
+- Fallback source label changed from "Fallback" to "No live data"
+
+**11. `src/app/api/price/route.ts` — Price API (updated caller)**
+- Updated to destructure `getMintCost()` return type
+- Passes through `mintCostIsLive` and `mintCostSource` in response
+
+### Verification
+- **TypeScript**: No new type errors introduced by these changes (pre-existing errors in unrelated files remain)
+- **Zero hardcoded price values remain** in `src/` — verified with `rg "0.00006972|0.000028" src/` (no matches)
+- **External APIs reachable**: DexScreener returns HTTP 200 with live T-BILL price `$0.00006781`
+- **Live indicators**: Users now see "● Live" or "⚠ Fallback" badges to know if prices are real
+
+---
 ## Task ID: TX-IMPROVEMENTS - Market Overview Widget & Quick Actions Panel
 ### Work Task
 Create two new components for the Treasury Minter Engine: (1) a compact Market Overview widget showing real-time PulseChain market data, top movers, fear & greed indicator, and quick stats; (2) an enhanced Quick Actions Panel with a 2x3 action grid, recent actions log, and pinnable favorite actions.

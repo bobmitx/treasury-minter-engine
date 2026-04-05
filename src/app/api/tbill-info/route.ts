@@ -214,7 +214,7 @@ async function getPLSPriceUSD(): Promise<number> {
     }
   } catch {}
 
-  return 0.000028;
+  return 0; // no live PLS price available
 }
 
 // ── Formatters ──
@@ -292,11 +292,12 @@ export async function GET() {
       tbillPricePLS = tbillPriceUSD / plsPriceUSD;
     }
 
-    // Absolute fallback
+    // Absolute fallback — do NOT fake a price; return 0 and mark isLive=false
+    let isLive = tbillPriceUSD > 0;
     if (tbillPriceUSD <= 0) {
-      tbillPriceUSD = 0.00006972;
-      tbillPricePLS = plsPriceUSD > 0 ? tbillPriceUSD / plsPriceUSD : 0;
-      priceSource = "hardcoded-fallback";
+      tbillPriceUSD = 0;
+      tbillPricePLS = 0;
+      priceSource = "no-live-data";
     }
 
     const data = {
@@ -308,28 +309,30 @@ export async function GET() {
       totalSupplyFormatted: formatLargeNumber(totalSupply),
       lpFound,
       lpReserves,
-      // KEY FIX: mintCostEstimateUSD now reflects the ACTUAL T-BILL price
       mintCostEstimateUSD: tbillPriceUSD,
       lastUpdated: Date.now(),
       source: priceSource,
+      isLive,
     };
 
     cache = { data, timestamp: Date.now() };
     return Response.json(data);
   } catch (error: any) {
     console.error("T-BILL info API error:", error);
+    // On error: return 0 prices (never fake) and mark isLive=false
     return Response.json(
       {
         success: false,
-        tbillPriceUSD: 0.00006972,
+        tbillPriceUSD: 0,
         tbillPricePLS: 0,
         plsPriceUSD: 0,
         totalSupply: ESTIMATED_TOTAL_SUPPLY,
         totalSupplyFormatted: "~1.10B",
         lpFound: false,
-        mintCostEstimateUSD: 0.00006972,
+        mintCostEstimateUSD: 0,
         lastUpdated: Date.now(),
-        source: "error-fallback",
+        source: "error",
+        isLive: false,
         error: error.message,
       },
       { status: 200 }

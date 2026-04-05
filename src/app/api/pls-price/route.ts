@@ -26,7 +26,7 @@ const CACHE_TTL = 60_000; // 60 seconds
 // Constants
 // ---------------------------------------------------------------------------
 
-const FALLBACK_PRICE = 0.000028;
+const FALLBACK_PRICE = 0; // No hardcoded PLS price — return 0 if all sources fail
 const TIMEOUT_MS = 5_000;
 const WPLS_ADDRESS = "0xA1077a294dDE1B09bB078844df40758a5D0f9a27";
 
@@ -161,7 +161,7 @@ async function fetchFromGeckoTerminal(): Promise<PriceResult | null> {
 function getFallbackPrice(): PriceResult {
   return {
     price: FALLBACK_PRICE,
-    source: "Fallback",
+    source: "No live data",
     confidence: "low",
   };
 }

@@ -99,6 +99,8 @@ export async function getV3MinterInfo(): Promise<{
   tbillPriceUSD: number;
   tbillPricePLS: number;
   plsPriceUSD: number;
+  isLive: boolean;
+  source: string;
 }> {
   try {
     if (typeof window !== "undefined") {
@@ -111,6 +113,8 @@ export async function getV3MinterInfo(): Promise<{
           tbillPriceUSD: data.tbillPriceUSD || 0,
           tbillPricePLS: data.tbillPricePLS || 0,
           plsPriceUSD: data.plsPriceUSD || 0,
+          isLive: !!data.isLive,
+          source: data.source || "unknown",
         };
       }
     }
@@ -123,6 +127,8 @@ export async function getV3MinterInfo(): Promise<{
     tbillPriceUSD: 0,
     tbillPricePLS: 0,
     plsPriceUSD: 0,
+    isLive: false,
+    source: "unavailable",
   };
 }
 
@@ -294,7 +300,7 @@ export async function getPLSPriceInUSD(): Promise<number> {
     const pairAddress = await findPairAddress(CONTRACTS.eDAI, CONTRACTS.wPLS);
 
     if (!pairAddress || pairAddress === ethers.constants.AddressZero) {
-      return 0.000028; // fallback PLS price estimate
+      return 0; // no data available — don't fake a price
     }
 
     const pair = new Contract(pairAddress, UNISWAP_V2_PAIR_ABI, provider);
@@ -318,7 +324,7 @@ export async function getPLSPriceInUSD(): Promise<number> {
     }
 
     if (edaiReserve.isZero()) {
-      return 0.000028;
+      return 0; // no data available
     }
 
     // PLS per eDAI = wplsReserve / edaiReserve
@@ -328,8 +334,8 @@ export async function getPLSPriceInUSD(): Promise<number> {
     // Since eDAI ~ $1, PLS price = 1 / plsPerEdai
     return 1 / plsPerEdai;
   } catch {
-    // LP pair not available on-chain; use fallback PLS price
-    return 0.000028;
+    // LP pair not available on-chain
+    return 0;
   }
 }
 
@@ -367,7 +373,8 @@ export async function findPairAddress(
 }
 
 // Get mint cost in USD — fetches real-time from T-BILL/PulseX price
-export async function getMintCost(): Promise<number> {
+// Returns { price, isLive, source } so callers can show proper indicators
+export async function getMintCost(): Promise<{ price: number; isLive: boolean; source: string }> {
   try {
     if (typeof window !== "undefined") {
       const res = await fetch("/api/tbill-info");
@@ -376,17 +383,18 @@ export async function getMintCost(): Promise<number> {
         // Prefer tbillPriceUSD (live DexScreener/GeckoTerminal price)
         // Fall back to mintCostEstimateUSD (legacy field)
         if (data?.tbillPriceUSD && data.tbillPriceUSD > 0) {
-          return data.tbillPriceUSD;
+          return { price: data.tbillPriceUSD, isLive: !!data.isLive, source: data.source || "unknown" };
         }
         if (data?.mintCostEstimateUSD && data.mintCostEstimateUSD > 0) {
-          return data.mintCostEstimateUSD;
+          return { price: data.mintCostEstimateUSD, isLive: !!data.isLive, source: data.source || "unknown" };
         }
       }
     }
   } catch {
-    // API route failed, fall through to default
+    // API route failed
   }
-  return 0.00006972;
+  // Return 0 — never fake a hardcoded price
+  return { price: 0, isLive: false, source: "unavailable" };
 }
 
 // Get multiplier for a V3 token

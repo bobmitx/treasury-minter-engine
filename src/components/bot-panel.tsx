@@ -635,7 +635,7 @@ export function BotPanel() {
       if (simulatedRatio >= botConfig.profitThreshold) {
         // SIMULATED MINT
         const profitEstimate =
-          (simulatedRatio - 1) * botConfig.mintAmount * 0.000028;
+          (simulatedRatio - 1) * botConfig.mintAmount * (useAppStore.getState().mintCostUSD || 0);
 
         addBotLog({
           id: `log-${Date.now()}-${token.address}`,

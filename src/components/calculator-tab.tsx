@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAppStore } from "@/lib/store";
 import { formatUSD, formatLargeNumber } from "@/lib/ethereum";
+import { getMintCost } from "@/lib/ethereum";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +43,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const MINT_COST_PER_TOKEN = 0.00006972;
+// Mint cost fetched live from API (initialized to 0 — never hardcoded)
+let _liveMintCost = 0;
+if (typeof window !== "undefined") {
+  getMintCost().then(r => { _liveMintCost = r.price; });
+}
+const getLiveMintCost = () => _liveMintCost;
 
 const QUICK_PRESETS = [
   { label: "Conservative", amount: 1000, icon: Shield, color: "text-emerald-400" },
@@ -78,6 +84,18 @@ export function CalculatorTab() {
   const { mintCostUSD } = useAppStore();
   const [chartLoading] = useState(true);
 
+  // Refresh live mint cost periodically
+  useEffect(() => {
+    let mounted = true;
+    const fetchCost = async () => {
+      const r = await getMintCost();
+      if (mounted) _liveMintCost = r.price;
+    };
+    fetchCost();
+    const iv = setInterval(fetchCost, 30000);
+    return () => { mounted = false; clearInterval(iv); };
+  }, []);
+
   // ─── Mint Cost Calculator State ───
   const [mintAmount, setMintAmount] = useState("1000");
   const [tokenPrice, setTokenPrice] = useState("0.0005");
@@ -95,7 +113,7 @@ export function CalculatorTab() {
   const mintCostCalc = useMemo(() => {
     const amount = parseFloat(mintAmount) || 0;
     const price = parseFloat(tokenPrice) || 0;
-    const cost = amount * MINT_COST_PER_TOKEN;
+    const cost = amount * (mintCostUSD || getLiveMintCost());
     const revenue = amount * price;
     const profit = revenue - cost;
     const roi = cost > 0 ? (profit / cost) * 100 : 0;
@@ -106,7 +124,8 @@ export function CalculatorTab() {
   // ─── Break-Even Analysis ───
   const breakEven = useMemo(() => {
     const price = parseFloat(tokenPrice) || 0;
-    const tokensNeeded = price > 0 ? MINT_COST_PER_TOKEN / price : 0;
+    const effectiveMintCost = mintCostUSD || getLiveMintCost();
+    const tokensNeeded = (price > 0 && effectiveMintCost > 0) ? effectiveMintCost / price : 0;
     return tokensNeeded;
   }, [tokenPrice]);
 
@@ -186,7 +205,7 @@ export function CalculatorTab() {
             <div>
               <h2 className="text-lg font-bold text-white">Mint Profit Calculator</h2>
               <p className="text-xs text-gray-500">
-                Estimate profitability before minting · Mint cost: {formatUSD(MINT_COST_PER_TOKEN)}/token
+                Estimate profitability before minting · Mint cost: {formatUSD(mintCostUSD || getLiveMintCost())}/token
               </p>
             </div>
           </div>
@@ -458,7 +477,7 @@ export function CalculatorTab() {
                     </TooltipTrigger>
                     <TooltipContent className="bg-gray-900 border-gray-700 text-gray-300 text-xs max-w-xs">
                       Shows how many tokens you need to mint at the current estimated price to
-                      break even against the mint cost per token ({formatUSD(MINT_COST_PER_TOKEN)}).
+                      break even against the mint cost per token ({formatUSD(mintCostUSD || getLiveMintCost())}).
                     </TooltipContent>
                   </Tooltip>
                 </div>
@@ -478,7 +497,7 @@ export function CalculatorTab() {
                     {breakEven > 0 && (
                       <p className="text-xs text-gray-500 mt-2">
                         Minting {formatLargeNumber(breakEven)} tokens costs{" "}
-                        <span className="text-gray-300">{formatUSD(breakEven * MINT_COST_PER_TOKEN)}</span>
+                        <span className="text-gray-300">{formatUSD(breakEven * (mintCostUSD || getLiveMintCost()))}</span>
                         {" "}which equals the revenue at {formatUSD(mintCostCalc.price)}/token
                       </p>
                     )}
@@ -486,7 +505,7 @@ export function CalculatorTab() {
                   <div className="flex items-center gap-2 text-xs text-gray-500 shrink-0">
                     <div className="text-right">
                       <p>Mint Cost/Token</p>
-                      <p className="text-sm font-semibold text-gray-300">{formatUSD(MINT_COST_PER_TOKEN)}</p>
+                      <p className="text-sm font-semibold text-gray-300">{formatUSD(mintCostUSD || getLiveMintCost())}</p>
                     </div>
                     <ArrowRight className="h-4 w-4 text-gray-600" />
                     <div className="text-right">

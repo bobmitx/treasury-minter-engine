@@ -78,6 +78,8 @@ interface TBillInfo {
   tbillPriceUSD: number;
   tbillPricePLS: number;
   plsPriceUSD: number;
+  isLive: boolean;
+  source: string;
 }
 
 // ── Token Validation States ─────────────────────────────────────────────────
@@ -116,6 +118,8 @@ export function V3MinterTab() {
     tbillPriceUSD: 0,
     tbillPricePLS: 0,
     plsPriceUSD: 0,
+    isLive: false,
+    source: "",
   });
   const [loadingTbill, setLoadingTbill] = useState(false);
 
@@ -178,7 +182,7 @@ export function V3MinterTab() {
     // Multiplier formula: totalSupply / (totalSupply + addition)
     const multiplier = totalSupply / (totalSupply + amount);
     const costTBILL = multiplier * amount;
-    const costUSD = costTBILL * (tbillInfo.tbillPriceUSD || 0.00006972);
+    const costUSD = costTBILL * tbillInfo.tbillPriceUSD;
     const percentageOfSupply = (amount / totalSupply) * 100;
 
     setCalcResult({
@@ -233,12 +237,12 @@ export function V3MinterTab() {
       return;
     }
     try {
-      const [price, cost] = await Promise.all([
+      const [price, costResult] = await Promise.all([
         getTokenPrice(mintToken),
         getMintCost(),
       ]);
-      const ratio = cost > 0 ? price.priceUSD / cost : 0;
-      setMintPreview({ cost, ratio });
+      const ratio = costResult.price > 0 ? price.priceUSD / costResult.price : 0;
+      setMintPreview({ cost: costResult.price, ratio });
     } catch {
       setMintPreview(null);
     }
@@ -603,15 +607,34 @@ export function V3MinterTab() {
                 </div>
 
                 <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Current Mint Cost</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Current Mint Cost</p>
+                    {!loadingTbill && tbillInfo.tbillPriceUSD > 0 && (
+                      <span className={cn(
+                        "text-[9px] px-1.5 py-0.5 rounded font-medium",
+                        tbillInfo.isLive
+                          ? "bg-emerald-500/15 text-emerald-400"
+                          : "bg-amber-500/15 text-amber-400"
+                      )}>
+                        {tbillInfo.isLive ? "● Live" : "⚠ Fallback"}
+                      </span>
+                    )}
+                  </div>
                   {loadingTbill ? (
                     <Skeleton className="h-5 w-20 shimmer rounded" />
                   ) : (
-                    <p className="text-sm font-bold font-mono text-emerald-400 number-animate">
-                      {formatUSD(tbillInfo.tbillPriceUSD || 0.00006972)}
+                    <p className={cn(
+                      "text-sm font-bold font-mono number-animate",
+                      tbillInfo.tbillPriceUSD > 0 ? "text-emerald-400" : "text-gray-500"
+                    )}>
+                      {tbillInfo.tbillPriceUSD > 0
+                        ? formatUSD(tbillInfo.tbillPriceUSD)
+                        : "Loading..."}
                     </p>
                   )}
-                  <p className="text-[10px] text-gray-600 mt-0.5">Per token (T-BILL parent)</p>
+                  <p className="text-[10px] text-gray-600 mt-0.5">
+                    {tbillInfo.isLive && tbillInfo.source ? `via ${tbillInfo.source}` : "Per token (T-BILL parent)"}
+                  </p>
                 </div>
 
                 <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
@@ -619,8 +642,11 @@ export function V3MinterTab() {
                   {loadingTbill ? (
                     <Skeleton className="h-5 w-20 shimmer rounded" />
                   ) : (
-                    <p className="text-sm font-bold font-mono text-white number-animate">
-                      {formatUSD(tbillInfo.plsPriceUSD || 0.000028)}
+                    <p className={cn(
+                      "text-sm font-bold font-mono number-animate",
+                      tbillInfo.plsPriceUSD > 0 ? "text-white" : "text-gray-500"
+                    )}>
+                      {tbillInfo.plsPriceUSD > 0 ? formatUSD(tbillInfo.plsPriceUSD) : "—"}
                     </p>
                   )}
                   <p className="text-[10px] text-gray-600 mt-0.5">PulseChain native token</p>

@@ -324,7 +324,7 @@ export function AppGuide() {
                   <div className="flex items-start gap-2">
                     <DollarSign className="h-4 w-4 text-gray-400 shrink-0 mt-0.5" />
                     <span>
-                      The mint cost is approximately <span className="text-emerald-400 font-mono font-medium">$0.00006972</span> per token, derived from the T-BILL/eDAI system peg.
+                      The mint cost is approximately <span className="text-emerald-400 font-mono font-medium">dynamic (live from DexScreener)</span> per token, reflecting the real-time T-BILL market price.
                     </span>
                   </div>
                 </HighlightBox>
@@ -487,7 +487,7 @@ export function AppGuide() {
               <div className="space-y-3">
                 <FormulaBlock
                   label="Mint Cost"
-                  formula="Mint Cost = amount × $0.00006972"
+                  formula="Mint Cost = amount × live T-BILL price"
                 />
                 <p className="text-xs text-gray-500 ml-1">
                   This is the fixed cost per token, pegged to the T-BILL/eDAI system.
@@ -689,7 +689,7 @@ export function AppGuide() {
                   {
                     icon: DollarSign,
                     title: "Fixed Mint Cost",
-                    desc: "The mint cost is locked at ~$0.00006972 per token. This doesn't change regardless of market conditions.",
+                    desc: "The mint cost is dynamic and follows the live T-BILL market price on PulseChain (via DexScreener/GeckoTerminal). It updates every 15 seconds.",
                     color: "text-emerald-400",
                     bg: "bg-emerald-500/10",
                   },
@@ -871,7 +871,7 @@ export function AppGuide() {
                     },
                     {
                       priority: "Final",
-                      source: "Hardcoded $0.000028",
+                      source: "Live PLS price from DexScreener/CoinGecko",
                       status: "gray",
                     },
                   ].map((item) => (

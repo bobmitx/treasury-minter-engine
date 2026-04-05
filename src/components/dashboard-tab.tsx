@@ -588,11 +588,15 @@ export function DashboardTab() {
     connected,
     plsPriceUSD,
     mintCostUSD,
+    mintCostIsLive,
+    mintCostSource,
     tokens,
     transactions,
     lastPriceUpdate,
     setPlsPriceUSD,
     setMintCostUSD,
+    setMintCostIsLive,
+    setMintCostSource,
     setLastPriceUpdate,
   } = useAppStore();
 
@@ -603,19 +607,21 @@ export function DashboardTab() {
   const fetchMarketData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const [plsPrice, mintCost] = await Promise.all([
+      const [plsPrice, mintResult] = await Promise.all([
         getPLSPriceInUSD(),
         getMintCost(),
       ]);
       setPlsPriceUSD(plsPrice);
-      setMintCostUSD(mintCost);
+      setMintCostUSD(mintResult.price);
+      setMintCostIsLive(mintResult.isLive);
+      setMintCostSource(mintResult.source);
       setLastPriceUpdate(Date.now());
     } catch (error) {
       console.error("Failed to fetch market data:", error);
     } finally {
       setIsRefreshing(false);
     }
-  }, [setPlsPriceUSD, setMintCostUSD, setLastPriceUpdate]);
+  }, [setPlsPriceUSD, setMintCostUSD, setMintCostIsLive, setMintCostSource, setLastPriceUpdate]);
 
   const handleManualRefresh = useCallback(async () => {
     if (isRefreshing) return;
@@ -686,9 +692,15 @@ export function DashboardTab() {
         /></div>
         <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="Mint Cost"
-          value={formatUSD(mintCostUSD)}
+          value={mintCostUSD > 0 ? formatUSD(mintCostUSD) : "—"}
           icon={Coins}
-          subtitle="Per token"
+          subtitle={
+            mintCostUSD > 0
+              ? mintCostIsLive
+                ? `Per token · Live`
+                : `Per token · ${mintCostSource || "Stale"}`
+              : "Loading..."
+          }
         /></div>
         <div className="glass-card-depth hover-lift rounded-xl"><StatsCard
           title="V3 Tokens"

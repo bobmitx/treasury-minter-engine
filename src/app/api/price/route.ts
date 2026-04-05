@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const tokenAddress = searchParams.get("token");
 
     const plsPrice = await getPLSPriceInUSD();
-    const mintCost = await getMintCost();
+    const { price: mintCost, isLive: mintCostIsLive, source: mintCostSource } = await getMintCost();
 
     if (tokenAddress) {
       // Get specific token data
@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
         data: {
           plsPriceUSD: plsPrice,
           mintCostUSD: mintCost,
+          mintCostIsLive,
+          mintCostSource,
           token: {
             address: tokenAddress,
             name: info.name,
@@ -84,6 +86,8 @@ export async function GET(request: NextRequest) {
       data: {
         plsPriceUSD: plsPrice,
         mintCostUSD: mintCost,
+        mintCostIsLive,
+        mintCostSource,
         tokens,
         timestamp: Date.now(),
       },
