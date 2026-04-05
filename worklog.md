@@ -2517,3 +2517,74 @@ The application had 17+ components, 8 tabs, and comprehensive features. However,
 2. **Historical Multiplier Data**: Track multiplier changes over time to show trends in the calculator.
 3. **T-BILL Balance Display**: Show user's T-BILL balance to indicate if they have enough to mint.
 4. **Real Blockchain Integration**: Bot mode still uses simulation; needs actual on-chain minting calls.
+
+---
+## Task ID: TBILL-PRICE-FIX - Fix Hardcoded T-BILL Price, Use Live DexScreener Data
+
+### Current Project Status
+The T-BILL mint cost displayed in the UI was always $0.00006972 (hardcoded), regardless of the actual T-BILL market price. Users reported seeing the correct price elsewhere (DexScreener, PulseX) but the app never updated. Root cause analysis revealed two bugs:
+
+1. **`/api/tbill-info/route.ts` line 119**: `mintCostEstimateUSD` was always hardcoded to `0.00006972` even when the PulseX LP pair was found and `tbillPriceUSD` was calculated correctly from on-chain reserves.
+2. **`getMintCost()` in `ethereum.ts`**: Only read `mintCostEstimateUSD`, ignoring the `tbillPriceUSD` field.
+3. **Sandbox RPC issue**: PulseChain RPC (`rpc.pulsechain.com`) is unreachable from the sandbox environment, causing all on-chain calls to fail. The API fell back to the hardcoded price every time.
+
+### Completed Modifications
+
+**1. `src/app/api/tbill-info/route.ts` — Complete Rewrite**
+- Added **DexScreener** as primary T-BILL price source (`fetchTBillFromDexScreener()`)
+  - Queries `https://api.dexscreener.com/latest/dex/tokens/{T_BILL_ADDRESS}`
+  - Finds the pair with highest liquidity
+  - Returns live T-BILL price in USD (verified: ~$0.00006781 vs hardcoded $0.00006972)
+- Added **GeckoTerminal** as secondary source (`fetchTBillFromGeckoTerminal()`)
+  - Queries PulseChain network token prices via GeckoTerminal API
+- **PulseX LP** demoted to tertiary source (`fetchTBillFromPulseXLP()`)
+  - Still attempted but gracefully caught when RPC is unavailable (sandbox)
+- **CRITICAL FIX**: `mintCostEstimateUSD` now equals `tbillPriceUSD` (the actual live price)
+  - Old: `mintCostEstimateUSD: 0.00006972` (always hardcoded)
+  - New: `mintCostEstimateUSD: tbillPriceUSD` (reflects real market price)
+- Added `fetchWithTimeout()` helper with 8-second timeout
+- Added `ESTIMATED_TOTAL_SUPPLY = 1_100_000_000` constant for when on-chain `totalSupply()` fails
+- Cache TTL maintained at 30 seconds
+
+**2. `src/lib/ethereum.ts` — `getMintCost()` Updated**
+- Now prefers `data.tbillPriceUSD` (live DexScreener price) over `mintCostEstimateUSD`
+- Falls back through: `tbillPriceUSD` → `mintCostEstimateUSD` → `0.00006972`
+
+### Verified Existing Features (from user's earlier requests)
+- ✅ **V3 1.1 Billion Multiplier Math** — Already implemented in `v3-minter-tab.tsx`:
+  - "Multiplier Math Calculator" card with `ESTIMATED_TOTAL_SUPPLY = 1,100,000,000`
+  - Formula display: `Multiplier = TotalSupply / (TotalSupply + Addition)`
+  - Interactive calculator with presets (1K, 10K, 100K, 1M)
+  - Progress bar showing mint amount vs total supply
+  - Key insight text with cost breakdown
+- ✅ **V4 Multiplier Function Elaboration** — Already implemented in `v4-minter-tab.tsx`:
+  - `MultiplierCard` component with interactive calculator
+  - Formula display: `Multiplier(addition) = TotalSupply / (TotalSupply + Addition)`
+  - V3 vs V4 comparison cards
+  - `MinterPurposeCard` with BBC, NINE, NOTS, SKILLS contract references
+- ✅ **V3/V4 Dropdown How-To Guides** — Already implemented:
+  - V3: Accordion with "How to Create a Token", "How to Mint", "How Multipliers Work"
+  - V4: Accordion with "How to Create V4 Token", "How to Create GAI", "How to Claim Rewards", "How V4 Multipliers Work"
+  - All guides have numbered step-by-step instructions with pro tips
+- ✅ **Real On-Chain Data Input** — "Add Custom Token by Address" section in both V3 and V4 tabs
+  - Address validation, duplicate checking, auto-fetch token info/price/balance/multiplier
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with 0 errors (224 pre-existing warnings)
+- **DexScreener API**: Successfully returns T-BILL price ~$0.00006781 (main pair, $1.18M liquidity)
+- **GeckoTerminal API**: Available as secondary source
+- **PulseChain RPC**: Unreachable from sandbox (expected), gracefully handled with fallback chain
+
+### Live Price Data Verified
+```
+T-BILL/WPLS (PulseX): $0.00006768 USD, 9.46 WPLS per T-BILL
+T-BILL/USDT (PulseX): $0.00006765 USD
+T-BILL/㈞ (PulseX): $0.00006781 USD, $1.18M liquidity (primary pair)
+Hardcoded old value: $0.00006972 (was always wrong)
+```
+
+### Unresolved Issues & Next Phase Recommendations
+1. **On-chain T-BILL totalSupply**: Currently uses estimated 1.1B when RPC is unreachable. When deployed to a server with RPC access, the actual `totalSupply()` will be fetched.
+2. **Price refresh indicator**: Consider adding a small "via DexScreener" badge next to the T-BILL price showing the data source.
+3. **Historical price data**: No historical T-BILL price data yet. Consider storing price history for charts.
+4. **V4 T-BILL price display**: The V4 tab doesn't show T-BILL price directly — consider adding it to the MinterPurposeCard stats.

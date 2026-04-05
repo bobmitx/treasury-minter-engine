@@ -373,6 +373,11 @@ export async function getMintCost(): Promise<number> {
       const res = await fetch("/api/tbill-info");
       if (res.ok) {
         const data = await res.json();
+        // Prefer tbillPriceUSD (live DexScreener/GeckoTerminal price)
+        // Fall back to mintCostEstimateUSD (legacy field)
+        if (data?.tbillPriceUSD && data.tbillPriceUSD > 0) {
+          return data.tbillPriceUSD;
+        }
         if (data?.mintCostEstimateUSD && data.mintCostEstimateUSD > 0) {
           return data.mintCostEstimateUSD;
         }
