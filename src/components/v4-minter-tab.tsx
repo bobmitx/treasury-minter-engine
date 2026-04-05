@@ -1132,7 +1132,6 @@ export function V4MinterTab() {
                     value={createName}
                     onChange={(e) => setCreateName(e.target.value)}
                     className="bg-gray-800 border-gray-700 text-white input-focus-ring"
-                    disabled={!connected}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1145,7 +1144,6 @@ export function V4MinterTab() {
                     }
                     className="bg-gray-800 border-gray-700 text-white font-mono input-focus-ring"
                     maxLength={10}
-                    disabled={!connected}
                   />
                 </div>
               </div>
@@ -1160,7 +1158,6 @@ export function V4MinterTab() {
                     value={createInitialMint}
                     onChange={(e) => setCreateInitialMint(e.target.value)}
                     className="bg-gray-800 border-gray-700 text-white input-focus-ring"
-                    disabled={!connected}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1172,7 +1169,6 @@ export function V4MinterTab() {
                       value={createParent}
                       onChange={(e) => setCreateParent(e.target.value)}
                       className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring"
-                      disabled={!connected}
                     />
                     <Button
                       variant="outline"
@@ -1187,7 +1183,7 @@ export function V4MinterTab() {
               </div>
               <Button
                 onClick={handleCreateToken}
-                disabled={creating || !connected}
+                disabled={creating || !connected || !createName.trim() || !createSymbol.trim() || !(parseFloat(createInitialMint) > 0)}
                 className="bg-amber-600 hover:bg-amber-700 text-white btn-hover-scale"
               >
                 {creating ? (
@@ -1255,7 +1251,6 @@ export function V4MinterTab() {
                     value={gaiName}
                     onChange={(e) => setGaiName(e.target.value)}
                     className="bg-gray-800 border-gray-700 text-white input-focus-ring"
-                    disabled={!connected}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1268,13 +1263,12 @@ export function V4MinterTab() {
                     }
                     className="bg-gray-800 border-gray-700 text-white font-mono input-focus-ring"
                     maxLength={10}
-                    disabled={!connected}
                   />
                 </div>
               </div>
               <Button
                 onClick={handleCreateGai}
-                disabled={creatingGai || !connected}
+                disabled={creatingGai || !connected || !gaiName.trim() || !gaiSymbol.trim()}
                 className="bg-amber-600 hover:bg-amber-700 text-white btn-hover-scale"
               >
                 {creatingGai ? (
@@ -1305,7 +1299,6 @@ export function V4MinterTab() {
                   onChange={(e) => setMintToken(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white font-mono text-xs input-focus-ring"
                   placeholder="0x..."
-                  disabled={!connected}
                 />
                 {v4Tokens.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -1334,12 +1327,11 @@ export function V4MinterTab() {
                   value={mintAmount}
                   onChange={(e) => setMintAmount(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white input-focus-ring"
-                  disabled={!connected}
                 />
               </div>
               <Button
                 onClick={handleMint}
-                disabled={minting || !connected || !mintToken}
+                disabled={minting || !connected || !mintToken || !(parseFloat(mintAmount) > 0)}
                 className="bg-amber-600 hover:bg-amber-700 text-white btn-hover-scale"
               >
                 {minting ? (
@@ -1407,7 +1399,6 @@ export function V4MinterTab() {
                   value={claimAmount}
                   onChange={(e) => setClaimAmount(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white input-focus-ring"
-                  disabled={!connected}
                 />
               </div>
               <Button

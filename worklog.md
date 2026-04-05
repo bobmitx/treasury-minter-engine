@@ -91,3 +91,35 @@ Stage Summary:
 - Project pushed to GitHub: https://github.com/bobmitx/treasury-minter-engine
 - All 7 pending commits now live on remote main branch
 - Existing 15-minute webDevReview cron job (ID 64324) already covers continuous improvement
+
+---
+Task ID: 5
+Agent: Main
+Task: Fix V4 Minter Tab - Remove disabled from all inputs, make fully interactive without wallet
+
+Work Log:
+- Read full v4-minter-tab.tsx, searched for all `disabled={!connected}` instances
+- Found 9 input fields disabled when wallet not connected, same issue as V3 had
+- Removed `disabled={!connected}` from 9 input fields:
+  1. Create form: Token Name input
+  2. Create form: Symbol input
+  3. Create form: Initial Mint Amount input
+  4. Create form: Parent Token address input
+  5. GAI form: GAI Token Name input
+  6. GAI form: Symbol input
+  7. Mint form: Token Address input
+  8. Mint form: Mint Amount input
+  9. Claim form: Claim Amount input
+- Enhanced action button disabled logic with field validation:
+  - Create V4 Token: also validates name, symbol, and initial mint amount > 0
+  - Create GAI Token: also validates name and symbol
+  - Mint V4 Tokens: also validates mint amount > 0
+- Fixed 2 JSX syntax errors (missing `}` on button text expressions)
+- Ran lint: 0 errors, 220 warnings (all pre-existing)
+- Dev server HTTP 200 confirmed
+
+Stage Summary:
+- ALL V4 Minter form inputs are now interactive regardless of wallet connection state
+- Users can explore all 4 tabs (Create, GAI, Mint, Claim), type in fields, select tokens before connecting wallet
+- Action buttons remain properly disabled when wallet not connected, with enhanced field validation
+- Both V3 and V4 minter tabs now have consistent interactive behavior
