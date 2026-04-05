@@ -26,6 +26,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -1286,9 +1287,35 @@ export function V3MinterTab() {
       </Card>
 
       {/* ================================================================
-          SECTION 5: Create Token + Mint Panel (side by side)
+          SECTION 5: Action Tabs (Create / Mint / Track)
           ================================================================ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Tabs defaultValue="create" className="space-y-4">
+        <TabsList className="bg-gray-900 border border-gray-800/70">
+          <TabsTrigger
+            value="create"
+            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Create
+          </TabsTrigger>
+          <TabsTrigger
+            value="mint"
+            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
+          >
+            <Coins className="h-3 w-3 mr-1" />
+            Mint
+          </TabsTrigger>
+          <TabsTrigger
+            value="track"
+            className="data-[state=active]:bg-emerald-600/20 data-[state=active]:text-emerald-400 btn-hover-scale"
+          >
+            <Search className="h-3 w-3 mr-1" />
+            Track
+          </TabsTrigger>
+        </TabsList>
+
+        {/* ── Create Tab ── */}
+        <TabsContent value="create">
         {/* Create New Token */}
         <Card key={createdTokenKey} className={cn(
           "bg-gray-900 border-gray-800/70 card-hover",
@@ -1489,13 +1516,37 @@ export function V3MinterTab() {
               {creating ? "Creating..." : "Create Token"}
             </Button>
             {!connected && (
-              <p className="text-xs text-gray-500 text-center">
-                Connect wallet to create tokens
+              <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1.5">
+                <Wallet className="h-3 w-3" />
+                Connect your wallet to create tokens on PulseChain
+              </p>
+            )}
+            {connected && !createName.trim() && (
+              <p className="text-xs text-amber-400/70 text-center mt-2">
+                Enter a token name to continue
+              </p>
+            )}
+            {connected && createName.trim() && !createSymbol.trim() && (
+              <p className="text-xs text-amber-400/70 text-center mt-2">
+                Enter a symbol to continue
+              </p>
+            )}
+            {connected && createName.trim() && createSymbol.trim() && (!createInitialMint || parseFloat(createInitialMint) <= 0) && (
+              <p className="text-xs text-amber-400/70 text-center mt-2">
+                Set a positive initial mint amount
+              </p>
+            )}
+            {connected && createName.trim() && createSymbol.trim() && createInitialMint && parseFloat(createInitialMint) > 0 && createParentMode === "custom" && !customParentValid && (
+              <p className="text-xs text-amber-400/70 text-center mt-2">
+                Enter a valid ERC20 parent token address
               </p>
             )}
           </CardContent>
         </Card>
+        </TabsContent>
 
+        {/* ── Mint Tab ── */}
+        <TabsContent value="mint">
         {/* Mint Panel */}
         <Card className="bg-gray-900 border-gray-800/70 card-hover">
           <CardHeader className="pb-3">
@@ -1637,12 +1688,27 @@ export function V3MinterTab() {
               )}
               {minting ? "Minting..." : "Mint Tokens"}
             </Button>
+            {!connected && (
+              <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1.5">
+                <Wallet className="h-3 w-3" />
+                Connect your wallet to mint tokens on PulseChain
+              </p>
+            )}
+            {connected && !mintToken && (
+              <p className="text-xs text-amber-400/70 text-center mt-2">
+                Enter or select a V3 token address to mint
+              </p>
+            )}
           </CardContent>
         </Card>
-      </div>
+        </TabsContent>
+
+        {/* ── Track Tab ── */}
+        <TabsContent value="track">
+          <div className="space-y-6">
 
       {/* ================================================================
-          SECTION 6: Add Custom Token (Improved with Validation)
+          Add Custom Token (Improved with Validation)
           ================================================================ */}
       <Card className="bg-gray-900 border-gray-800/70">
         <CardContent className="p-4">
@@ -1737,6 +1803,14 @@ export function V3MinterTab() {
                 </Button>
               </div>
 
+              {/* Disabled state message */}
+              {!connected && addTokenAddress.trim() && (validationState === "valid") && (
+                <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1.5">
+                  <Wallet className="h-3 w-3" />
+                  Connect your wallet to add this token
+                </p>
+              )}
+
               {/* Success card after adding */}
               {addedTokenInfo && (
                 <div className="bg-emerald-500/5 rounded-lg p-3 border border-emerald-500/15 animate-fade-in-up">
@@ -1772,7 +1846,7 @@ export function V3MinterTab() {
       </Card>
 
       {/* ================================================================
-          SECTION 7: Active V3 Tokens List
+          Active V3 Tokens List
           ================================================================ */}
       <Card className="bg-gray-900 border-gray-800/70">
         <CardHeader className="pb-3">
@@ -1927,6 +2001,9 @@ export function V3MinterTab() {
           )}
         </CardContent>
       </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

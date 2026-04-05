@@ -165,3 +165,33 @@ Stage Summary:
 - Reduced RPC provider timeout from 120s (default) to 30s to match safeContractRead timeout
 - This prevents long-running eth_call from causing console CALL_EXCEPTION errors
 - V3 tab confirmed already fixed from previous sessions (Tasks 1-2)
+
+---
+Task ID: 8
+Agent: Main
+Task: Restructure V3 with sub-tabs + Add helpful disabled messages to V3 and V4
+
+Work Log:
+- Added `Tabs, TabsContent, TabsList, TabsTrigger` import to v3-minter-tab.tsx
+- Restructured V3 render: Sections 1-4 (Info, Calculator, Guides, Multiplier Display) remain above tabs
+- Created 3 sub-tabs in V3: Create, Mint, Track (with emerald color scheme)
+  - Create tab: Contains "Create New V3 Token" card
+  - Mint tab: Contains "Mint V3 Tokens" card
+  - Track tab: Contains "Add Custom Token" + "Active V3 Tokens" list
+- Added `Wallet` icon import to v4-minter-tab.tsx
+- Added contextual disabled messages below every action button in both V3 and V4:
+  - V3 Create Token: "Connect wallet" / "Enter name" / "Enter symbol" / "Set amount" / "Enter valid parent"
+  - V3 Mint Tokens: "Connect wallet" / "Enter token address"
+  - V3 Add Token: "Connect wallet to add this token"
+  - V4 Create V4 Token: "Connect wallet" / "Enter name" / "Enter symbol" / "Set amount"
+  - V4 Create GAI Token: "Connect wallet" / "Enter name" / "Enter symbol"
+  - V4 Mint V4 Tokens: "Connect wallet" / "Enter token address" / "Enter positive amount"
+  - V4 Claim Rewards: "Connect wallet" / "Enter amount"
+  - V4 Add Token: "Connect wallet to add this token"
+- Restored v3-minter-tab.tsx from git after subagent emptied it (1932 lines restored)
+- Verified: 0 lint errors, all APIs returning 200
+
+Stage Summary:
+- V3 now has consistent sub-tab layout matching V4's pattern (Create/Mint/Track vs Create/GAI/Mint/Claim)
+- All disabled action buttons now show helpful contextual messages explaining what's needed
+- Both minter tabs provide clear guidance to users before wallet connection

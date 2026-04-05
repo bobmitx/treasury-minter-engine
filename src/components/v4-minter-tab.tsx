@@ -68,6 +68,7 @@ import {
   HelpCircle,
   CheckCircle2,
   AlertCircle,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -1339,6 +1340,27 @@ export function V4MinterTab() {
                 )}
                 {creating ? "Creating..." : "Create V4 Token"}
               </Button>
+              {!connected && (
+                <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1.5">
+                  <Wallet className="h-3 w-3" />
+                  Connect your wallet to create tokens on PulseChain
+                </p>
+              )}
+              {connected && !createName.trim() && (
+                <p className="text-xs text-amber-400/70 text-center mt-2">
+                  Enter a token name to continue
+                </p>
+              )}
+              {connected && createName.trim() && !createSymbol.trim() && (
+                <p className="text-xs text-amber-400/70 text-center mt-2">
+                  Enter a symbol to continue
+                </p>
+              )}
+              {connected && createName.trim() && createSymbol.trim() && !(parseFloat(createInitialMint) > 0) && (
+                <p className="text-xs text-amber-400/70 text-center mt-2">
+                  Set a positive initial mint amount
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1424,6 +1446,22 @@ export function V4MinterTab() {
                 )}
                 {creatingGai ? "Creating..." : "Create GAI Token"}
               </Button>
+              {!connected && (
+                <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1.5">
+                  <Wallet className="h-3 w-3" />
+                  Connect your wallet to create a GAI token
+                </p>
+              )}
+              {connected && !gaiName.trim() && (
+                <p className="text-xs text-amber-400/70 text-center mt-2">
+                  Enter a GAI token name to continue
+                </p>
+              )}
+              {connected && gaiName.trim() && !gaiSymbol.trim() && (
+                <p className="text-xs text-amber-400/70 text-center mt-2">
+                  Enter a symbol to continue
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1487,6 +1525,22 @@ export function V4MinterTab() {
                 )}
                 {minting ? "Minting..." : "Mint V4 Tokens"}
               </Button>
+              {!connected && (
+                <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1.5">
+                  <Wallet className="h-3 w-3" />
+                  Connect your wallet to mint V4 tokens
+                </p>
+              )}
+              {connected && !mintToken && (
+                <p className="text-xs text-amber-400/70 text-center mt-2">
+                  Enter or select a V4 token address to mint
+                </p>
+              )}
+              {connected && mintToken && !(parseFloat(mintAmount) > 0) && (
+                <p className="text-xs text-amber-400/70 text-center mt-2">
+                  Enter a positive mint amount
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1564,6 +1618,17 @@ export function V4MinterTab() {
                 )}
                 {claiming ? "Claiming..." : "Claim Rewards"}
               </Button>
+              {!connected && (
+                <p className="text-xs text-gray-500 text-center mt-2 flex items-center justify-center gap-1.5">
+                  <Wallet className="h-3 w-3" />
+                  Connect your wallet to claim rewards
+                </p>
+              )}
+              {connected && (!claimAmount || parseFloat(claimAmount) <= 0) && (
+                <p className="text-xs text-amber-400/70 text-center mt-2">
+                  Enter a positive amount to claim
+                </p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1652,6 +1717,12 @@ export function V4MinterTab() {
                     Cancel
                   </Button>
                 </div>
+                {!connected && addTokenAddress.trim() && tokenValidation === "valid" && (
+                  <p className="text-xs text-gray-500 text-center flex items-center justify-center gap-1.5 mt-2">
+                    <Wallet className="h-3 w-3" />
+                    Connect your wallet to add this token
+                  </p>
+                )}
               </div>
               {/* Validation status text */}
               {tokenValidation === "valid" && addTokenAddress.length > 0 && (
