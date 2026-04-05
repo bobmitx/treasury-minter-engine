@@ -2898,3 +2898,37 @@ Create 5 custom skills to enhance development capabilities: Enhanced Browser, Fr
 - Dev server running on port 3000, all routes return 200
 - ESLint: 0 errors
 - No existing project files modified
+
+---
+## Task ID: PREVIEW-FIX - Diagnose and Fix Preview Page Not Loading
+
+### Problem
+The preview page was showing a "This site can't be reached" / Z.ai loader page instead of the Treasury Minter Engine application.
+
+### Root Cause Analysis
+1. **Dev server process was dead**: The Next.js dev server on port 3000 had been killed (likely by sandbox process lifecycle management). The stored PID in `.zscripts/dev.pid` (PID 510) was long dead.
+2. **Sandbox kills background Node.js processes**: When we manually started `bun run dev` in the background, the sandbox killed it after 15-30 seconds. This happened repeatedly regardless of whether we used `nohup`, `setsid`, `disown`, or direct backgrounding.
+3. **Caddy proxy returned 502**: With port 3000 down, Caddy (on port 81) returned 502 Bad Gateway.
+4. **ZAI gateway returned loader page**: The ZAI platform gateway (ports 19005/19006) showed a placeholder Z.ai loading page with auto-refresh when the backend wasn't available.
+
+### Fix Applied
+1. Used the **proper `.zscripts/dev.sh` script** to restart the dev server (which is the same mechanism the platform's `start.sh` uses)
+2. Command: `cd /home/z/my-project && bash .zscripts/dev.sh`
+3. This properly runs `bun install`, `bun run db:push`, starts `bun run dev` in the background, waits for port 3000, performs a health check, and starts mini-services
+
+### Verification
+- **Port 3000**: LISTENING, returning HTTP 200
+- **Port 81 (Caddy)**: Returning full Treasury Minter app (137,934 bytes)
+- **External IP:81**: Returning full app with title "Treasury Minter Engine | PulseChain V3/V4"
+- **App content verified**: Contains V3 Minter tab, dark theme, script tags
+- **All API routes working**: `/api/pls-price`, `/api/tbill-info`, `/api/gas`, `/api/network-health`, `/api/network-stats`, `/api/pls-stats` — all returning 200
+
+### Key Findings About Sandbox Architecture
+- Caddy listens on port 81 and proxies to localhost:3000
+- The ZAI gateway (Python on port 12600, exposed on ports 19005/19006) manages the preview panel
+- `/app/Caddyfile` (root-owned, not readable) is the actual gateway config, NOT `/home/z/my-project/Caddyfile`
+- The dev server must be started via `.zscripts/dev.sh` for proper lifecycle management
+- Background Node.js processes get killed by the sandbox; the platform's start.sh manages the lifecycle
+
+### Recommendation
+If the preview stops loading again, run: `cd /home/z/my-project && bash .zscripts/dev.sh` to restart the dev server properly.
