@@ -2095,3 +2095,80 @@ User reported "upgrades were made but this build is missing them." Investigation
 ### Note on Server Stability
 The next-server process uses ~1.2-1.7GB RAM during compilation, which may cause OOM kills in sandbox environment. The server compiled and served the page but may need periodic restarts. Setting NODE_OPTIONS to limit memory helps but may slow compilation.
 
+---
+## Task ID: RESTORE-SESSION - Turbopack Troubleshooting & Project Restoration
+
+### Work Task
+The user reported that previous upgrades were missing from the build and the app was not loading. This task involved diagnosing the root cause, restoring the project, and implementing Turbopack-specific fixes to prevent future issues.
+
+### Diagnosis
+1. **Dev server was crashed** — The `next dev` process was not running (killed between sessions)
+2. **Stale `.next` cache** — Old compiled Turbopack chunks were present from previous sessions
+3. **Missing Turbopack config** — `next.config.ts` had no `transpilePackages` configuration, causing potential ChunkLoadError with Radix UI components
+4. **No `turbo` key support** — Next.js 16.1.3 does not support the `turbo` key in `next.config.ts` (causes warning)
+
+### Fixes Applied
+
+**1. `next.config.ts` — Added Turbopack Compatibility Configuration**
+- Added `transpilePackages` array with all 27 `@radix-ui/react-*` packages to prevent ChunkLoadError
+- Also included: `framer-motion`, `recharts`, `zustand`, `date-fns`, `ethers` for full ESM compatibility
+- Removed invalid `turbo` key (not supported in Next.js 16 config)
+
+**2. Cleared Stale Cache**
+- Deleted `.next/` directory (stale Turbopack compiled chunks)
+- Deleted `node_modules/.cache/` directory
+
+**3. Restarted Dev Server**
+- Clean restart after cache clear
+- Server compiles and serves all routes successfully
+
+### Verification Results
+- **ESLint**: `bun run lint` passes with zero errors
+- **Dev Server**: `GET / 200` in ~8s (first compile), subsequent requests ~100ms
+- **API Routes**: All return 200 — `/api/gas`, `/api/pls-price`, `/api/pls-stats`, `/api/network-health`, `/api/network-stats`
+- **No config warnings**: Clean startup (removed invalid `turbo` key)
+- **Browser QA (agent-browser)**: 
+  - Onboarding modal renders correctly with all 3 steps
+  - Dashboard tab: Block height (26,205,764), PLS Price, Mint Cost, Quick Actions, Gas Tips
+  - Calculator tab: All inputs, presets, charts render
+  - Bot Mode tab: Start/Stop controls, config sliders, target tokens section
+  - 11 navigation tabs all functional
+  - **Zero console errors**
+  - **Zero runtime errors**
+  - HMR connected successfully
+
+### Troubleshooting Guide (for future reference)
+
+**Turbopack Common Issues:**
+1. **ChunkLoadError with Radix UI**: Add `transpilePackages` for all `@radix-ui/*` packages in `next.config.ts`
+2. **Stale chunks after code changes**: Delete `.next/` directory and restart
+3. **Server crashes between sessions**: Always check `pgrep -af "next dev"` and restart if needed
+4. **Invalid config warnings**: Don't use `turbo` key in `next.config.ts` for Next.js 16+
+
+**Server Crash Recovery Steps:**
+1. `pkill -f "next dev"` — kill any zombie processes
+2. `rm -rf .next node_modules/.cache` — clear stale cache
+3. `bun run lint` — verify no code errors
+4. `bun run dev` — restart dev server
+5. Wait for `GET / 200` in dev.log
+6. Verify with `curl http://localhost:3000/`
+
+**Understanding worklog.md:**
+- Each section starts with `---` separator
+- Task ID identifies the development round
+- "Current Project Status" describes what existed before the work
+- "Completed Modifications" lists all changes made
+- "Verification Results" confirms everything works
+- "Unresolved Issues" tracks remaining work
+
+### Project Current Status
+- **Application**: Fully functional with 11 tabs, 30+ components, dark theme
+- **All upgrades from previous sessions are intact** (verified in code files)
+- **No code was lost** — the issue was purely server/cache related
+- **Dev server running** on port 3000 with Turbopack
+
+### Unresolved Issues
+1. Dev server needs manual restart after session restart (no auto-restart daemon)
+2. LP Pair Discovery still needs PulseX V2 Factory address
+3. Bot Mode simulation only (no real blockchain calls)
+4. Some data still simulated (market stats, chart history)
