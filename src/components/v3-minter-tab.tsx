@@ -1309,7 +1309,6 @@ export function V3MinterTab() {
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
                 className="bg-gray-800 border-gray-700 text-white w-full input-focus-ring"
-                disabled={!connected}
               />
             </div>
 
@@ -1322,7 +1321,6 @@ export function V3MinterTab() {
                 onChange={(e) => setCreateSymbol(e.target.value.toUpperCase())}
                 className="bg-gray-800 border-gray-700 text-white font-mono w-full input-focus-ring"
                 maxLength={10}
-                disabled={!connected}
               />
             </div>
 
@@ -1336,7 +1334,6 @@ export function V3MinterTab() {
                   value={createInitialMint}
                   onChange={(e) => setCreateInitialMint(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white font-mono w-full input-focus-ring"
-                  disabled={!connected}
                 />
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -1344,12 +1341,11 @@ export function V3MinterTab() {
                   <button
                     key={preset}
                     onClick={() => setCreateInitialMint(preset.toString())}
-                    disabled={!connected}
                     className={cn(
                       "text-[10px] px-2 py-1 rounded border transition-all duration-200 btn-hover-scale",
                       createInitialMint === preset.toString()
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                        : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400 disabled:opacity-50"
+                        : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400"
                     )}
                   >
                     {preset >= 1e6 ? `${preset / 1e6}M` : `${preset >= 1e3 ? preset / 1e3 + "K" : preset}`}
@@ -1415,12 +1411,11 @@ export function V3MinterTab() {
                       <button
                         key={opt.address}
                         onClick={() => { setCreateParent(opt.address); setCreateParentMode("preset"); }}
-                        disabled={!connected}
                         className={cn(
                           "text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 btn-hover-scale flex items-center gap-1.5",
                           createParent === opt.address && createParentMode === "preset"
                             ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-[0_0_8px_oklch(0.7_0.17_162/15%)]"
-                            : "bg-gray-800/70 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 hover:bg-gray-800 disabled:opacity-50"
+                            : "bg-gray-800/70 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 hover:bg-gray-800"
                         )}
                       >
                         <span>{opt.icon}</span>
@@ -1445,7 +1440,6 @@ export function V3MinterTab() {
                         customParentAddr && !customParentValid && !customParentChecking && "border-rose-500/40"
                       )}
                       placeholder="Paste any ERC20 token address (0x...)"
-                      disabled={!connected}
                     />
                     <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                       {customParentChecking && <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />}
@@ -1484,7 +1478,7 @@ export function V3MinterTab() {
 
             <Button
               onClick={handleCreateToken}
-              disabled={creating || !connected || (createParentMode === "custom" && !customParentValid)}
+              disabled={creating || !connected || !createName.trim() || !createSymbol.trim() || !createInitialMint || parseFloat(createInitialMint) <= 0 || (createParentMode === "custom" && !customParentValid)}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale"
             >
               {creating ? (
@@ -1523,7 +1517,6 @@ export function V3MinterTab() {
                     mintTokenInfo && "border-emerald-500/40"
                   )}
                   placeholder="Paste V3 token contract address (0x...)"
-                  disabled={!connected}
                 />
                 <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                   {mintTokenChecking && <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />}
@@ -1573,19 +1566,17 @@ export function V3MinterTab() {
                 value={mintAmount}
                 onChange={(e) => setMintAmount(e.target.value)}
                 className="bg-gray-800 border-gray-700 text-white font-mono w-full input-focus-ring"
-                disabled={!connected}
               />
               <div className="flex flex-wrap gap-1.5">
                 {[100, 1000, 5000, 10000, 50000, 100000].map((preset) => (
                   <button
                     key={preset}
                     onClick={() => setMintAmount(preset.toString())}
-                    disabled={!connected}
                     className={cn(
                       "text-[10px] px-2 py-1 rounded border transition-all duration-200 btn-hover-scale",
                       mintAmount === preset.toString()
                         ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                        : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400 disabled:opacity-50"
+                        : "bg-gray-800 border-gray-700 text-gray-500 hover:border-gray-600 hover:text-gray-400"
                     )}
                   >
                     {preset >= 1e6 ? `${preset / 1e6}M` : `${preset >= 1e3 ? preset / 1e3 + "K" : preset}`}
