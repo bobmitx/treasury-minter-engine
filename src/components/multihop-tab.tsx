@@ -2,14 +2,12 @@
 
 import { useState } from "react";
 import { useAppStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 import {
-  discoverMintingChain,
-  discoverAndPreview,
   executeAutoMultiHopMint,
   getExplorerTxUrl,
   shortenAddress,
 } from "@/lib/ethereum";
-import { CONTRACTS } from "@/lib/contracts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,19 +21,16 @@ import {
   Search,
   Eye,
   Play,
-  Zap,
   ExternalLink,
   RefreshCw,
   Loader2,
   CheckCircle2,
-  XCircle,
-  ArrowDownRight,
   Link2,
   Info,
   Shield,
-  TrendingUp,
   AlertTriangle,
   ChevronRight,
+  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ProfitIndicator } from "@/components/profit-indicator";
@@ -67,13 +62,24 @@ export function MultihopTab() {
     setDiscoveredChain([]);
     setMultihopPreview(null);
     try {
-      const chain = await discoverMintingChain(sourceToken, targetToken);
-      if (chain.length === 0) {
-        setChainError("No minting chain found between these tokens. They may not have a parent-child relationship.");
+      const res = await fetch("/api/multihop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "discover", sourceToken, targetToken }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setChainError(data.error || "Failed to discover chain");
         setDiscoveredChain([]);
       } else {
-        setDiscoveredChain(chain);
-        toast.success(`Found chain with ${chain.length} steps`);
+        const chain = data.data.mintingChain;
+        if (chain.length === 0) {
+          setChainError("No minting chain found between these tokens. They may not have a parent-child relationship.");
+          setDiscoveredChain([]);
+        } else {
+          setDiscoveredChain(chain);
+          toast.success(`Found chain with ${chain.length} steps`);
+        }
       }
     } catch (error: any) {
       setChainError(error.message || "Failed to discover chain");
@@ -91,20 +97,24 @@ export function MultihopTab() {
 
     setPreviewing(true);
     try {
-      const result = await discoverAndPreview(
-        sourceToken,
-        targetToken,
-        parseFloat(targetAmount)
-      );
-
-      setMultihopPreview({
-        sourceCost: result.sourceCost,
-        mintingChain: result.chainPath,
-        steps: result.steps,
+      const res = await fetch("/api/multihop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "discoverAndPreview", sourceToken, targetToken, targetAmount: parseFloat(targetAmount) }),
       });
-
-      setDiscoveredChain(result.chainPath);
-      toast.success("Preview calculated successfully");
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Failed to preview multihop mint");
+      } else {
+        const result = data.data;
+        setMultihopPreview({
+          sourceCost: result.sourceCost,
+          mintingChain: result.chainPath,
+          steps: result.steps,
+        });
+        setDiscoveredChain(result.chainPath);
+        toast.success("Preview calculated successfully");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to preview multihop mint");
     } finally {
@@ -249,7 +259,6 @@ export function MultihopTab() {
                   onChange={(e) => setSourceToken(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white font-mono text-xs input-focus-ring"
                   placeholder="0x... (token address)"
-                  disabled={!connected}
                 />
                 {tokens.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -299,7 +308,6 @@ export function MultihopTab() {
                   onChange={(e) => setTargetToken(e.target.value)}
                   className="bg-gray-800 border-gray-700 text-white font-mono text-xs input-focus-ring"
                   placeholder="0x... (token address)"
-                  disabled={!connected}
                 />
                 {tokens.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -346,18 +354,18 @@ export function MultihopTab() {
                 value={targetAmount}
                 onChange={(e) => setTargetAmount(e.target.value)}
                 className="bg-gray-800 border-gray-700 text-white max-w-xs input-focus-ring"
-                disabled={!connected}
               />
             </div>
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex flex-col items-start gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     onClick={handleDiscoverChain}
-                    disabled={discovering || !connected || !sourceToken || !targetToken}
+                    disabled={discovering || !sourceToken || !targetToken}
                     className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:border-gray-600 btn-hover-scale gap-2"
                   >
                     {discovering ? (
@@ -369,16 +377,33 @@ export function MultihopTab() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent className="bg-gray-900 border-gray-800 text-xs">
-                  Find the parent-child path between tokens
+                  Find the parent-child path between tokens (read-only)
                 </TooltipContent>
               </Tooltip>
+              {!sourceToken && !targetToken && (
+                <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                  <Info className="h-3 w-3" />Enter both source and target addresses
+                </p>
+              )}
+              {!sourceToken && targetToken && (
+                <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                  <Info className="h-3 w-3" />Enter a source token address
+                </p>
+              )}
+              {sourceToken && !targetToken && (
+                <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                  <Info className="h-3 w-3" />Enter a target token address
+                </p>
+              )}
+              </div>
 
+              <div className="flex flex-col items-start gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     onClick={handlePreview}
-                    disabled={previewing || !connected || !sourceToken || !targetToken || !targetAmount}
+                    disabled={previewing || !sourceToken || !targetToken || !targetAmount || parseFloat(targetAmount) <= 0}
                     className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:border-gray-600 btn-hover-scale gap-2"
                   >
                     {previewing ? (
@@ -390,17 +415,24 @@ export function MultihopTab() {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent className="bg-gray-900 border-gray-800 text-xs">
-                    Calculate cost and profitability
+                    Calculate cost and profitability (read-only)
                 </TooltipContent>
               </Tooltip>
+              {(!sourceToken || !targetToken || !targetAmount || parseFloat(targetAmount) <= 0) && (
+                <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                  <Info className="h-3 w-3" />Fill all fields with a valid amount
+                </p>
+              )}
+              </div>
 
               <Separator orientation="vertical" className="hidden sm:block h-9" />
 
+              <div className="flex flex-col items-start gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     onClick={handleAutoExecute}
-                    disabled={executing || !connected || !sourceToken || !targetToken || !targetAmount}
+                    disabled={executing || !connected || !sourceToken || !targetToken || !targetAmount || parseFloat(targetAmount) <= 0}
                     className="bg-emerald-600 hover:bg-emerald-700 text-white btn-hover-scale gap-2"
                   >
                     {executing ? (
@@ -415,6 +447,12 @@ export function MultihopTab() {
                   Automatically discover, preview and execute the mint
                 </TooltipContent>
               </Tooltip>
+              {(!connected || !sourceToken || !targetToken || !targetAmount || parseFloat(targetAmount) <= 0) && (
+                <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+                  {!connected ? <><Wallet className="h-3 w-3" />Connect wallet to execute</> : (!sourceToken || !targetToken) ? <><Info className="h-3 w-3" />Enter source and target addresses</> : (!targetAmount || parseFloat(targetAmount) <= 0) ? <><Info className="h-3 w-3" />Enter a valid target amount</> : null}
+                </p>
+              )}
+              </div>
             </div>
 
             {/* Execution Progress */}

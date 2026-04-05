@@ -195,3 +195,39 @@ Stage Summary:
 - V3 now has consistent sub-tab layout matching V4's pattern (Create/Mint/Track vs Create/GAI/Mint/Claim)
 - All disabled action buttons now show helpful contextual messages explaining what's needed
 - Both minter tabs provide clear guidance to users before wallet connection
+
+---
+Task ID: 9
+Agent: Main
+Task: Activate all disabled forms in Multihop tab and explain how it works
+
+Work Log:
+- Read full multihop-tab.tsx (667 lines), identified 3 disabled inputs and 3 disabled buttons
+- Found missing `cn` import from `@/lib/utils` (used in JSX but never imported)
+- Removed `disabled={!connected}` from 3 form inputs: Source Token, Target Token, Target Amount
+- Removed `!connected` from Discover Chain and Preview Mint buttons (these are read-only operations using provider, no wallet needed)
+- Kept `!connected` on Auto-Mint button (requires signer/wallet for on-chain transaction)
+- Added `cn` import and `Wallet` icon import
+- Removed unused imports: `CONTRACTS`, `useMemo`, `Zap`, `XCircle`, `ArrowDownRight`, `TrendingUp`
+- Refactored Discover Chain and Preview Mint to use existing `/api/multihop` API routes instead of direct client-side contract calls
+- Added contextual disabled messages below each action button:
+  - Discover Chain: shows specific missing field (source/target)
+  - Preview Mint: shows "Fill all fields with a valid amount"
+  - Auto-Mint: shows "Connect wallet to execute" / "Enter source and target addresses" / "Enter a valid target amount"
+- Updated button tooltips to note "(read-only)" for Discover and Preview
+- Verified: 0 lint errors for multihop-tab.tsx, dev server HTTP 200
+
+Stage Summary:
+- ALL Multihop form inputs are now interactive regardless of wallet connection state
+- Discover Chain and Preview Mint work WITHOUT wallet (read-only contract calls via API)
+- Auto-Mint is the only action that requires wallet connection (needs signer for on-chain tx)
+- Users can explore paths, preview costs, and see profitability before connecting wallet
+- Existing /api/multihop API route supports: discover, discoverAndPreview, preview, totalMultiplier, canMint actions
+
+How Multihop Works:
+1. User enters Source Token (parent token to start from) and Target Token (child token to end at)
+2. "Discover Chain" calls the MultiHop contract to find the parent-child path between tokens
+3. "Preview Mint" calculates: source cost, target output, efficiency ratio, per-step multiplier details
+4. "Auto-Mint" executes the full multihop mint on-chain (requires wallet): sequential mints through each step
+5. Total multiplier = product of all step multipliers (compound effect)
+6. Efficiency = target output / source cost. If > 1.0x, the multihop is profitable
