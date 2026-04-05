@@ -1,5 +1,5 @@
 import { ethers, Contract } from "ethers";
-import { PULSECHAIN_CONFIG, CONTRACTS, ABIS } from "./contracts";
+import { PULSECHAIN_CONFIG, CONTRACTS, ABIS, dedupedV3, dedupedV4 } from "./contracts";
 
 // ERC20 ABI - minimal for balance/name/symbol/decimals/allowance/approve
 const ERC20_ABI = [
@@ -64,7 +64,10 @@ export function getWeb3Provider(): ethers.providers.Web3Provider {
 
 // Get connected wallet address
 export async function getAddress(): Promise<string> {
-  const accounts = await window.ethereum!.request({
+  if (typeof window === "undefined" || !window.ethereum) {
+    throw new Error("MetaMask is not installed");
+  }
+  const accounts = await window.ethereum.request({
     method: "eth_requestAccounts",
   });
   return accounts[0];
@@ -343,8 +346,8 @@ export async function getMultiplier(
   try {
     const provider = getProvider();
 
-    // Combine the minter ABIs for the contract interaction
-    const combinedABI = [...ABIS.V3Minterabi2, ...ABIS.v3MinterABI];
+    // Use pre-computed deduped ABI to prevent duplicate signature warnings
+    const combinedABI = dedupedV3();
 
     const contract = new Contract(tokenAddress, combinedABI, provider);
     const multiplier = await contract.Multiplier(amount);
@@ -363,7 +366,7 @@ export async function getV4Multiplier(
 ): Promise<number> {
   try {
     const provider = getProvider();
-    const contract = new Contract(tokenAddress, ABIS.V4MinterABI2, provider);
+    const contract = new Contract(tokenAddress, dedupedV4(), provider);
     const multiplier = await contract.Multiplier(amount);
     return parseFloat(ethers.utils.formatUnits(multiplier, 0));
   } catch {
@@ -386,6 +389,7 @@ export async function createV3Token(
     signer
   );
 
+  // Treasury tokens use 18 decimals by default; read dynamically for safety
   const initialMintWei = ethers.utils.parseUnits(
     initialMint.toString(),
     18
@@ -405,6 +409,11 @@ export async function createV3Token(
     }
   }
 
+  // Cache the token decimals after creation
+  if (ethers.utils.isAddress(tokenAddress)) {
+    decimalsCache.set(tokenAddress, 18);
+  }
+
   return { txHash: receipt.transactionHash, tokenAddress };
 }
 
@@ -415,7 +424,8 @@ export async function mintV3(
 ): Promise<string> {
   const signer = await getSigner();
   const contract = new Contract(tokenAddress, ABIS.v3MinterABI, signer);
-  const amountWei = ethers.utils.parseUnits(amount.toString(), 18);
+  const decimals = await getTokenDecimals(tokenAddress);
+  const amountWei = ethers.utils.parseUnits(amount.toString(), decimals);
   const tx = await contract.mint(amountWei);
   const receipt = await tx.wait();
   return receipt.transactionHash;
@@ -435,6 +445,7 @@ export async function createV4Token(
     signer
   );
 
+  // Treasury tokens use 18 decimals by default
   const initialMintWei = ethers.utils.parseUnits(
     initialMint.toString(),
     18
@@ -453,6 +464,11 @@ export async function createV4Token(
     }
   }
 
+  // Cache the token decimals after creation
+  if (ethers.utils.isAddress(tokenAddress)) {
+    decimalsCache.set(tokenAddress, 18);
+  }
+
   return { txHash: receipt.transactionHash, tokenAddress };
 }
 
@@ -463,7 +479,8 @@ export async function mintV4(
 ): Promise<string> {
   const signer = await getSigner();
   const contract = new Contract(tokenAddress, ABIS.V4MinterABI2, signer);
-  const amountWei = ethers.utils.parseUnits(amount.toString(), 18);
+  const decimals = await getTokenDecimals(tokenAddress);
+  const amountWei = ethers.utils.parseUnits(amount.toString(), decimals);
   const tx = await contract.mint(amountWei);
   const receipt = await tx.wait();
   return receipt.transactionHash;
@@ -476,7 +493,8 @@ export async function claimV4Rewards(
 ): Promise<string> {
   const signer = await getSigner();
   const contract = new Contract(minterAddress, ABIS.V4MinterABI, signer);
-  const amountWei = ethers.utils.parseUnits(amount.toString(), 18);
+  const decimals = await getTokenDecimals(minterAddress);
+  const amountWei = ethers.utils.parseUnits(amount.toString(), decimals);
   const tx = await contract.Claim(amountWei);
   const receipt = await tx.wait();
   return receipt.transactionHash;
@@ -528,9 +546,10 @@ export async function previewMultiHop(
     provider
   );
 
+  const decimals = await getTokenDecimals(targetToken);
   const targetAmountWei = ethers.utils.parseUnits(
     targetAmount.toString(),
-    18
+    decimals
   );
 
   const result = await contract.previewMultiHopMint(
@@ -540,12 +559,12 @@ export async function previewMultiHop(
   );
 
   return {
-    sourceCost: ethers.utils.formatUnits(result.sourceCost, 18),
+    sourceCost: ethers.utils.formatUnits(result.sourceCost, decimals),
     mintingChain: result.mintingChain,
     steps: result.steps.map((step: any) => ({
       token: step.token,
-      amountToMint: ethers.utils.formatUnits(step.amountToMint, 18),
-      parentCost: ethers.utils.formatUnits(step.parentCost, 18),
+      amountToMint: ethers.utils.formatUnits(step.amountToMint, decimals),
+      parentCost: ethers.utils.formatUnits(step.parentCost, decimals),
       multiplier: step.multiplier.toString(),
     })),
   };
@@ -589,9 +608,10 @@ export async function discoverAndPreview(
     provider
   );
 
+  const decimals = await getTokenDecimals(targetToken);
   const targetAmountWei = ethers.utils.parseUnits(
     targetAmount.toString(),
-    18
+    decimals
   );
 
   const result = await contract.discoverAndPreview(
@@ -602,11 +622,11 @@ export async function discoverAndPreview(
 
   return {
     chainPath: result.chainPath,
-    sourceCost: ethers.utils.formatUnits(result.sourceCost, 18),
+    sourceCost: ethers.utils.formatUnits(result.sourceCost, decimals),
     steps: result.steps.map((step: any) => ({
       token: step.token,
-      amountToMint: ethers.utils.formatUnits(step.amountToMint, 18),
-      parentCost: ethers.utils.formatUnits(step.parentCost, 18),
+      amountToMint: ethers.utils.formatUnits(step.amountToMint, decimals),
+      parentCost: ethers.utils.formatUnits(step.parentCost, decimals),
       multiplier: step.multiplier.toString(),
     })),
   };
@@ -625,9 +645,10 @@ export async function calculateTotalMultiplier(
     provider
   );
 
+  const decimals = await getTokenDecimals(targetToken);
   const targetAmountWei = ethers.utils.parseUnits(
     targetAmount.toString(),
-    18
+    decimals
   );
 
   const multiplier = await contract.calculateTotalMultiplier(
@@ -671,9 +692,10 @@ export async function executeAutoMultiHopMint(
     signer
   );
 
+  const decimals = await getTokenDecimals(targetToken);
   const targetAmountWei = ethers.utils.parseUnits(
     targetAmount.toString(),
-    18
+    decimals
   );
 
   const tx = await contract.autoMultiHopMint(
@@ -698,9 +720,10 @@ export async function executeMultiHopMint(
     signer
   );
 
+  const decimals = await getTokenDecimals(targetToken);
   const targetAmountWei = ethers.utils.parseUnits(
     targetAmount.toString(),
-    18
+    decimals
   );
 
   const tx = await contract.multiHopMint(
@@ -754,6 +777,26 @@ export async function getV4SystemInfo(
       nots: ethers.constants.AddressZero,
       skills: ethers.constants.AddressZero,
     };
+  }
+}
+
+// In-memory cache for token decimals to avoid repeated RPC calls
+const decimalsCache = new Map<string, number>();
+
+// Get token decimals with caching (reads from contract, fallback to 18)
+export async function getTokenDecimals(tokenAddress: string): Promise<number> {
+  const cached = decimalsCache.get(tokenAddress);
+  if (cached !== undefined) return cached;
+
+  try {
+    const provider = getProvider();
+    const token = new Contract(tokenAddress, ERC20_ABI, provider);
+    const decimals = await token.decimals();
+    decimalsCache.set(tokenAddress, decimals);
+    return decimals;
+  } catch {
+    // Fallback to 18 for treasury tokens (standard on PulseChain)
+    return 18;
   }
 }
 

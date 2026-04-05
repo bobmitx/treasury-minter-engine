@@ -439,7 +439,7 @@ function NetworkStatus() {
       const handler = () => checkChain();
       window.ethereum.on("chainChanged", handler);
       return () => {
-        window.ethereum!.removeListener("chainChanged", handler);
+        window.ethereum?.removeListener("chainChanged", handler);
       };
     }
   }, [setChainId]);
@@ -673,7 +673,7 @@ export default function Home() {
 
     window.ethereum.on("accountsChanged", handleAccountsChanged);
     return () => {
-      window.ethereum!.removeListener("accountsChanged", handleAccountsChanged);
+      window.ethereum?.removeListener("accountsChanged", handleAccountsChanged);
     };
   }, []);
 

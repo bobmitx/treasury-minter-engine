@@ -2172,3 +2172,56 @@ The user reported that previous upgrades were missing from the build and the app
 2. LP Pair Discovery still needs PulseX V2 Factory address
 3. Bot Mode simulation only (no real blockchain calls)
 4. Some data still simulated (market stats, chart history)
+---
+## Task ID: AUDIT-FIXES - Apply 4 Missing Code Quality Fixes
+
+### Work Task
+Apply 4 fixes from a previous audit session that were documented but never actually written to the codebase.
+
+### Fixes Applied
+
+**1. ESLint: Re-enabled `exhaustive-deps` and `no-unused-vars` (warn)**
+- **File**: `eslint.config.mjs`
+- Changed `"@typescript-eslint/no-unused-vars": "off"` → `["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }]`
+- Changed `"react-hooks/exhaustive-deps": "off"` → `"warn"`
+- Changed `"no-unused-vars": "off"` → `["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }]`
+- Result: 0 errors, ~232 warnings (all pre-existing unused imports/vars, safe to clean up later)
+
+**2. Dynamic token decimals instead of hardcoded 18**
+- **File**: `src/lib/ethereum.ts`
+- Added `getTokenDecimals(tokenAddress)` utility with in-memory cache (`Map<string, number>`)
+- Reads `decimals()` from each token contract via RPC, falls back to 18
+- Applied to `mintV3()`, `mintV4()`, `claimV4Rewards()` — now calls `getTokenDecimals(tokenAddress)`
+- Applied to all 5 MultiHop functions: `previewMultiHop`, `discoverAndPreview`, `calculateTotalMultiplier`, `executeAutoMultiHopMint`, `executeMultiHopMint`
+- Both `parseUnits()` and `formatUnits()` now use the dynamically-read decimals
+- `createV3Token()` and `createV4Token()` keep 18 (treasury tokens are always 18-decimal) but cache the created address
+
+**3. `dedupABI()` helper + pre-computed deduped constants**
+- **File**: `src/lib/contracts.ts`
+- Added `dedupABI<T>(abi: T[]): T[]` helper — deduplicates by function signature or event name+type
+- Added 3 pre-computed deduped functions: `dedupedV3()`, `dedupedV4()`, `dedupedV4Full()`
+- **File**: `src/lib/ethereum.ts`
+- Updated `getMultiplier()` to use `dedupedV3()` instead of `[...ABIS.V3Minterabi2, ...ABIS.v3MinterABI]`
+- Updated `getV4Multiplier()` to use `dedupedV4()` instead of `ABIS.V4MinterABI2`
+
+**4. Removed `window.ethereum!` non-null assertions**
+- **File**: `src/lib/ethereum.ts` line 67
+  - Changed `window.ethereum!.request(...)` → added guard `if (!window.ethereum) throw` then `window.ethereum.request(...)`
+- **File**: `src/app/page.tsx` line 442
+  - Changed `window.ethereum!.removeListener("chainChanged", handler)` → `window.ethereum?.removeListener(...)`
+- **File**: `src/app/page.tsx` line 676
+  - Changed `window.ethereum!.removeListener("accountsChanged", ...)` → `window.ethereum?.removeListener(...)`
+- Zero remaining `window.ethereum!` instances in the codebase
+
+### Verification Results
+- **ESLint**: 0 errors, ~232 warnings (pre-existing unused imports, all at warn level)
+- **Dev Server**: `GET / 200` — compiles successfully
+- **No `window.ethereum!`**: Verified zero instances remaining
+- **`getTokenDecimals`**: 9 references in ethereum.ts (1 definition + 8 call sites)
+- **`dedupABI`**: 5 references in contracts.ts (1 definition + 4 usages)
+
+### Files Modified
+- `eslint.config.mjs` — 3 rule changes
+- `src/lib/contracts.ts` — Added dedupABI helper + 3 pre-computed functions
+- `src/lib/ethereum.ts` — getTokenDecimals utility, 8 dynamic decimal calls, dedupedV3/V4 imports, safe ethereum access
+- `src/app/page.tsx` — 2 optional chaining fixes

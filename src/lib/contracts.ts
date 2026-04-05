@@ -1,6 +1,34 @@
 // Auto-generated contract configuration for Treasury System
 // PulseChain V3/V4 Minter Bot Engine
 
+// Helper: deduplicate ABI entries by function/event signature to prevent
+// ethers.js warnings when combining multiple ABI arrays at runtime.
+// Uses the `signature` field (e.g. "mint(uint256)") for functions and
+// `name` + `type` for events/errors.
+function dedupABI<T extends Record<string, any>>(abi: T[]): T[] {
+  const seen = new Set<string>();
+  return abi.filter((entry) => {
+    // Use signature for functions, name+type for events/errors/constructors
+    const key = entry.signature || `${entry.type}:${entry.name || ""}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+// Pre-computed deduped ABI constants for common runtime combinations
+function dedupedV3(): any[] {
+  return dedupABI([...ABIS.V3Minterabi2, ...ABIS.v3MinterABI]);
+}
+function dedupedV4(): any[] {
+  return dedupABI([...ABIS.V4MinterABI, ...ABIS.V4MinterABI2]);
+}
+function dedupedV4Full(): any[] {
+  return dedupABI([...ABIS.V4MinterABI, ...ABIS.V4MinterABI2, ...ABIS.v3MinterABI]);
+}
+
+export { dedupABI, dedupedV3, dedupedV4, dedupedV4Full };
+
 export const PULSECHAIN_CONFIG = {
   chainId: 369,
   chainIdHex: "0x171" as const,
