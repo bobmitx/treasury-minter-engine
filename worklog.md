@@ -2225,3 +2225,35 @@ Apply 4 fixes from a previous audit session that were documented but never actua
 - `src/lib/contracts.ts` — Added dedupABI helper + 3 pre-computed functions
 - `src/lib/ethereum.ts` — getTokenDecimals utility, 8 dynamic decimal calls, dedupedV3/V4 imports, safe ethereum access
 - `src/app/page.tsx` — 2 optional chaining fixes
+
+---
+## Task ID: UPGRADE-VERIFY - Build Up-to-Date Verification
+
+### Work Task
+User reported the build might not be up to date and asked to check cron job 63759 for upgrade records.
+
+### Investigation Results
+
+**Cron Job 63759**: Standard 15-minute webDevReview cycle — does NOT contain specific upgrade records. It only has the standard review prompt template.
+
+**All 4 Audit Fixes — VERIFIED PRESENT in codebase:**
+
+| # | Fix | Status | Evidence |
+|---|-----|--------|----------|
+| 1 | ESLint re-enabled (exhaustive-deps, no-unused-vars as warnings) | ✅ PRESENT | `eslint.config.mjs`: `react-hooks/exhaustive-deps: "warn"`, `no-unused-vars: ["warn", ...]`, `@typescript-eslint/no-unused-vars: ["warn", ...]` |
+| 2 | Dynamic `decimals()` instead of hardcoded 18 | ✅ PRESENT | `src/lib/ethereum.ts`: `getTokenDecimals()` function at line 787, 8 call sites (mintV3, mintV4, claimV4Rewards, 5 MultiHop functions) |
+| 3 | `dedupABI()` helper in contracts.ts | ✅ PRESENT | `src/lib/contracts.ts`: `dedupABI()` function + `dedupedV3()`, `dedupedV4()`, `dedupedV4Full()` pre-computed functions |
+| 4 | `window.ethereum!` → optional chaining | ✅ PRESENT | `src/app/page.tsx`: `window.ethereum?.removeListener(...)` (2 instances). Zero `window.ethereum!` remaining in codebase |
+
+**Dev Server Status:**
+- Running on port 3000 ✅
+- `GET /` returns 200 ✅
+- All API routes returning 200 (gas, pls-price, pls-stats, network-health, network-stats) ✅
+- ESLint: 0 errors, 232 warnings (all pre-existing) ✅
+- Zero runtime errors ✅
+
+**Component Inventory — All 30+ components present:**
+All files from worklog documented tasks exist in `src/components/` directory.
+
+### Conclusion
+**The build IS fully up to date.** All documented upgrades, fixes, and components from the worklog are present in the current codebase. No code was lost. The previous session's concern about missing upgrades was related to cache/server issues, not actual code loss.
