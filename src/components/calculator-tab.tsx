@@ -43,12 +43,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Mint cost fetched live from API (initialized to 0 — never hardcoded)
-let _liveMintCost = 0;
-if (typeof window !== "undefined") {
-  getMintCost().then(r => { _liveMintCost = r.price; });
-}
-const getLiveMintCost = () => _liveMintCost;
+// Mint cost is fetched via useEffect below and stored in local state
+// No hardcoded values — ever.
 
 const QUICK_PRESETS = [
   { label: "Conservative", amount: 1000, icon: Shield, color: "text-emerald-400" },
@@ -83,13 +79,19 @@ function CustomBarTooltip({ active, payload, label }: any) {
 export function CalculatorTab() {
   const { mintCostUSD } = useAppStore();
   const [chartLoading] = useState(true);
+  const [localMintCost, setLocalMintCost] = useState(0);
+
+  // Use store value if available, otherwise fall back to locally fetched value
+  const effectiveMintCost = mintCostUSD || localMintCost;
 
   // Refresh live mint cost periodically
   useEffect(() => {
     let mounted = true;
     const fetchCost = async () => {
-      const r = await getMintCost();
-      if (mounted) _liveMintCost = r.price;
+      try {
+        const r = await getMintCost();
+        if (mounted) setLocalMintCost(r.price);
+      } catch { /* use stale */ }
     };
     fetchCost();
     const iv = setInterval(fetchCost, 30000);
@@ -113,21 +115,20 @@ export function CalculatorTab() {
   const mintCostCalc = useMemo(() => {
     const amount = parseFloat(mintAmount) || 0;
     const price = parseFloat(tokenPrice) || 0;
-    const cost = amount * (mintCostUSD || getLiveMintCost());
+    const cost = amount * effectiveMintCost;
     const revenue = amount * price;
     const profit = revenue - cost;
     const roi = cost > 0 ? (profit / cost) * 100 : 0;
 
     return { amount, price, cost, revenue, profit, roi };
-  }, [mintAmount, tokenPrice]);
+  }, [mintAmount, tokenPrice, effectiveMintCost]);
 
   // ─── Break-Even Analysis ───
   const breakEven = useMemo(() => {
     const price = parseFloat(tokenPrice) || 0;
-    const effectiveMintCost = mintCostUSD || getLiveMintCost();
     const tokensNeeded = (price > 0 && effectiveMintCost > 0) ? effectiveMintCost / price : 0;
     return tokensNeeded;
-  }, [tokenPrice]);
+  }, [tokenPrice, effectiveMintCost]);
 
   // ─── Multiplier Projections ───
   const multiplierData = useMemo(() => {
