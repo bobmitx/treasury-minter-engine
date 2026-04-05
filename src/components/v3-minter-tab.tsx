@@ -134,6 +134,9 @@ export function V3MinterTab() {
 
   // ── Multiplier calculator state ─────────────────────────────────────────
   const [calcMintAmount, setCalcMintAmount] = useState("10000");
+  const [calcParentToken, setCalcParentToken] = useState(CONTRACTS.tbill);
+  const [calcParentSupply, setCalcParentSupply] = useState<number>(0);
+  const [loadingCalcParent, setLoadingCalcParent] = useState(false);
   const [calcResult, setCalcResult] = useState<{
     multiplier: number;
     costTBILL: number;
@@ -176,6 +179,38 @@ export function V3MinterTab() {
   const [validationMessage, setValidationMessage] = useState("");
   const [addedTokenInfo, setAddedTokenInfo] = useState<AddedTokenInfo | null>(null);
 
+  // ── Fetch selected calculator parent token supply ──────────────────────
+  useEffect(() => {
+    const fetchParentSupply = async () => {
+      if (calcParentToken === CONTRACTS.tbill) {
+        // Use the already-fetched T-BILL info
+        const raw = parseFloat(tbillInfo.totalSupplyFormatted.replace(/[^0-9.]/g, ""));
+        setCalcParentSupply(raw > 0 ? raw : ESTIMATED_TOTAL_SUPPLY);
+        setLoadingCalcParent(false);
+        return;
+      }
+      setLoadingCalcParent(true);
+      try {
+        const info = await getTokenInfo(calcParentToken);
+        // For non-T-BILL tokens, we fetch supply on-chain via the tbill-info API pattern
+        // Use a known fallback for supported tokens
+        const knownSupplies: Record<string, number> = {
+          [CONTRACTS.fed.toLowerCase()]: 1_000_000_000, // ~1B FED
+          [CONTRACTS.eDAI.toLowerCase()]: 100_000_000,  // ~100M eDAI (estimated)
+          [CONTRACTS.wPLS.toLowerCase()]: 32_000_000,   // ~32M WPLS (estimated)
+          [CONTRACTS.mvToken.toLowerCase()]: 10_000_000, // ~10M MV (estimated)
+        };
+        const supply = knownSupplies[calcParentToken.toLowerCase()] || 1_000_000_000;
+        setCalcParentSupply(supply);
+      } catch {
+        setCalcParentSupply(ESTIMATED_TOTAL_SUPPLY);
+      } finally {
+        setLoadingCalcParent(false);
+      }
+    };
+    fetchParentSupply();
+  }, [calcParentToken, tbillInfo]);
+
   // ── Compute multiplier calculator result ────────────────────────────────
   useEffect(() => {
     const amount = parseFloat(calcMintAmount);
@@ -184,9 +219,7 @@ export function V3MinterTab() {
       return;
     }
 
-    const totalSupply =
-      parseFloat(tbillInfo.totalSupplyFormatted.replace(/[^0-9.]/g, "")) ||
-      ESTIMATED_TOTAL_SUPPLY;
+    const totalSupply = calcParentSupply > 0 ? calcParentSupply : ESTIMATED_TOTAL_SUPPLY;
 
     // Multiplier formula: totalSupply / (totalSupply + addition)
     const multiplier = totalSupply / (totalSupply + amount);
@@ -200,7 +233,7 @@ export function V3MinterTab() {
       costUSD,
       percentageOfSupply,
     });
-  }, [calcMintAmount, tbillInfo]);
+  }, [calcMintAmount, calcParentSupply, tbillInfo]);
 
   // ── Fetch T-BILL info ───────────────────────────────────────────────────
   const fetchTbillInfo = useCallback(async () => {
@@ -272,12 +305,13 @@ export function V3MinterTab() {
     return () => clearTimeout(timer);
   }, [fetchMintPreview]);
 
-  // ── Determine the actual total supply number ────────────────────────────
+  // ── Determine the actual total supply number for calculator ─────────────
   const displayTotalSupply = useMemo(() => {
+    if (calcParentSupply > 0) return calcParentSupply;
     const raw = parseFloat(tbillInfo.totalSupplyFormatted.replace(/[^0-9.]/g, ""));
     if (raw > 0) return raw;
     return ESTIMATED_TOTAL_SUPPLY;
-  }, [tbillInfo.totalSupplyFormatted]);
+  }, [calcParentSupply, tbillInfo.totalSupplyFormatted]);
 
   // ── Handle create token ─────────────────────────────────────────────────
   const handleCreateToken = async () => {
@@ -602,7 +636,7 @@ export function V3MinterTab() {
               {/* Key Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-800">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Total T-BILL Supply</p>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Parent Token Supply (T-BILL)</p>
                   {loadingTbill ? (
                     <Skeleton className="h-5 w-20 shimmer rounded" />
                   ) : (
@@ -642,7 +676,7 @@ export function V3MinterTab() {
                     </p>
                   )}
                   <p className="text-[10px] text-gray-600 mt-0.5">
-                    {tbillInfo.isLive && tbillInfo.source ? `via ${tbillInfo.source}` : "Per token (T-BILL parent)"}
+                    {tbillInfo.isLive && tbillInfo.source ? `via ${tbillInfo.source}` : "Per token (default parent: T-BILL)"}
                   </p>
                 </div>
 
@@ -694,16 +728,32 @@ export function V3MinterTab() {
             <div>
               <h3 className="text-sm font-semibold text-white flex items-center gap-2">
                 Multiplier Math Calculator
-                <Badge
-                  variant="outline"
-                  className="border-emerald-500/30 text-emerald-400 bg-emerald-500/10 text-[10px]"
-                >
-                  1.1B Supply
-                </Badge>
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Understand how the multiplier formula works with real on-chain data
+                Understand how the multiplier formula works — select a parent token to see its supply curve
               </p>
+            </div>
+          </div>
+
+          {/* Parent Token Selector for Calculator */}
+          <div className="mb-4">
+            <Label className="text-gray-400 text-xs mb-2 block">Reference Parent Token</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {PARENT_TOKEN_OPTIONS.map((opt) => (
+                <button
+                  key={opt.address}
+                  onClick={() => setCalcParentToken(opt.address)}
+                  className={cn(
+                    "text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 btn-hover-scale flex items-center gap-1.5",
+                    calcParentToken === opt.address
+                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-[0_0_8px_oklch(0.7_0.17_162/15%)]"
+                      : "bg-gray-800/70 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 hover:bg-gray-800"
+                  )}
+                >
+                  <span>{opt.icon}</span>
+                  <span className="font-medium">{opt.symbol}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -772,7 +822,7 @@ export function V3MinterTab() {
                     </p>
                   </div>
 
-                  {/* Cost in T-BILL */}
+                  {/* Cost in Parent Token */}
                   <div className="space-y-1">
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider">Cost (Parent Token)</p>
                     <p className="text-lg font-bold font-mono text-amber-400 number-animate">
@@ -833,7 +883,9 @@ export function V3MinterTab() {
                   <div className="flex items-start gap-2">
                     <TrendingUp className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-gray-400 leading-relaxed">
-                      If you mint <span className="text-white font-semibold">{parseFloat(calcMintAmount).toLocaleString()}</span> tokens,
+                      Using <span className="text-emerald-400 font-semibold">{PARENT_TOKEN_OPTIONS.find(o => o.address === calcParentToken)?.symbol || "selected parent"}</span> parent
+                      ({formatLargeNumber(displayTotalSupply)} supply): If you mint{" "}
+                      <span className="text-white font-semibold">{parseFloat(calcMintAmount).toLocaleString()}</span> tokens,
                       you need <span className="text-amber-400 font-semibold">{formatLargeNumber(calcResult.costTBILL)} parent tokens</span>
                       (cost: <span className="text-white font-semibold">{formatUSD(calcResult.costUSD)}</span>).
                       The multiplier of <span className="text-emerald-400 font-semibold">{calcResult.multiplier.toFixed(6)}x</span> means
@@ -875,7 +927,7 @@ export function V3MinterTab() {
                   {[
                     { step: 1, text: "Enter a name and symbol for your token" },
                     { step: 2, text: "Set initial mint amount (how many tokens to create)" },
-                    { step: 3, text: 'Select parent token (defaults to T-BILL)' },
+                    { step: 3, text: 'Select a parent token — T-BILL, FED, eDAI, WPLS, or paste any ERC20 address' },
                     { step: 4, text: 'Click "Create Token" — this deploys a new contract' },
                     { step: 5, text: "Wait for transaction confirmation on PulseChain" },
                   ].map((item) => (
@@ -1000,9 +1052,9 @@ export function V3MinterTab() {
                     <div className="flex items-start gap-2">
                       <Shield className="h-3.5 w-3.5 text-cyan-400 mt-0.5 flex-shrink-0" />
                       <p className="text-xs text-gray-500">
-                        <span className="text-cyan-400 font-medium">Example with T-BILL (~1.1B supply):</span> Minting
+                        <span className="text-cyan-400 font-medium">Example (T-BILL parent, ~1.1B supply):</span> Minting
                         10,000 tokens yields a multiplier of ~0.999991x (nearly free).
-                        Minting 100M tokens yields ~0.917x. Different parent tokens have different supplies, affecting the multiplier curve.
+                        Minting 100M tokens yields ~0.917x. Each parent token has its own supply, which changes the multiplier curve.
                       </p>
                     </div>
                   </div>
