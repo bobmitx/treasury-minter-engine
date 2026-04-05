@@ -245,7 +245,7 @@ const initialState = {
   isLoading: false,
   settingsOpen: false,
   onboardingOpen: false,
-  hasSeenOnboarding: false,
+  hasSeenOnboarding: true,
 
   // Market
   plsPriceUSD: 0,
