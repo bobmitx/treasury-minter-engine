@@ -2672,3 +2672,119 @@ Hardcoded old value: $0.00006972 (was always wrong)
 2. **Price refresh indicator**: Consider adding a small "via DexScreener" badge next to the T-BILL price showing the data source.
 3. **Historical price data**: No historical T-BILL price data yet. Consider storing price history for charts.
 4. **V4 T-BILL price display**: The V4 tab doesn't show T-BILL price directly — consider adding it to the MinterPurposeCard stats.
+
+---
+## Task ID: 3 - Fix V3 Minter Tab: Generalize from T-BILL-only to ANY parent token
+
+### Work Task
+Modified ONLY `src/components/v3-minter-tab.tsx` to generalize the V3 Index Minter UI from T-BILL-only parent token support to ANY ERC20 token as parent. Fixed responsive layout, added parent token dropdown selector, and generalized all T-BILL-specific text.
+
+### Changes Summary
+
+**1. Import Addition (line 14)**
+- Added `getExplorerAddressUrl` to imports from `@/lib/ethereum` for future address linking
+
+**2. PARENT_TOKEN_OPTIONS Constant (lines 75-81)**
+- Added new constant after existing constants with 5 common parent token options:
+  - T-BILL (🏛️), FED (🏦), eDAI (💵), WPLS (⛓️), MV (📊)
+- Uses addresses from existing `CONTRACTS` object
+
+**3. Generalized Explainer Text (Section 1, ~line 592-598)**
+- Changed "backed by T-BILL (the parent token)" → "backed by a parent token of your choice — T-BILL, FED, eDAI, WPLS, or any ERC20 token"
+- Changed "multiplier increases as more tokens are minted" → "multiplier is derived from the parent token's total supply"
+
+**4. Generalized "How to Mint" Important Text (~line 928-930)**
+- Changed "You need T-BILL tokens" → "You need the parent token (e.g. T-BILL, FED, etc.)"
+- Added "and the parent token's total supply" to cost explanation
+
+**5. Generalized "How Multipliers Work" Description (~line 950-953)**
+- Changed "T-BILL tokens you pay" → "parent tokens you pay"
+- Added formula explanation: "Multiplier = TotalSupply / (TotalSupply + Addition)"
+
+**6. Generalized "Early Mints" Explanation (~line 971-974)**
+- Changed "total supply" → "the parent token's total supply"
+- Changed "1 T-BILL per token" → "1 parent token per minted token"
+
+**7. Generalized "~1.1B T-BILL Supply" Note (~line 1002-1005)**
+- Changed "With ~1.1B T-BILL supply:" → "Example with T-BILL (~1.1B supply):"
+- Added "Different parent tokens have different supplies, affecting the multiplier curve."
+
+**8. Replaced Parent Token Input with Dropdown Selector (~lines 1140-1179)**
+- Removed old plain Input + T-BILL preset button
+- Added flex-wrap row of 5 quick-select buttons with icons (T-BILL, FED, eDAI, WPLS, MV)
+- Active selection gets emerald glow border with shadow
+- Custom address Input below with placeholder "Or paste any ERC20 token address..."
+- CheckCircle2 icon overlay when address matches a known token
+- Helper text explaining parent token's role
+
+**9. Added w-full to All Create Token & Mint Panel Inputs**
+- Token Name: added `w-full`
+- Symbol: added `w-full`
+- Initial Mint Amount: added `w-full`
+- Token Address (mint): added `w-full`
+- Mint Amount: added `w-full`
+
+**10. Generalized Calculator "Cost (T-BILL)" Label (~line 777)**
+- Changed "Cost (T-BILL)" → "Cost (Parent Token)"
+
+**11. Generalized Calculator Insight Text (~line 837)**
+- Changed "T-BILL tokens" → "parent tokens"
+
+### Verification Results
+- **ESLint**: `npm run lint` passes with 0 errors (226 warnings, all pre-existing)
+- **Dev Server**: Compiles successfully with `✓ Compiled in 848ms`, all API routes return 200
+- **No other files modified**: Only `src/components/v3-minter-tab.tsx` was changed
+
+---
+## Task ID: V3-ANY-TOKEN-FIX — Generalize V3 Page from T-BILL-only to ANY Parent Token
+
+### Problem
+The V3 Index Minter page appeared hardcoded to T-BILL only — all explainer text referenced T-BILL as the sole backing asset, the parent token selector was just a plain text input with a T-BILL quick-fill button, and the multiplier calculator said "Cost (T-BILL)". In reality, the V3 contract's `New()` function accepts ANY ERC20 token address as the `Parent` parameter.
+
+### Root Cause Analysis
+The V3 Index Minter contract (`0x0c4F73328dFCECfbecf235C9F78A4494a7EC5ddC`) has:
+- `New(string Name, string Symbol, uint256 InitialMint, address Parent)` — Parent can be ANY ERC20
+- `mint(uint256 amount)` — mints using the parent token
+- `Multiplier(uint256 addition)` — derived from parent's total supply
+- `Parent()` — returns the parent token address
+
+The UI was written with T-BILL as the assumed sole parent, which was technically correct as the most common choice but misleading to users.
+
+### Changes Made
+
+**File Modified: `src/components/v3-minter-tab.tsx`** (12 targeted changes, all existing logic preserved)
+
+| # | Change | Description |
+|---|--------|-------------|
+| 1 | Added `getExplorerAddressUrl` import | From `@/lib/ethereum` for future contract links |
+| 2 | Added `PARENT_TOKEN_OPTIONS` constant | 5 common tokens: T-BILL 🏛️, FED 🏦, eDAI 💵, WPLS ⛓️, MV 📊 |
+| 3 | Generalized Section 1 explainer text | "parent token of your choice — T-BILL, FED, eDAI, WPLS, or any ERC20 token" |
+| 4 | Generalized "How to Mint" guide | "parent token (e.g. T-BILL, FED, etc.)" instead of "T-BILL tokens" |
+| 5 | Generalized "How Multipliers Work" | Added formula, "parent tokens" instead of "T-BILL tokens" |
+| 6 | Generalized "Early Mints" explanation | "parent token's total supply" / "1 parent token per minted token" |
+| 7 | Generalized "~1.1B T-BILL supply" note | "Example with T-BILL" + different supply curves note |
+| 8 | Replaced Parent Token input with dropdown | Icon buttons for 5 tokens + custom address input + CheckCircle2 validation |
+| 9 | Added `w-full` to Create Token inputs | Token Name, Symbol, Initial Mint — responsive fix |
+| 10 | Added `w-full` to Mint Panel inputs | Token Address, Mint Amount — responsive fix |
+| 11 | Generalized "Cost (T-BILL)" label | Changed to "Cost (Parent Token)" in multiplier calculator |
+| 12 | Generalized Calculator Insight text | "parent tokens" instead of "T-BILL tokens" |
+
+### What Was NOT Changed (Preserved)
+- All state management (useAppStore hooks, local state)
+- All effects (fetchTbillInfo, fetchMultiplier, fetchMintPreview)
+- All handlers (handleCreateToken, handleMint, handleAddToken, etc.)
+- All API calls and on-chain data fetching
+- Token list, validation, and custom token features
+- Responsive grid layout (`grid-cols-1 lg:grid-cols-2`)
+
+### Verification Results
+- **ESLint**: 0 errors (226 pre-existing warnings in other files)
+- **Dev Server**: Compiles successfully with Turbopack, all routes return 200
+- **No other files modified**: Only `src/components/v3-minter-tab.tsx` was changed
+
+### Remaining T-BILL References (Appropriate)
+The following T-BILL references were intentionally kept:
+- Constants/comments (ESTIMATED_TOTAL_SUPPLY, PARENT_TOKEN_OPTIONS)
+- "Total T-BILL Supply" stat card (shows actual T-BILL on-chain data)
+- "T-BILL parent" label on mint cost (T-BILL is still the default/most common parent)
+- Guide text listing T-BILL as one example among many

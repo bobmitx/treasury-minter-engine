@@ -11,6 +11,7 @@ import {
   getTokenInfo,
   getMintCost,
   getExplorerTxUrl,
+  getExplorerAddressUrl,
   shortenAddress,
   formatUSD,
   formatLargeNumber,
@@ -70,6 +71,14 @@ import { toast } from "sonner";
 const V3_INDEX_MINTER = "0x0c4F73328dFCECfbecf235C9F78A4494a7EC5ddC";
 const T_BILL_ADDRESS = "0x463413c579D29c26D59a65312657DFCe30D545A1";
 const ESTIMATED_TOTAL_SUPPLY = 1_100_000_000; // ~1.1 billion T-BILL
+
+const PARENT_TOKEN_OPTIONS = [
+  { address: CONTRACTS.tbill, symbol: "T-BILL", name: "Treasury Bill", icon: "🏛️" },
+  { address: CONTRACTS.fed, symbol: "FED", name: "Federal Reserve Note", icon: "🏦" },
+  { address: CONTRACTS.eDAI, symbol: "eDAI", name: "Electronic DAI", icon: "💵" },
+  { address: CONTRACTS.wPLS, symbol: "WPLS", name: "Wrapped PLS", icon: "⛓️" },
+  { address: CONTRACTS.mvToken, symbol: "MV", name: "Market Vault", icon: "📊" },
+] as const;
 
 // ── T-BILL On-Chain Info Types ──────────────────────────────────────────────
 interface TBillInfo {
@@ -582,11 +591,11 @@ export function V3MinterTab() {
               <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-800">
                 <p className="text-sm text-gray-300 leading-relaxed">
                   The <span className="text-emerald-400 font-semibold">V3 Index Minter</span> is a factory contract
-                  on PulseChain that creates treasury-backed tokens. Each token created is backed by{" "}
-                  <span className="text-emerald-400 font-semibold">T-BILL</span> (the parent token). When you mint,
-                  you pay in T-BILL tokens and receive the new token. The{" "}
-                  <span className="text-emerald-400 font-semibold">multiplier</span> increases as more tokens are
-                  minted, rewarding early adopters with lower mint costs.
+                  on PulseChain that creates treasury-backed tokens. Each token is backed by a{" "}
+                  <span className="text-emerald-400 font-semibold">parent token</span> of your choice — T-BILL, FED, eDAI, WPLS, or any ERC20 token.
+                  When you mint, you pay in the parent token and receive the new token. The{" "}
+                  <span className="text-emerald-400 font-semibold">multiplier</span> is derived from the parent token&apos;s total supply,
+                  rewarding early adopters with lower mint costs.
                 </p>
               </div>
 
@@ -765,7 +774,7 @@ export function V3MinterTab() {
 
                   {/* Cost in T-BILL */}
                   <div className="space-y-1">
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Cost (T-BILL)</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">Cost (Parent Token)</p>
                     <p className="text-lg font-bold font-mono text-amber-400 number-animate">
                       {formatLargeNumber(calcResult.costTBILL)}
                     </p>
@@ -825,7 +834,7 @@ export function V3MinterTab() {
                     <TrendingUp className="h-3.5 w-3.5 text-emerald-400 mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-gray-400 leading-relaxed">
                       If you mint <span className="text-white font-semibold">{parseFloat(calcMintAmount).toLocaleString()}</span> tokens,
-                      you need <span className="text-amber-400 font-semibold">{formatLargeNumber(calcResult.costTBILL)} T-BILL</span> tokens
+                      you need <span className="text-amber-400 font-semibold">{formatLargeNumber(calcResult.costTBILL)} parent tokens</span>
                       (cost: <span className="text-white font-semibold">{formatUSD(calcResult.costUSD)}</span>).
                       The multiplier of <span className="text-emerald-400 font-semibold">{calcResult.multiplier.toFixed(6)}x</span> means
                       each minted token costs approximately{" "}
@@ -917,8 +926,8 @@ export function V3MinterTab() {
                   <div className="flex items-start gap-2 pt-1">
                     <Wallet className="h-3.5 w-3.5 text-amber-400 mt-0.5 flex-shrink-0" />
                     <p className="text-xs text-gray-500">
-                      <span className="text-amber-400 font-medium">Important:</span> You need T-BILL tokens in your wallet to pay
-                      for the mint. The cost depends on the current multiplier at the time of minting.
+                      <span className="text-amber-400 font-medium">Important:</span> You need the parent token (e.g. T-BILL, FED, etc.) in your wallet to pay
+                      for the mint. The cost depends on the current multiplier and the parent token&apos;s total supply.
                     </p>
                   </div>
                 </div>
@@ -939,8 +948,9 @@ export function V3MinterTab() {
                 <div className="bg-gray-800/40 rounded-lg p-4 border border-gray-800 space-y-4">
                   <div className="space-y-3">
                     <p className="text-sm text-gray-300 leading-relaxed">
-                      The multiplier determines how many T-BILL tokens you pay per minted token. It&apos;s a
-                      core mechanism of the treasury system that rewards early adopters.
+                      The multiplier determines how many parent tokens you pay per minted token. It&apos;s
+                      calculated from the parent token&apos;s total supply using the formula: Multiplier = TotalSupply / (TotalSupply + Addition).
+                      This rewards early adopters with lower costs.
                     </p>
 
                     {/* Formula Card */}
@@ -959,9 +969,9 @@ export function V3MinterTab() {
                           <p className="text-xs font-semibold text-emerald-400">Early Mints</p>
                         </div>
                         <p className="text-xs text-gray-400">
-                          Lower multiplier = cheaper minting. When total supply is large relative
+                          Lower multiplier = cheaper minting. When the parent token&apos;s total supply is large relative
                           to your addition, the multiplier is close to 1.0x, meaning you pay
-                          approximately 1 T-BILL per token.
+                          approximately 1 parent token per minted token.
                         </p>
                       </div>
 
@@ -990,10 +1000,9 @@ export function V3MinterTab() {
                     <div className="flex items-start gap-2">
                       <Shield className="h-3.5 w-3.5 text-cyan-400 mt-0.5 flex-shrink-0" />
                       <p className="text-xs text-gray-500">
-                        <span className="text-cyan-400 font-medium">With ~1.1B T-BILL supply:</span> Minting
+                        <span className="text-cyan-400 font-medium">Example with T-BILL (~1.1B supply):</span> Minting
                         10,000 tokens yields a multiplier of ~0.999991x (nearly free).
-                        Minting 100M tokens yields ~0.917x. This is why early mints are
-                        extremely profitable when the token appreciates on DEXes.
+                        Minting 100M tokens yields ~0.917x. Different parent tokens have different supplies, affecting the multiplier curve.
                       </p>
                     </div>
                   </div>
@@ -1102,7 +1111,7 @@ export function V3MinterTab() {
                 placeholder="My Token"
                 value={createName}
                 onChange={(e) => setCreateName(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white input-focus-ring"
+                className="bg-gray-800 border-gray-700 text-white w-full input-focus-ring"
                 disabled={!connected}
               />
             </div>
@@ -1112,7 +1121,7 @@ export function V3MinterTab() {
                 placeholder="MTK"
                 value={createSymbol}
                 onChange={(e) => setCreateSymbol(e.target.value.toUpperCase())}
-                className="bg-gray-800 border-gray-700 text-white font-mono input-focus-ring"
+                className="bg-gray-800 border-gray-700 text-white font-mono w-full input-focus-ring"
                 maxLength={10}
                 disabled={!connected}
               />
@@ -1124,28 +1133,48 @@ export function V3MinterTab() {
                 placeholder="1000"
                 value={createInitialMint}
                 onChange={(e) => setCreateInitialMint(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white input-focus-ring"
+                className="bg-gray-800 border-gray-700 text-white w-full input-focus-ring"
                 disabled={!connected}
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-gray-300 text-sm">Parent Token</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={createParent}
-                  onChange={(e) => setCreateParent(e.target.value)}
-                  className="bg-gray-800 border-gray-700 text-white font-mono text-xs flex-1 input-focus-ring"
-                  placeholder="0x..."
-                  disabled={!connected}
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-gray-700 text-gray-400 hover:bg-gray-800 text-xs flex-shrink-0 btn-hover-scale"
-                  onClick={() => setCreateParent(CONTRACTS.tbill)}
-                >
-                  T-BILL
-                </Button>
+              <Label className="text-gray-300 text-sm">Parent Token (backing asset)</Label>
+              <div className="space-y-2">
+                {/* Quick-select dropdown buttons */}
+                <div className="flex flex-wrap gap-1.5">
+                  {PARENT_TOKEN_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.address}
+                      onClick={() => setCreateParent(opt.address)}
+                      disabled={!connected}
+                      className={cn(
+                        "text-xs px-2.5 py-1.5 rounded-lg border transition-all duration-200 btn-hover-scale flex items-center gap-1.5",
+                        createParent === opt.address
+                          ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-[0_0_8px_oklch(0.7_0.17_162/15%)]"
+                          : "bg-gray-800/70 border-gray-700 text-gray-400 hover:border-gray-600 hover:text-gray-300 hover:bg-gray-800"
+                      )}
+                    >
+                      <span>{opt.icon}</span>
+                      <span className="font-medium">{opt.symbol}</span>
+                    </button>
+                  ))}
+                </div>
+                {/* Custom address input */}
+                <div className="relative">
+                  <Input
+                    value={createParent}
+                    onChange={(e) => setCreateParent(e.target.value)}
+                    className="bg-gray-800 border-gray-700 text-white font-mono text-xs w-full input-focus-ring pr-8"
+                    placeholder="Or paste any ERC20 token address..."
+                    disabled={!connected}
+                  />
+                  {createParent && PARENT_TOKEN_OPTIONS.some((o) => o.address === createParent) && (
+                    <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-emerald-400" />
+                  )}
+                </div>
+                <p className="text-[10px] text-gray-600 leading-relaxed">
+                  The parent token determines what asset backs your new token and affects the multiplier curve. T-BILL is the most common choice.
+                </p>
               </div>
             </div>
             <Button
@@ -1182,7 +1211,7 @@ export function V3MinterTab() {
               <Input
                 value={mintToken}
                 onChange={(e) => setMintToken(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white font-mono text-xs input-focus-ring"
+                className="bg-gray-800 border-gray-700 text-white font-mono text-xs w-full input-focus-ring"
                 placeholder="0x..."
                 disabled={!connected}
               />
@@ -1211,7 +1240,7 @@ export function V3MinterTab() {
                 placeholder="1000"
                 value={mintAmount}
                 onChange={(e) => setMintAmount(e.target.value)}
-                className="bg-gray-800 border-gray-700 text-white input-focus-ring"
+                className="bg-gray-800 border-gray-700 text-white w-full input-focus-ring"
                 disabled={!connected}
               />
             </div>
