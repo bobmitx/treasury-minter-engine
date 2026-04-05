@@ -147,3 +147,21 @@ Stage Summary:
 - Parent token selection UI matches V3 pattern: preset quick-select buttons + custom ERC20 address input with live validation
 - All T-BILL hardcoded references in V4 guide text generalized
 - V3 and V4 minter tabs have consistent parent token selection UX
+
+---
+Task ID: 7
+Agent: Main
+Task: Fix CALL_EXCEPTION console error — reduce RPC provider timeout
+
+Work Log:
+- Analyzed console error: `CALL_EXCEPTION` with `timeout` on `eth_call` to V4 minter `0x394c3D5990cEfC7Be36B82FDB07a7251ACe61cc7`, selector `0x662d6d76` (BBC())
+- Verified selector 0x662d6d76 = BBC() function, called from `getV4SystemInfo` via `safeContractRead`
+- Confirmed `safeContractRead` already has 30s timeout, but the JsonRpcProvider had no explicit timeout (defaults to 120s in ethers.js v5)
+- Root cause: ethers.js internal RPC timeout (120s) exceeded PulseChain RPC response time, causing unhandled rejection in console
+- Fix: Added `timeout: 30000` to JsonRpcProvider options in `getProvider()` in ethereum.ts line 44
+- Verified: 0 lint errors after change
+
+Stage Summary:
+- Reduced RPC provider timeout from 120s (default) to 30s to match safeContractRead timeout
+- This prevents long-running eth_call from causing console CALL_EXCEPTION errors
+- V3 tab confirmed already fixed from previous sessions (Tasks 1-2)

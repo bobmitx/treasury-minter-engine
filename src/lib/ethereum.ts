@@ -41,7 +41,7 @@ export function getProvider(): ethers.providers.JsonRpcProvider {
     readOnlyProvider = new ethers.providers.JsonRpcProvider(
       PULSECHAIN_CONFIG.rpcUrl,
       undefined,
-      { staticNetwork: true, pollingInterval: 15000 }
+      { staticNetwork: true, pollingInterval: 15000, timeout: 30000 }
     );
   }
   return readOnlyProvider;
