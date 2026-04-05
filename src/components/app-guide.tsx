@@ -37,6 +37,8 @@ import {
   ExternalLink,
   GitBranch,
   HelpCircle,
+  GitCompare,
+  Users,
 } from "lucide-react";
 
 function CodeBlock({ children }: { children: React.ReactNode }) {
@@ -135,7 +137,7 @@ export function AppGuide() {
       {/* Accordion Sections */}
       <Accordion
         type="multiple"
-        defaultValue={["section-1", "section-6"]}
+        defaultValue={["section-1", "section-8"]}
         className="space-y-2"
       >
         {/* Section 1: What is the Treasury Minter Engine? */}
@@ -906,6 +908,343 @@ export function AppGuide() {
                   <div>
                     <span className="font-medium text-white">Refresh Rate:</span>{" "}
                     Prices refresh every <span className="text-emerald-400 font-mono">15 seconds</span> by default. You can configure this interval in Settings (5s – 120s range).
+                  </div>
+                </div>
+              </HighlightBox>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Section 8: V3 Index vs V4 Personal — Deep Comparison */}
+        <AccordionItem
+          value="section-8"
+          className="bg-gray-900 border border-gray-800 rounded-xl px-4 gradient-border card-hover"
+        >
+          <AccordionTrigger className="text-white hover:no-underline hover:text-emerald-400 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/10 to-amber-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <GitCompare className="h-4 w-4 text-emerald-400" />
+              </div>
+              <div className="text-left">
+                <div className="text-sm font-semibold flex items-center gap-2">
+                  V3 Index vs V4 Personal
+                  <Badge className="bg-emerald-500/10 text-amber-400 border-amber-500/20 text-[10px]">
+                    Deep Dive
+                  </Badge>
+                </div>
+                <div className="text-xs text-gray-500 font-normal mt-0.5">
+                  Shared vs independent multiplier economies explained
+                </div>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="pb-4">
+            <div className="space-y-4 pt-1">
+              {/* The Core Difference */}
+              <p className="text-sm text-gray-300 leading-relaxed">
+                The words <span className="text-emerald-400 font-medium">&ldquo;Index&rdquo;</span> and <span className="text-amber-400 font-medium">&ldquo;Personal&rdquo;</span> describe fundamentally different economic models for how minting costs are calculated. Understanding this difference is key to choosing the right minter for your use case.
+              </p>
+
+              {/* Side-by-side visual comparison */}
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-xs text-emerald-400 font-semibold">V3 Index Context</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    <span className="text-white font-medium">Shared multiplier curve</span> across all V3 tokens. All tokens created from the same parent token (e.g., T-BILL) share the same underlying total supply for multiplier calculations.
+                  </p>
+                </div>
+                <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-400" />
+                    <span className="text-xs text-amber-400 font-semibold">V4 Personal Context</span>
+                  </div>
+                  <p className="text-[11px] text-gray-400 leading-relaxed">
+                    <span className="text-white font-medium">Independent multiplier curve</span> per token. Each V4 token has its own supply that only changes when <em>that specific token</em> is minted.
+                  </p>
+                </div>
+              </div>
+
+              {/* Shared vs Independent - Deep Explanation */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Users className="h-3.5 w-3.5 text-emerald-400" />
+                  The Core Difference: Shared vs Independent
+                </h4>
+
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50 space-y-3">
+                  {/* V3 explanation */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                        <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                      </div>
+                      <h5 className="text-sm font-semibold text-emerald-400">V3: Shared Multiplier Economy</h5>
+                    </div>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      In V3, when you pick a parent token (e.g., T-BILL, FED, WPLS, or any custom ERC20), the factory creates a new token backed by that parent. The <span className="text-white font-medium">multiplier curve depends on the parent token&apos;s total supply</span>. If 1,000 people all create V3 tokens backed by T-BILL, they all share the same T-BILL supply. When Person A mints a large amount, it pushes the multiplier curve for <span className="text-emerald-400 font-medium">everyone</span> using T-BILL as a parent.
+                    </p>
+                    <HighlightBox variant="emerald">
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="h-3.5 w-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>
+                          <span className="font-medium text-emerald-300">Analogy:</span> Like a shared swimming pool — everyone draws from the same source. The more people draw, the more expensive it becomes for the next person, regardless of which token they&apos;re creating.
+                        </span>
+                      </div>
+                    </HighlightBox>
+                  </div>
+
+                  <div className="border-t border-gray-700/50 my-3" />
+
+                  {/* V4 explanation */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-md bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                        <Gem className="h-3.5 w-3.5 text-amber-400" />
+                      </div>
+                      <h5 className="text-sm font-semibold text-amber-400">V4: Independent Multiplier Economy</h5>
+                    </div>
+                    <p className="text-xs text-gray-400 leading-relaxed">
+                      In V4, each token has its own <span className="text-white font-medium">isolated multiplier curve</span>. The multiplier depends on the token&apos;s own total supply, not the parent&apos;s. If Alice creates ALICE-V4 and Bob creates BOB-V4, they have completely independent multiplier curves. Alice minting 1M ALICE-V4 tokens does <span className="text-amber-400 font-medium">not</span> affect Bob&apos;s minting cost at all.
+                    </p>
+                    <HighlightBox variant="amber">
+                      <div className="flex items-start gap-2">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-400 shrink-0 mt-0.5" />
+                        <span>
+                          <span className="font-medium text-amber-300">Analogy:</span> Each person gets their own private well. What you pump from your well doesn&apos;t affect your neighbor&apos;s well.
+                        </span>
+                      </div>
+                    </HighlightBox>
+                  </div>
+                </div>
+              </div>
+
+              {/* Multiplier Formulas */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Calculator className="h-3.5 w-3.5 text-emerald-400" />
+                  Multiplier Formulas
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <FormulaBlock
+                    label="V3 — Parent-Based Multiplier"
+                    formula="M = ParentSupply / (ParentSupply + Addition)"
+                  />
+                  <FormulaBlock
+                    label="V4 — Token-Based Multiplier"
+                    formula="M = TokenSupply / (TokenSupply + Addition)"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  In both cases, the multiplier approaches 0 as the addition grows relative to the reference supply. Early mints get a multiplier close to 1.0x (cheaper), while large mints reduce it.
+                </p>
+              </div>
+
+              {/* Concrete Example */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <ArrowRight className="h-3.5 w-3.5 text-emerald-400" />
+                  Concrete Example
+                </h4>
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700/50 space-y-3">
+                  <p className="text-xs text-gray-300 leading-relaxed">
+                    Suppose T-BILL has a total supply of <span className="text-emerald-400 font-mono font-medium">21,000,000</span>. Alice creates <span className="text-emerald-400 font-medium">ALICE-TOKEN</span> (V3) and Bob creates <span className="text-emerald-400 font-medium">BOB-V4</span> (V4), both backed by T-BILL with 1,000 initial supply:
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-3 space-y-2">
+                      <p className="text-[10px] text-emerald-500/70 uppercase tracking-wider font-medium">V3 — Alice Mints</p>
+                      <ul className="space-y-1 text-xs text-gray-400">
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-emerald-400 mt-0.5">&#x2022;</span>
+                          <span>Multiplier based on T-BILL supply (21M)</span>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-emerald-400 mt-0.5">&#x2022;</span>
+                          <span>If she mints 1M → multiplier drops to ~0.955</span>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-emerald-400 mt-0.5">&#x2022;</span>
+                          <span>Cost paid <span className="text-white">in T-BILL tokens</span></span>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-rose-400 mt-0.5">&#x2022;</span>
+                          <span className="text-rose-300">Affects ALL other T-BILL-backed tokens</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-lg p-3 space-y-2">
+                      <p className="text-[10px] text-amber-500/70 uppercase tracking-wider font-medium">V4 — Bob Mints</p>
+                      <ul className="space-y-1 text-xs text-gray-400">
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-amber-400 mt-0.5">&#x2022;</span>
+                          <span>Multiplier based on BOB-V4 supply (1K)</span>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-amber-400 mt-0.5">&#x2022;</span>
+                          <span>If he mints 1M → multiplier drops to ~0.001</span>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-amber-400 mt-0.5">&#x2022;</span>
+                          <span>Cost paid <span className="text-white">in T-BILL tokens</span></span>
+                        </li>
+                        <li className="flex items-start gap-1.5">
+                          <span className="text-emerald-400 mt-0.5">&#x2022;</span>
+                          <span className="text-emerald-300">Does NOT affect Alice or anyone else</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* V4 Multi-Contract Architecture */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Database className="h-3.5 w-3.5 text-amber-400" />
+                  V4 Multi-Contract Architecture
+                </h4>
+                <p className="text-xs text-gray-400 leading-relaxed">
+                  V4&apos;s &ldquo;Personal&rdquo; minter is architecturally more complex with several sub-contracts that enable advanced features like reward claiming and GAI token creation.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { name: "BBC", desc: "Base treasury contract", color: "border-amber-500/20 text-amber-400 bg-amber-500/5" },
+                    { name: "Index Minter", desc: "V3 cross-compat link", color: "border-emerald-500/20 text-emerald-400 bg-emerald-500/5" },
+                    { name: "NINE", desc: "Active / Zero", color: "border-gray-500/20 text-gray-400 bg-gray-800/50" },
+                    { name: "NOTS", desc: "Active / Zero", color: "border-gray-500/20 text-gray-400 bg-gray-800/50" },
+                  ].map((item) => (
+                    <div
+                      key={item.name}
+                      className={cn("border rounded-lg p-2.5", item.color)}
+                    >
+                      <div className="text-xs font-bold font-mono">{item.name}</div>
+                      <div className="text-[10px] text-gray-500">{item.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Feature Comparison Table */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <GitCompare className="h-3.5 w-3.5 text-emerald-400" />
+                  Feature Comparison Table
+                </h4>
+                <div className="bg-gray-800/30 rounded-lg border border-gray-700/30 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-gray-700/50">
+                          <th className="text-left py-2.5 px-3 text-gray-400 font-medium">Feature</th>
+                          <th className="text-center py-2.5 px-3 text-emerald-400 font-medium">V3 Index</th>
+                          <th className="text-center py-2.5 px-3 text-amber-400 font-medium">V4 Personal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          { feature: "Create standard token", v3: true, v4: true },
+                          { feature: "Mint tokens", v3: true, v4: true },
+                          { feature: "Custom ERC20 parent", v3: true, v4: true },
+                          { feature: "Shared multiplier curve", v3: true, v4: false },
+                          { feature: "Independent multiplier", v3: false, v4: true },
+                          { feature: "GAI token creation", v3: false, v4: true },
+                          { feature: "Claim rewards", v3: false, v4: true },
+                          { feature: "Withdraw tokens", v3: false, v4: true },
+                          { feature: "Transfer ownership", v3: false, v4: true },
+                          { feature: "Multi-contract system", v3: false, v4: true },
+                          { feature: "Single factory contract", v3: true, v4: false },
+                        ].map((row, i) => (
+                          <tr key={row.feature} className={cn("border-b border-gray-700/30 last:border-b-0", i % 2 === 0 && "bg-gray-800/20")}>
+                            <td className="py-2 px-3 text-gray-300">{row.feature}</td>
+                            <td className="py-2 px-3 text-center">
+                              {row.v3 ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 inline" />
+                              ) : (
+                                <span className="text-gray-600">&mdash;</span>
+                              )}
+                            </td>
+                            <td className="py-2 px-3 text-center">
+                              {row.v4 ? (
+                                <CheckCircle2 className="h-3.5 w-3.5 text-amber-400 inline" />
+                              ) : (
+                                <span className="text-gray-600">&mdash;</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* When to Use Which */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Target className="h-3.5 w-3.5 text-emerald-400" />
+                  When to Use Which?
+                </h4>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-emerald-400" />
+                      <h5 className="text-sm font-semibold text-emerald-400">Choose V3 When...</h5>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-gray-400">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>You want a community-wide token economy</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>All participants should share the same cost curve</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>You prefer simplicity with fewer moving parts</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>Using a well-known parent (T-BILL, FED, etc.)</span>
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="bg-amber-500/5 border border-amber-500/15 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Gem className="h-4 w-4 text-amber-400" />
+                      <h5 className="text-sm font-semibold text-amber-400">Choose V4 When...</h5>
+                    </div>
+                    <ul className="space-y-1.5 text-xs text-gray-400">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" />
+                        <span>You want full control over your token&apos;s economics</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" />
+                        <span>You need GAI staking tokens or reward claiming</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" />
+                        <span>Other token creators shouldn&apos;t affect your costs</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-amber-400 shrink-0 mt-0.5" />
+                        <span>You need token ownership transfer or withdrawals</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Key Insight */}
+              <HighlightBox variant="gray">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium text-white">Key Insight:</span>{" "}
+                    V4 tokens have independent multiplier curves &mdash; each token&apos;s multiplier depends on its own total supply, not a shared parent&apos;s supply. This means your minting costs are predictable and unaffected by other users&apos; behavior. The trade-off is more complex contract architecture.
                   </div>
                 </div>
               </HighlightBox>
