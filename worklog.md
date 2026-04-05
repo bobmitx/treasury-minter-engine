@@ -2066,3 +2066,32 @@ All selection patterns changed from `bg-emerald-500/20 border-emerald-500/30 tex
 
 ### Design Decision
 The selected state no longer changes the interior of any window/chip/button. Instead, it adds a subtle amber glow border that clearly indicates selection without altering the content area. This prevents the "bright orange gradient window" issue while maintaining clear visual feedback for active/selected elements.
+
+---
+## Task ID: BUILD-VERIFY - Build Verification & Cache Clear
+
+### Current Project Status
+User reported "upgrades were made but this build is missing them." Investigation revealed the issue was stale Turbopack cache from previous sessions. All code changes were verified to be present in the codebase.
+
+### Actions Taken
+
+**1. Cache Clear & Fresh Build**
+- Killed all running dev server processes
+- Deleted `.next` directory completely
+- Started fresh dev server with `NODE_OPTIONS="--max-old-space-size=768"`
+- Server compiled successfully: GET / 200 in 7.2s (compile: 6.6s, render: 610ms)
+- All API routes returning 200: /api/pls-price, /api/gas, /api/network-health, /api/network-stats, /api/pls-stats
+
+**2. Code Verification (All 6 Recent Upgrades Confirmed Present)**
+- ✅ AMBER-SELECTION: `selected-amber-glow` in 8 component files + `amber-tab-indicator` on tab indicator
+- ✅ FIX-ORANGE-GRADIENT: Mesh gradients use emerald `oklch(0.7 0.17 162)` — no amber/orange
+- ✅ APP-GUIDE: `app-guide.tsx` exists, "guide" in TabType, rendered in page.tsx
+- ✅ Network Stats Bar: `network-stats-bar.tsx` integrated in dashboard
+- ✅ Token Price Chart: `token-price-chart.tsx` integrated in token detail dialog
+- ✅ V3 CALL_EXCEPTION Fix: Multiplier fetches for selected token, not factory
+
+**3. ESLint**: Zero errors
+
+### Note on Server Stability
+The next-server process uses ~1.2-1.7GB RAM during compilation, which may cause OOM kills in sandbox environment. The server compiled and served the page but may need periodic restarts. Setting NODE_OPTIONS to limit memory helps but may slow compilation.
+
